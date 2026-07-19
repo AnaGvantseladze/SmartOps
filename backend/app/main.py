@@ -39,8 +39,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="OpsCore API",
-    description="Unified Service Lifecycle Platform — Alert, Incident, and Change Management",
+    title="SmartOps API",
+    description="Unified service-lifecycle platform — alert, incident, and change management in a single, modular hub.",
     version="0.1.0",
     lifespan=lifespan,
 )
