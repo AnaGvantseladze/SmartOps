@@ -94,27 +94,6 @@ ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
         Permission.SETTINGS_VIEW,
         Permission.SETTINGS_NOTIFICATIONS,
     },
-    UserRole.NOC_ANALYST: {
-        Permission.DASHBOARD_VIEW,
-        Permission.ALERTS_VIEW,
-        Permission.ALERTS_MANAGE,
-        Permission.INCIDENTS_VIEW,
-        Permission.SERVICES_VIEW,
-        Permission.SETTINGS_VIEW,
-        Permission.SETTINGS_NOTIFICATIONS,
-        Permission.SETTINGS_ON_CALL,
-    },
-    UserRole.INCIDENT_MANAGER: {
-        Permission.DASHBOARD_VIEW,
-        Permission.DASHBOARD_EXECUTIVE,
-        Permission.ALERTS_VIEW,
-        Permission.INCIDENTS_VIEW,
-        Permission.INCIDENTS_MANAGE,
-        Permission.SERVICES_VIEW,
-        Permission.SETTINGS_VIEW,
-        Permission.SETTINGS_NOTIFICATIONS,
-        Permission.SETTINGS_ON_CALL,
-    },
     UserRole.CHANGE_MANAGER: {
         Permission.DASHBOARD_VIEW,
         Permission.CHANGES_VIEW,
@@ -124,53 +103,34 @@ ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
         Permission.SETTINGS_VIEW,
         Permission.SETTINGS_NOTIFICATIONS,
     },
-    UserRole.VIEWER: {
-        Permission.DASHBOARD_VIEW,
-        Permission.ALERTS_VIEW,
-        Permission.INCIDENTS_VIEW,
-        Permission.CHANGES_VIEW,
-        Permission.SERVICES_VIEW,
-    },
 }
 
 ROLE_LANDING_PAGES: dict[UserRole, str] = {
     UserRole.ADMIN: "/settings",
     UserRole.ENGINEER: "/alerts",
     UserRole.MANAGER: "/",
-    UserRole.NOC_ANALYST: "/alerts",
-    UserRole.INCIDENT_MANAGER: "/incidents",
     UserRole.CHANGE_MANAGER: "/changes",
-    UserRole.VIEWER: "/",
 }
 
 ROLE_NAV_ITEMS: dict[UserRole, list[str]] = {
     UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "services", "administration"],
     UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "services"],
     UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "services"],
-    UserRole.NOC_ANALYST: ["dashboard", "alerts", "incidents", "services"],
-    UserRole.INCIDENT_MANAGER: ["dashboard", "alerts", "incidents", "services"],
     UserRole.CHANGE_MANAGER: ["dashboard", "changes", "services"],
-    UserRole.VIEWER: ["dashboard", "alerts", "incidents", "changes", "services"],
 }
 
 ROLE_LABELS: dict[UserRole, str] = {
     UserRole.ADMIN: "Administrator",
-    UserRole.ENGINEER: "Engineer",
+    UserRole.ENGINEER: "SRE Engineer",
     UserRole.MANAGER: "Manager",
-    UserRole.NOC_ANALYST: "NOC Analyst",
-    UserRole.INCIDENT_MANAGER: "Incident Manager",
     UserRole.CHANGE_MANAGER: "Change Manager",
-    UserRole.VIEWER: "Viewer",
 }
 
 ROLE_ALERT_SCOPE: dict[UserRole, str] = {
     UserRole.ADMIN: "all",
     UserRole.ENGINEER: "my_services",
     UserRole.MANAGER: "critical_only",
-    UserRole.NOC_ANALYST: "all",
-    UserRole.INCIDENT_MANAGER: "all",
     UserRole.CHANGE_MANAGER: "none",
-    UserRole.VIEWER: "all",
 }
 
 # Human-readable capability groups returned to admin UI

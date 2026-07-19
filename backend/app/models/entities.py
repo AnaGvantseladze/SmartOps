@@ -21,10 +21,7 @@ class UserRole(str, enum.Enum):
     ADMIN = "administrator"
     ENGINEER = "engineer"
     MANAGER = "manager"
-    NOC_ANALYST = "noc_analyst"
-    INCIDENT_MANAGER = "incident_manager"
     CHANGE_MANAGER = "change_manager"
-    VIEWER = "viewer"
 
 
 class ServiceTier(int, enum.Enum):

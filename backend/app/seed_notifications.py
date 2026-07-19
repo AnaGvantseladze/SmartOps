@@ -176,20 +176,20 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     session.add(noc_schedule)
     await session.flush()
 
-    noc_user = users.get("noc@opscore.com")
     sre_user = users.get("sre@opscore.com")
-    if noc_user and sre_user:
+    admin_user = users.get("admin@opscore.com")
+    if sre_user and admin_user:
         session.add_all(
             [
                 OnCallShift(
                     schedule_id=noc_schedule.id,
-                    user_id=noc_user.id,
+                    user_id=sre_user.id,
                     start_time=now - timedelta(days=now.weekday()),
                     end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
                 ),
                 OnCallShift(
                     schedule_id=noc_schedule.id,
-                    user_id=sre_user.id,
+                    user_id=admin_user.id,
                     start_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
                     end_time=now - timedelta(days=now.weekday()) + timedelta(days=14),
                 ),
@@ -237,7 +237,7 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
             )
         )
 
-    manager = users.get("sarah@opscore.com")
+    manager = users.get("cto@opscore.com")
     manager_schedule = OnCallSchedule(
         name="Incident Manager Rotation",
         schedule_type=OnCallScheduleType.INCIDENT_MANAGER,
@@ -302,11 +302,11 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     )
 
     # --- Notification log samples ---
-    if noc_user:
+    if sre_user:
         session.add_all(
             [
                 NotificationLog(
-                    user_id=noc_user.id,
+                    user_id=sre_user.id,
                     channel=NotificationChannel.SMS,
                     event_type="new_alert",
                     subject="P1 | Trading Service — Order timeout",
@@ -314,7 +314,7 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
                     sent_at=now - timedelta(minutes=2),
                 ),
                 NotificationLog(
-                    user_id=noc_user.id,
+                    user_id=sre_user.id,
                     channel=NotificationChannel.TEAMS,
                     event_type="new_alert",
                     subject="P2 | Payment Gateway — High latency",
@@ -322,7 +322,7 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
                     sent_at=now - timedelta(minutes=12),
                 ),
                 NotificationLog(
-                    user_id=noc_user.id,
+                    user_id=sre_user.id,
                     channel=NotificationChannel.PHONE,
                     event_type="escalation",
                     subject="P1 escalation — no acknowledgement in 5 min",

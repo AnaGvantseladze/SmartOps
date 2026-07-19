@@ -17,10 +17,8 @@ security = HTTPBearer(auto_error=False)
 
 DEMO_USERS = [
     {"email": "admin@opscore.com", "password": "admin123", "role_label": "Administrator"},
-    {"email": "sre@opscore.com", "password": "engineer123", "role_label": "Engineer"},
+    {"email": "sre@opscore.com", "password": "engineer123", "role_label": "SRE Engineer"},
     {"email": "cto@opscore.com", "password": "manager123", "role_label": "Manager"},
-    {"email": "noc@opscore.com", "password": "noc123", "role_label": "NOC Analyst"},
-    {"email": "sarah@opscore.com", "password": "manager123", "role_label": "Incident Manager"},
     {"email": "change@opscore.com", "password": "change123", "role_label": "Change Manager"},
 ]
 
@@ -95,7 +93,7 @@ async def demo_users() -> list[dict]:
     role_by_label = {label: role for role, label in ROLE_LABELS.items()}
     result = []
     for u in DEMO_USERS:
-        role = role_by_label.get(u["role_label"], UserRole.VIEWER)
+        role = role_by_label.get(u["role_label"], UserRole.ENGINEER)
         result.append(
             {
                 "email": u["email"],

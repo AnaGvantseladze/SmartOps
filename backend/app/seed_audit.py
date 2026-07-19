@@ -25,7 +25,7 @@ async def seed_audit_logs(session: AsyncSession) -> None:
                 action="user.created",
                 resource_type="user",
                 resource_id="2",
-                details="Created user noc@opscore.com with role noc_analyst",
+                details="Created user sre@opscore.com with role engineer",
                 ip_address="10.0.0.1",
                 created_at=now - timedelta(days=2),
             ),

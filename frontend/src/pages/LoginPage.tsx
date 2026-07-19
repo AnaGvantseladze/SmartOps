@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Shield, Wrench, BarChart3, LogIn, Headphones, Siren, GitPullRequest } from 'lucide-react';
+import { Shield, Wrench, BarChart3, LogIn, GitPullRequest } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface DemoUser {
@@ -11,19 +11,15 @@ interface DemoUser {
 
 const DEMO_ACCOUNTS: DemoUser[] = [
   { email: 'admin@opscore.com', password: 'admin123', role: 'Administrator' },
-  { email: 'sre@opscore.com', password: 'engineer123', role: 'Engineer' },
+  { email: 'sre@opscore.com', password: 'engineer123', role: 'SRE Engineer' },
   { email: 'cto@opscore.com', password: 'manager123', role: 'Manager' },
-  { email: 'noc@opscore.com', password: 'noc123', role: 'NOC Analyst' },
-  { email: 'sarah@opscore.com', password: 'manager123', role: 'Incident Manager' },
   { email: 'change@opscore.com', password: 'change123', role: 'Change Manager' },
 ];
 
 const roleIcons: Record<string, React.ElementType> = {
   Administrator: Shield,
-  Engineer: Wrench,
+  'SRE Engineer': Wrench,
   Manager: BarChart3,
-  'NOC Analyst': Headphones,
-  'Incident Manager': Siren,
   'Change Manager': GitPullRequest,
 };
 
@@ -112,7 +108,7 @@ export function LoginPage() {
 
         <div className="mt-6">
           <p className="mb-3 text-center text-sm text-slate-500">Quick login — one account per role</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {DEMO_ACCOUNTS.map((account) => {
               const Icon = roleIcons[account.role] ?? Shield;
               return (

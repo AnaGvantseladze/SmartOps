@@ -56,12 +56,9 @@ export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
 
 export const ROLE_LABELS: Record<string, string> = {
   administrator: 'Administrator',
-  engineer: 'Engineer',
+  engineer: 'SRE Engineer',
   manager: 'Manager',
-  noc_analyst: 'NOC Analyst',
-  incident_manager: 'Incident Manager',
   change_manager: 'Change Manager',
-  viewer: 'Viewer',
 };
 
 export function hasPermission(permissions: string[], permission: string): boolean {

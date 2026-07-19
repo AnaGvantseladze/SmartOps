@@ -58,16 +58,13 @@ App: http://localhost:5173
 
 ## Demo logins
 
-Three persona accounts are available for testing:
+Four persona accounts are available for testing:
 
 | Role | Email | Password | Landing page |
 |------|-------|----------|--------------|
 | **Administrator** | `admin@opscore.com` | `admin123` | Settings / Administration |
-| **Engineer** | `sre@opscore.com` | `engineer123` | Alert Console |
+| **SRE Engineer** | `sre@opscore.com` | `engineer123` | Alert Console |
 | **Manager** | `cto@opscore.com` | `manager123` | Executive Dashboard |
-
-| **NOC Analyst** | `noc@opscore.com` | `noc123` | Alert Console |
-| **Incident Manager** | `sarah@opscore.com` | `manager123` | Incident Board |
 | **Change Manager** | `change@opscore.com` | `change123` | Changes |
 
 The login page includes one-click buttons for each role.
@@ -79,10 +76,8 @@ Each role sees different navigation, pages, and actions:
 | Role | Nav items | Key access |
 |------|-----------|------------|
 | **Administrator** | All modules + Administration | Users & teams, system config, full alerts/incidents, schedules & policies, dashboard parameters, audit logs, export |
-| **Engineer** | All modules | Manage alerts & incidents, submit changes, own services |
+| **SRE Engineer** | All modules | Manage alerts & incidents, submit changes, own services |
 | **Manager** | All modules | Executive dashboard, critical alerts only (P1/P2), approve changes |
-| **NOC Analyst** | Dashboard, Alerts, Incidents, Services | Full alert console, no Changes module |
-| **Incident Manager** | Dashboard, Alerts, Incidents, Services | Manage incidents, executive dashboard |
 | **Change Manager** | Dashboard, Changes, Services | Approve & manage changes only |
 
 Unauthorized page access returns a 403 from the API and redirects to `/unauthorized` in the UI.
@@ -105,7 +100,7 @@ Administrators land on **Settings** and have access to the **Administration** se
 
 On first startup the API seeds sample operational data:
 
-- 4 teams, 6 users (NOC, SRE, Incident Manager, etc.)
+- 4 teams, 4 users (Admin, SRE Engineer, Manager, Change Manager)
 - 7 services across all three tiers
 - Active P1 alert on Trading, P2 on Payment Gateway
 - P1 incident in progress with war room link
