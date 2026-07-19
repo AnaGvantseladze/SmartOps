@@ -23,7 +23,6 @@ This initial scaffold implements the core foundation from the PRD:
 - **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS
 - **Backend:** Python 3.12 + FastAPI + SQLAlchemy (async)
 - **Database:** PostgreSQL 16
-- **Cache:** Redis 7
 
 ## Quick start
 
