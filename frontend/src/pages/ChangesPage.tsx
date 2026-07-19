@@ -1,12 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { PERMISSIONS } from '@/lib/permissions';
 import { changeStatusColor, riskColor, statusLabel, timeAgo } from '@/lib/utils';
 import type { Change, ChangeStatus } from '@/types';
 
 const pipelineSteps: ChangeStatus[] = ['submitted', 'reviewing', 'approved', 'scheduled', 'completed'];
 
 export function ChangesPage() {
+  const { can } = useAuth();
+  const canSubmit = can(PERMISSIONS.CHANGES_SUBMIT);
+  const canApprove = can(PERMISSIONS.CHANGES_APPROVE);
   const { data: changes = [], isLoading } = useQuery({
     queryKey: ['changes'],
     queryFn: api.getChanges,
@@ -29,13 +34,15 @@ export function ChangesPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Change Management</h1>
-          <p className="text-slate-400">Review, approve, and track changes</p>
+          <p className="text-slate-400">
+            {canApprove ? 'Review, approve, and track changes' : 'View and submit change requests'}
+          </p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">
             <Calendar className="h-4 w-4" /> Calendar View
           </button>
-          <button className="btn-primary">+ New Request</button>
+          {canSubmit && <button className="btn-primary">+ New Request</button>}
         </div>
       </div>
 

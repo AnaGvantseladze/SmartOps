@@ -361,6 +361,9 @@ DEMO_AUTH_USERS = {
     "admin@opscore.com": "admin123",
     "sre@opscore.com": "engineer123",
     "cto@opscore.com": "manager123",
+    "noc@opscore.com": "noc123",
+    "sarah@opscore.com": "manager123",
+    "change@opscore.com": "change123",
 }
 
 
@@ -370,6 +373,9 @@ async def ensure_auth_users(session: AsyncSession) -> None:
         "Alex Admin": "admin@opscore.com",
         "Toma SRE": "sre@opscore.com",
         "David Commander": "cto@opscore.com",
+        "Nika NOC": "noc@opscore.com",
+        "Sarah Manager": "sarah@opscore.com",
+        "Maya Change": "change@opscore.com",
     }
     for name, email in persona_map.items():
         user = await session.scalar(select(User).where(User.name == name))

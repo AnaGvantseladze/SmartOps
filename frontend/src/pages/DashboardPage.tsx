@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Siren, GitPullRequest, Clock, Activity, CheckCircle2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn, healthColor } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { PERMISSIONS } from '@/lib/permissions';
 
 function StatCard({
   label,
@@ -29,6 +31,8 @@ function StatCard({
 }
 
 export function DashboardPage() {
+  const { can } = useAuth();
+  const isExecutive = can(PERMISSIONS.DASHBOARD_EXECUTIVE);
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: api.getDashboardStats,
@@ -44,8 +48,12 @@ export function DashboardPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Executive Dashboard</h1>
-        <p className="text-slate-400">Operational health overview — real-time</p>
+        <h1 className="text-2xl font-bold text-white">
+          {isExecutive ? 'Executive Dashboard' : 'Operations Dashboard'}
+        </h1>
+        <p className="text-slate-400">
+          {isExecutive ? 'Organizational health and KPI overview' : 'Operational health overview — real-time'}
+        </p>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

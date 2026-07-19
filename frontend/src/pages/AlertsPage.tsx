@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, GitCommit } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { PERMISSIONS } from '@/lib/permissions';
 import { cn, timeAgo } from '@/lib/utils';
 import type { Alert, AlertStatus } from '@/types';
 
@@ -16,6 +18,8 @@ const statusFilters: { value: AlertStatus | 'all'; label: string }[] = [
 ];
 
 export function AlertsPage() {
+  const { can, alertScope } = useAuth();
+  const canManage = can(PERMISSIONS.ALERTS_MANAGE);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<AlertStatus | 'all'>('all');
   const queryClient = useQueryClient();
@@ -46,6 +50,12 @@ export function AlertsPage() {
       <div className="border-b border-ops-border px-6 py-4">
         <h1 className="text-xl font-bold text-white">Alert Console</h1>
         <p className="text-sm text-slate-400">Live feed — PagerDuty-style operations console</p>
+        {alertScope === 'critical_only' && (
+          <p className="mt-1 text-xs text-amber-400">Showing P1/P2 critical alerts only (Manager view)</p>
+        )}
+        {alertScope === 'my_services' && (
+          <p className="mt-1 text-xs text-blue-400">Showing alerts for your services only</p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-ops-border px-6 py-3">
@@ -84,6 +94,7 @@ export function AlertsPage() {
               alert={selected}
               onAcknowledge={() => acknowledge.mutate(selected.id)}
               isAcknowledging={acknowledge.isPending}
+              canManage={canManage}
             />
             <div className="border-t border-ops-border p-4">
               <AISuggestionsPanel suggestions={suggestions} />
@@ -133,10 +144,12 @@ function AlertDetail({
   alert,
   onAcknowledge,
   isAcknowledging,
+  canManage,
 }: {
   alert: Alert;
   onAcknowledge: () => void;
   isAcknowledging: boolean;
+  canManage: boolean;
 }) {
   return (
     <div className="p-5">
@@ -182,17 +195,19 @@ function AlertDetail({
         </div>
       )}
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {alert.status === 'triggered' && (
-          <button className="btn-primary" onClick={onAcknowledge} disabled={isAcknowledging}>
-            Acknowledge
-          </button>
-        )}
-        <button className="btn-secondary">Snooze</button>
-        <button className="btn-secondary">Escalate</button>
-        <button className="btn-secondary">Create Incident</button>
-        <button className="btn-secondary">Resolve</button>
-      </div>
+      {canManage && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {alert.status === 'triggered' && (
+            <button className="btn-primary" onClick={onAcknowledge} disabled={isAcknowledging}>
+              Acknowledge
+            </button>
+          )}
+          <button className="btn-secondary">Snooze</button>
+          <button className="btn-secondary">Escalate</button>
+          <button className="btn-secondary">Create Incident</button>
+          <button className="btn-secondary">Resolve</button>
+        </div>
+      )}
 
       {alert.timeline.length > 0 && (
         <div className="card p-4">

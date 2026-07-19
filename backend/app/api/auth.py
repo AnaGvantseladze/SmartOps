@@ -9,30 +9,19 @@ from sqlalchemy.orm import selectinload
 from app.auth import create_access_token, verify_password
 from app.database import get_db
 from app.models.entities import User
-from app.schemas.schemas import LoginRequest, LoginResponse, UserProfile
+from app.permissions import get_role_config
+from app.schemas.schemas import LoginRequest, LoginResponse, RoleConfigResponse, UserProfile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
 
 DEMO_USERS = [
-    {
-        "email": "admin@opscore.com",
-        "password": "admin123",
-        "role_label": "Administrator",
-        "landing_page": "/",
-    },
-    {
-        "email": "sre@opscore.com",
-        "password": "engineer123",
-        "role_label": "Engineer",
-        "landing_page": "/alerts",
-    },
-    {
-        "email": "cto@opscore.com",
-        "password": "manager123",
-        "role_label": "Manager",
-        "landing_page": "/",
-    },
+    {"email": "admin@opscore.com", "password": "admin123", "role_label": "Administrator"},
+    {"email": "sre@opscore.com", "password": "engineer123", "role_label": "Engineer"},
+    {"email": "cto@opscore.com", "password": "manager123", "role_label": "Manager"},
+    {"email": "noc@opscore.com", "password": "noc123", "role_label": "NOC Analyst"},
+    {"email": "sarah@opscore.com", "password": "manager123", "role_label": "Incident Manager"},
+    {"email": "change@opscore.com", "password": "change123", "role_label": "Change Manager"},
 ]
 
 
@@ -75,13 +64,16 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> Lo
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     token = create_access_token(user.id, user.email, user.role.value)
-    demo = next((d for d in DEMO_USERS if d["email"] == user.email), None)
+    config = get_role_config(user.role)
 
     return LoginResponse(
         access_token=token,
         token_type="bearer",
         user=UserProfile.model_validate(user),
-        landing_page=demo["landing_page"] if demo else "/",
+        landing_page=config["landing_page"],
+        permissions=config["permissions"],
+        nav_items=config["nav_items"],
+        alert_scope=config["alert_scope"],
     )
 
 
@@ -90,14 +82,26 @@ async def me(current_user: Annotated[User, Depends(get_current_user)]) -> UserPr
     return UserProfile.model_validate(current_user)
 
 
+@router.get("/permissions", response_model=RoleConfigResponse)
+async def get_permissions(current_user: Annotated[User, Depends(get_current_user)]) -> RoleConfigResponse:
+    return RoleConfigResponse(**get_role_config(current_user.role))
+
+
 @router.get("/demo-users")
 async def demo_users() -> list[dict]:
-    return [
-        {
-            "email": u["email"],
-            "password": u["password"],
-            "role": u["role_label"],
-            "landing_page": u["landing_page"],
-        }
-        for u in DEMO_USERS
-    ]
+    from app.models.entities import UserRole
+    from app.permissions import ROLE_LABELS, ROLE_LANDING_PAGES
+
+    role_by_label = {label: role for role, label in ROLE_LABELS.items()}
+    result = []
+    for u in DEMO_USERS:
+        role = role_by_label.get(u["role_label"], UserRole.VIEWER)
+        result.append(
+            {
+                "email": u["email"],
+                "password": u["password"],
+                "role": u["role_label"],
+                "landing_page": ROLE_LANDING_PAGES.get(role, "/"),
+            }
+        )
+    return result

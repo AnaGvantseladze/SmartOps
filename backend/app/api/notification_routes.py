@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.api.auth import get_current_user
 from app.database import get_db
 from app.models.entities import User
+from app.permissions import Permission, require_any_permission, require_permission
 from app.models.notifications import (
     NotificationLog,
     NotificationPolicy,
@@ -40,7 +41,7 @@ router = APIRouter()
 async def list_notification_policies(
     level: Optional[PolicyLevel] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_user)] = None,
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ADMIN.value))] = None,
 ) -> list[NotificationPolicyResponse]:
     query = (
         select(NotificationPolicy)
@@ -59,7 +60,7 @@ async def list_notification_policies(
 
 @router.get("/notification-policies/effective", response_model=list[NotificationPolicyResponse])
 async def get_effective_policies(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_NOTIFICATIONS.value))],
     db: AsyncSession = Depends(get_db),
 ) -> list[NotificationPolicyResponse]:
     base_query = (
@@ -99,7 +100,7 @@ async def get_effective_policies(
 async def create_notification_policy(
     payload: NotificationPolicyCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_user)] = None,
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ADMIN.value))] = None,
 ) -> NotificationPolicyResponse:
     import json
 
@@ -146,7 +147,7 @@ async def create_notification_policy(
 
 @router.get("/notification-log", response_model=list[NotificationLogResponse])
 async def get_notification_log(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_NOTIFICATIONS.value))],
     db: AsyncSession = Depends(get_db),
     limit: int = 50,
 ) -> list[NotificationLogResponse]:
@@ -161,7 +162,7 @@ async def get_notification_log(
 
 @router.post("/notification-policies/test")
 async def test_notification(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_NOTIFICATIONS.value))],
 ) -> dict:
     return {
         "status": "sent",
@@ -170,7 +171,10 @@ async def test_notification(
 
 
 @router.get("/on-call/schedules", response_model=list[OnCallScheduleResponse])
-async def list_on_call_schedules(db: AsyncSession = Depends(get_db)) -> list[OnCallScheduleResponse]:
+async def list_on_call_schedules(
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ON_CALL.value))] = None,
+) -> list[OnCallScheduleResponse]:
     result = await db.execute(
         select(OnCallSchedule)
         .options(
@@ -187,7 +191,10 @@ async def list_on_call_schedules(db: AsyncSession = Depends(get_db)) -> list[OnC
 
 
 @router.get("/on-call/current", response_model=list[CurrentOnCallResponse])
-async def get_current_on_call(db: AsyncSession = Depends(get_db)) -> list[CurrentOnCallResponse]:
+async def get_current_on_call(
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ON_CALL.value))] = None,
+) -> list[CurrentOnCallResponse]:
     return await get_all_current_on_call(db)
 
 
@@ -195,7 +202,7 @@ async def get_current_on_call(db: AsyncSession = Depends(get_db)) -> list[Curren
 async def create_on_call_override(
     payload: OnCallOverrideCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_user)] = None,
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ON_CALL.value))] = None,
 ) -> OnCallOverrideResponse:
     override = OnCallOverride(**payload.model_dump())
     db.add(override)
@@ -205,7 +212,12 @@ async def create_on_call_override(
 
 
 @router.get("/escalation-policies", response_model=list[EscalationPolicyResponse])
-async def list_escalation_policies(db: AsyncSession = Depends(get_db)) -> list[EscalationPolicyResponse]:
+async def list_escalation_policies(
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_any_permission(
+        Permission.SETTINGS_ON_CALL.value, Permission.INCIDENTS_MANAGE.value
+    ))] = None,
+) -> list[EscalationPolicyResponse]:
     from app.models.oncall import EscalationPolicyLevel
 
     result = await db.execute(

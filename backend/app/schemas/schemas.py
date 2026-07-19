@@ -54,6 +54,18 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     user: UserProfile
     landing_page: str
+    permissions: list[str] = Field(default_factory=list)
+    nav_items: list[str] = Field(default_factory=list)
+    alert_scope: str = "all"
+
+
+class RoleConfigResponse(BaseModel):
+    role: str
+    role_label: str
+    permissions: list[str]
+    landing_page: str
+    nav_items: list[str]
+    alert_scope: str
 
 
 class ServiceBrief(BaseModel):

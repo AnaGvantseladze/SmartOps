@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { PermissionGuard } from '@/components/PermissionGuard';
 import { Layout } from '@/components/Layout';
 import { SettingsLayout } from '@/components/SettingsLayout';
 import { AuthProvider } from '@/context/AuthContext';
@@ -13,6 +14,8 @@ import { NotificationSettingsPage } from '@/pages/NotificationSettingsPage';
 import { OnCallPage } from '@/pages/OnCallPage';
 import { ServicesPage } from '@/pages/ServicesPage';
 import { SettingsProfilePage } from '@/pages/SettingsProfilePage';
+import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
+import { PERMISSIONS } from '@/lib/permissions';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,16 +36,73 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/alerts" element={<AlertsPage />} />
-                <Route path="/incidents" element={<IncidentsPage />} />
-                <Route path="/changes" element={<ChangesPage />} />
-                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                <Route
+                  path="/"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.DASHBOARD_VIEW}>
+                      <DashboardPage />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="/alerts"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.ALERTS_VIEW}>
+                      <AlertsPage />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="/incidents"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.INCIDENTS_VIEW}>
+                      <IncidentsPage />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="/changes"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.CHANGES_VIEW}>
+                      <ChangesPage />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="/services"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.SERVICES_VIEW}>
+                      <ServicesPage />
+                    </PermissionGuard>
+                  }
+                />
                 <Route path="/on-call" element={<Navigate to="/settings/on-call" replace />} />
-                <Route path="/settings" element={<SettingsLayout />}>
+                <Route
+                  path="/settings"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.SETTINGS_VIEW}>
+                      <SettingsLayout />
+                    </PermissionGuard>
+                  }
+                >
                   <Route index element={<SettingsProfilePage />} />
-                  <Route path="notifications" element={<NotificationSettingsPage />} />
-                  <Route path="on-call" element={<OnCallPage />} />
+                  <Route
+                    path="notifications"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.SETTINGS_NOTIFICATIONS}>
+                        <NotificationSettingsPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="on-call"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
+                        <OnCallPage />
+                      </PermissionGuard>
+                    }
+                  />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

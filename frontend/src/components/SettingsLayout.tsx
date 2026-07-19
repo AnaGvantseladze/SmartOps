@@ -1,14 +1,19 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { Bell, CalendarClock, Settings, User } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { PERMISSIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
 const settingsNav = [
-  { to: '/settings', icon: User, label: 'Profile', end: true },
-  { to: '/settings/notifications', icon: Bell, label: 'Notification Policies' },
-  { to: '/settings/on-call', icon: CalendarClock, label: 'On-Call Schedules' },
+  { to: '/settings', icon: User, label: 'Profile', end: true, permission: PERMISSIONS.SETTINGS_VIEW },
+  { to: '/settings/notifications', icon: Bell, label: 'Notification Policies', permission: PERMISSIONS.SETTINGS_NOTIFICATIONS },
+  { to: '/settings/on-call', icon: CalendarClock, label: 'On-Call Schedules', permission: PERMISSIONS.SETTINGS_ON_CALL },
 ];
 
 export function SettingsLayout() {
+  const { can } = useAuth();
+  const visible = settingsNav.filter((item) => can(item.permission));
+
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
       <aside className="w-56 shrink-0 border-r border-ops-border bg-ops-surface p-4">
@@ -17,7 +22,7 @@ export function SettingsLayout() {
           <h2 className="font-semibold text-white">Settings</h2>
         </div>
         <nav className="space-y-1">
-          {settingsNav.map(({ to, icon: Icon, label, end }) => (
+          {visible.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}

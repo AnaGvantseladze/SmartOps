@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.auth import get_current_user
 from app.database import async_session, get_db
 from app.models.entities import (
     ActionItem,
@@ -25,7 +26,9 @@ from app.models.entities import (
     IncidentTimelineEntry,
     Service,
     ServiceTier,
+    User,
 )
+from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
 from app.schemas.schemas import (
     AISuggestion,
     AlertCreate,
@@ -66,7 +69,10 @@ def _compute_change_risk(service: Optional[Service]) -> tuple[ChangeRisk, int, s
 
 
 @router.get("/dashboard/stats", response_model=DashboardStats)
-async def get_dashboard_stats(db: AsyncSession = Depends(get_db)) -> DashboardStats:
+async def get_dashboard_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.DASHBOARD_VIEW.value))] = None,
+) -> DashboardStats:
     active_alerts = await db.scalar(
         select(func.count()).select_from(Alert).where(
             Alert.status.in_([AlertStatus.TRIGGERED, AlertStatus.ACKNOWLEDGED, AlertStatus.SNOOZED])
@@ -144,6 +150,7 @@ async def list_services(
     tier: Optional[ServiceTier] = None,
     search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SERVICES_VIEW.value))] = None,
 ) -> list[ServiceResponse]:
     query = select(Service).options(selectinload(Service.team), selectinload(Service.owner))
     if tier:
@@ -187,7 +194,11 @@ async def get_service(service_id: int, db: AsyncSession = Depends(get_db)) -> Se
 
 
 @router.post("/services", response_model=ServiceResponse, status_code=201)
-async def create_service(payload: ServiceCreate, db: AsyncSession = Depends(get_db)) -> ServiceResponse:
+async def create_service(
+    payload: ServiceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SERVICES_MANAGE.value))] = None,
+) -> ServiceResponse:
     svc = Service(**payload.model_dump())
     db.add(svc)
     await db.commit()
@@ -201,6 +212,7 @@ async def list_alerts(
     priority: Optional[AlertPriority] = None,
     service_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.ALERTS_VIEW.value))] = None,
 ) -> list[AlertResponse]:
     query = (
         select(Alert)
@@ -211,6 +223,14 @@ async def list_alerts(
         )
         .order_by(Alert.created_at.desc())
     )
+    scope = ROLE_ALERT_SCOPE.get(current_user.role, "all")
+    if scope == "critical_only":
+        query = query.where(Alert.priority.in_([AlertPriority.P1, AlertPriority.P2]))
+    elif scope == "my_services":
+        service_ids = select(Service.id).where(
+            or_(Service.owner_id == current_user.id, Service.team_id == current_user.team_id)
+        )
+        query = query.where(Alert.service_id.in_(service_ids))
     if status:
         query = query.where(Alert.status == status)
     if priority:
@@ -254,7 +274,12 @@ async def create_alert(payload: AlertCreate, db: AsyncSession = Depends(get_db))
 
 
 @router.patch("/alerts/{alert_id}", response_model=AlertResponse)
-async def update_alert(alert_id: int, payload: AlertUpdate, db: AsyncSession = Depends(get_db)) -> AlertResponse:
+async def update_alert(
+    alert_id: int,
+    payload: AlertUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.ALERTS_MANAGE.value))] = None,
+) -> AlertResponse:
     alert = await db.get(Alert, alert_id)
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
@@ -279,15 +304,19 @@ async def update_alert(alert_id: int, payload: AlertUpdate, db: AsyncSession = D
 
 @router.post("/alerts/{alert_id}/acknowledge", response_model=AlertResponse)
 async def acknowledge_alert(
-    alert_id: int, assignee_id: int = Query(default=1), db: AsyncSession = Depends(get_db)
+    alert_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.ALERTS_MANAGE.value))] = None,
 ) -> AlertResponse:
     alert = await db.get(Alert, alert_id)
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     alert.status = AlertStatus.ACKNOWLEDGED
-    alert.assignee_id = assignee_id
+    alert.assignee_id = current_user.id
     db.add(
-        AlertTimelineEntry(alert_id=alert.id, author_id=assignee_id, entry_type="action", content="Alert acknowledged")
+        AlertTimelineEntry(
+            alert_id=alert.id, author_id=current_user.id, entry_type="action", content="Alert acknowledged"
+        )
     )
     await db.commit()
     return await get_alert(alert_id, db)
@@ -298,6 +327,7 @@ async def list_incidents(
     status: Optional[IncidentStatus] = None,
     severity: Optional[IncidentSeverity] = None,
     db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_VIEW.value))] = None,
 ) -> list[IncidentResponse]:
     query = (
         select(Incident)
@@ -337,7 +367,11 @@ async def get_incident(incident_id: int, db: AsyncSession = Depends(get_db)) -> 
 
 
 @router.post("/incidents", response_model=IncidentResponse, status_code=201)
-async def create_incident(payload: IncidentCreate, db: AsyncSession = Depends(get_db)) -> IncidentResponse:
+async def create_incident(
+    payload: IncidentCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+) -> IncidentResponse:
     incident = Incident(
         title=payload.title,
         description=payload.description,
@@ -372,7 +406,10 @@ async def create_incident(payload: IncidentCreate, db: AsyncSession = Depends(ge
 
 @router.patch("/incidents/{incident_id}", response_model=IncidentResponse)
 async def update_incident(
-    incident_id: int, payload: IncidentUpdate, db: AsyncSession = Depends(get_db)
+    incident_id: int,
+    payload: IncidentUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
 ) -> IncidentResponse:
     incident = await db.get(Incident, incident_id)
     if not incident:
@@ -403,6 +440,7 @@ async def list_changes(
     status: Optional[ChangeStatus] = None,
     change_type: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.CHANGES_VIEW.value))] = None,
 ) -> list[ChangeResponse]:
     query = (
         select(Change)
@@ -428,7 +466,11 @@ async def get_change(change_id: int, db: AsyncSession = Depends(get_db)) -> Chan
 
 
 @router.post("/changes", response_model=ChangeResponse, status_code=201)
-async def create_change(payload: ChangeCreate, db: AsyncSession = Depends(get_db)) -> ChangeResponse:
+async def create_change(
+    payload: ChangeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.CHANGES_SUBMIT.value))] = None,
+) -> ChangeResponse:
     service = await db.get(Service, payload.service_id) if payload.service_id else None
     risk, score, reasoning = _compute_change_risk(service)
     change = Change(
@@ -436,7 +478,7 @@ async def create_change(payload: ChangeCreate, db: AsyncSession = Depends(get_db
         risk=risk,
         risk_score=score,
         risk_reasoning=reasoning,
-        submitter_id=1,
+        submitter_id=current_user.id,
     )
     db.add(change)
     await db.commit()
@@ -444,7 +486,14 @@ async def create_change(payload: ChangeCreate, db: AsyncSession = Depends(get_db
 
 
 @router.patch("/changes/{change_id}", response_model=ChangeResponse)
-async def update_change(change_id: int, payload: ChangeUpdate, db: AsyncSession = Depends(get_db)) -> ChangeResponse:
+async def update_change(
+    change_id: int,
+    payload: ChangeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_any_permission(
+        Permission.CHANGES_APPROVE.value, Permission.CHANGES_MANAGE.value
+    ))] = None,
+) -> ChangeResponse:
     change = await db.get(Change, change_id)
     if not change:
         raise HTTPException(status_code=404, detail="Change not found")
