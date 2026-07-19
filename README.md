@@ -90,6 +90,10 @@ On first startup the API seeds sample operational data:
 | `GET /api/v1/changes` | Change requests |
 | `GET /api/v1/services` | Service catalog |
 | `GET /api/v1/ai/suggestions` | AI suggestions (human-in-the-loop) |
+| `GET /api/v1/notification-policies/effective` | Merged notification policies for current user |
+| `GET /api/v1/on-call/schedules` | On-call schedule list with shifts |
+| `GET /api/v1/on-call/current` | Who is on-call right now |
+| `GET /api/v1/escalation-policies` | Multi-level escalation policies |
 | `WS /api/v1/ws/alerts` | Real-time alert WebSocket |
 
 ## Project structure
@@ -111,7 +115,7 @@ opscore/
 
 ## Roadmap (from PRD)
 
-**Phase 2:** Authentication (Azure AD SSO), notification policy engine, on-call schedules  
+**Phase 2:** ~~Authentication~~, ~~notification policy engine~~, ~~on-call schedules~~ — Azure AD SSO remaining  
 **Phase 3:** PIR workflow, action items, Jira/Teams integrations  
 **Phase 4:** Change calendar, CI/CD auto-detection, deployment freezes  
 **Phase 5:** Public status page, mobile app, Elasticsearch search
