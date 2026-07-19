@@ -28,11 +28,12 @@ export function CommandPalette() {
       { id: 'settings', label: 'Go to Settings', to: '/settings', shortcut: 'G P' },
       { id: 'notifications', label: 'Go to Notification Settings', to: '/settings/notifications' },
       { id: 'on-call', label: 'Go to On-Call Schedules', to: '/settings/on-call' },
-      { id: 'admin', label: 'Go to Admin Console', to: '/settings/admin' },
-      { id: 'users', label: 'Go to Users & Teams', to: '/settings/users-teams' },
-      { id: 'system', label: 'Go to System Configuration', to: '/settings/system' },
-      { id: 'audit', label: 'Go to Audit Logs', to: '/settings/audit' },
-      { id: 'export', label: 'Go to Export Data', to: '/settings/export' },
+  { id: 'admin', label: 'Go to Admin Console', to: '/settings/admin' },
+  { id: 'users', label: 'Go to Users & Teams', to: '/settings/users-teams' },
+  { id: 'system', label: 'Go to System Configuration', to: '/settings/system' },
+  { id: 'azure', label: 'Go to Azure Integration', to: '/settings/azure' },
+  { id: 'audit', label: 'Go to Audit Logs', to: '/settings/audit' },
+  { id: 'export', label: 'Go to Export Data', to: '/settings/export' },
     ];
     return all.filter((cmd) => {
       if (cmd.to.startsWith('/settings')) {

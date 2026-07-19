@@ -61,6 +61,20 @@ export interface DashboardConfig {
   executive_summary_enabled: boolean;
 }
 
+export interface AzureIntegration {
+  id: number;
+  name: string;
+  description?: string;
+  tenant_id?: string;
+  subscription_id?: string;
+  resource_group?: string;
+  webhook_url: string;
+  is_active: boolean;
+  created_at: string;
+  last_alert_at?: string;
+  alert_count: number;
+}
+
 const API_BASE = '/api/v1';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -158,4 +172,11 @@ export const api = {
     if (!res.ok) throw new Error('Export failed');
     return res.blob();
   },
+  getAzureIntegrations: () => fetchJson<AzureIntegration[]>('/azure/integrations'),
+  createAzureIntegration: (data: { name: string; description?: string; tenant_id?: string; subscription_id?: string; resource_group?: string }) =>
+    fetchJson<AzureIntegration>('/azure/integrations', { method: 'POST', body: JSON.stringify(data) }),
+  updateAzureIntegration: (id: number, data: Partial<AzureIntegration>) =>
+    fetchJson<AzureIntegration>(`/azure/integrations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAzureIntegration: (id: number) => fetchJson<void>(`/azure/integrations/${id}`, { method: 'DELETE' }),
+  testAzureWebhook: () => fetchJson<{ status: string; alert_id: number; integration_id: number }>('/azure/webhooks/test', { method: 'POST' }),
 };

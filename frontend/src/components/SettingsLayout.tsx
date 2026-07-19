@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import {
   Bell,
   CalendarClock,
+  Cloud,
   Download,
   LayoutDashboard,
   ScrollText,
@@ -25,6 +26,7 @@ const adminNav = [
   { to: '/settings/admin', icon: Shield, label: 'Admin Console', end: true, permission: PERMISSIONS.USERS_MANAGE },
   { to: '/settings/users-teams', icon: Users, label: 'Users & Teams', permission: PERMISSIONS.USERS_MANAGE },
   { to: '/settings/system', icon: Wrench, label: 'System & Integrations', permission: PERMISSIONS.SYSTEM_CONFIG },
+  { to: '/settings/azure', icon: Cloud, label: 'Azure Integration', permission: PERMISSIONS.INTEGRATIONS_MANAGE },
   { to: '/settings/dashboard-config', icon: LayoutDashboard, label: 'Dashboard Parameters', permission: PERMISSIONS.DASHBOARD_MANAGE },
   { to: '/settings/audit', icon: ScrollText, label: 'Audit Logs', permission: PERMISSIONS.AUDIT_VIEW },
   { to: '/settings/export', icon: Download, label: 'Export Data', permission: PERMISSIONS.EXPORT_DATA },
