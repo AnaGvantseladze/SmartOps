@@ -12,19 +12,19 @@ interface DemoUser {
 
 const DEMO_ACCOUNTS: DemoUser[] = [
   {
-    email: 'admin@etoro.com',
+    email: 'admin@opscore.com',
     password: 'admin123',
     role: 'Administrator',
     landing_page: '/',
   },
   {
-    email: 'toma@etoro.com',
+    email: 'toma@opscore.com',
     password: 'engineer123',
     role: 'Engineer',
     landing_page: '/alerts',
   },
   {
-    email: 'cto@etoro.com',
+    email: 'cto@opscore.com',
     password: 'manager123',
     role: 'Manager',
     landing_page: '/',
@@ -98,7 +98,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-md border border-ops-border bg-ops-bg px-3 py-2 text-white focus:border-ops-accent focus:outline-none"
-                placeholder="you@etoro.com"
+                placeholder="you@opscore.com"
                 required
               />
             </div>

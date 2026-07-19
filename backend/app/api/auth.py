@@ -16,19 +16,19 @@ security = HTTPBearer(auto_error=False)
 
 DEMO_USERS = [
     {
-        "email": "admin@etoro.com",
+        "email": "admin@opscore.com",
         "password": "admin123",
         "role_label": "Administrator",
         "landing_page": "/",
     },
     {
-        "email": "toma@etoro.com",
+        "email": "toma@opscore.com",
         "password": "engineer123",
         "role_label": "Engineer",
         "landing_page": "/alerts",
     },
     {
-        "email": "cto@etoro.com",
+        "email": "cto@opscore.com",
         "password": "manager123",
         "role_label": "Manager",
         "landing_page": "/",

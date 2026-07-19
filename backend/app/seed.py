@@ -47,12 +47,12 @@ async def seed_demo_data(session: AsyncSession) -> None:
     await session.flush()
 
     users = [
-        User(email="admin@etoro.com", name="Alex Admin", role=UserRole.ADMIN, team_id=teams[0].id),
-        User(email="noc@etoro.com", name="Nika NOC", role=UserRole.NOC_ANALYST, team_id=teams[0].id),
-        User(email="toma@etoro.com", name="Toma SRE", role=UserRole.ENGINEER, team_id=teams[1].id),
-        User(email="sarah@etoro.com", name="Sarah Manager", role=UserRole.INCIDENT_MANAGER, team_id=teams[0].id),
-        User(email="cto@etoro.com", name="David Commander", role=UserRole.MANAGER, team_id=teams[3].id),
-        User(email="change@etoro.com", name="Maya Change", role=UserRole.CHANGE_MANAGER, team_id=teams[3].id),
+        User(email="admin@opscore.com", name="Alex Admin", role=UserRole.ADMIN, team_id=teams[0].id),
+        User(email="noc@opscore.com", name="Nika NOC", role=UserRole.NOC_ANALYST, team_id=teams[0].id),
+        User(email="toma@opscore.com", name="Toma SRE", role=UserRole.ENGINEER, team_id=teams[1].id),
+        User(email="sarah@opscore.com", name="Sarah Manager", role=UserRole.INCIDENT_MANAGER, team_id=teams[0].id),
+        User(email="cto@opscore.com", name="David Commander", role=UserRole.MANAGER, team_id=teams[3].id),
+        User(email="change@opscore.com", name="Maya Change", role=UserRole.CHANGE_MANAGER, team_id=teams[3].id),
     ]
     session.add_all(users)
     await session.flush()
@@ -64,9 +64,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             description="Core trading platform — revenue-critical",
             team_id=teams[1].id,
             owner_id=users[2].id,
-            github_repo="etoro/trading-platform",
-            confluence_runbook_url="https://confluence.etoro.com/trading-runbook",
-            monitoring_dashboard_url="https://grafana.etoro.com/d/trading",
+            github_repo="opscore/trading-platform",
+            confluence_runbook_url="https://confluence.example.com/trading-runbook",
+            monitoring_dashboard_url="https://grafana.example.com/d/trading",
             health_score=72,
         ),
         Service(
@@ -75,7 +75,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
             description="Customer deposit processing",
             team_id=teams[2].id,
             owner_id=users[2].id,
-            github_repo="etoro/deposits",
+            github_repo="opscore/deposits",
             health_score=95,
         ),
         Service(
@@ -84,7 +84,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
             description="Order execution and routing",
             team_id=teams[1].id,
             owner_id=users[2].id,
-            github_repo="etoro/order-service",
+            github_repo="opscore/order-service",
             health_score=68,
         ),
         Service(
@@ -93,7 +93,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
             description="Payment provider integrations",
             team_id=teams[2].id,
             owner_id=users[2].id,
-            github_repo="etoro/payment-gateway",
+            github_repo="opscore/payment-gateway",
             health_score=85,
         ),
         Service(
@@ -102,7 +102,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
             description="Real-time price feeds",
             team_id=teams[1].id,
             owner_id=users[2].id,
-            github_repo="etoro/pricing-service",
+            github_repo="opscore/pricing-service",
             health_score=90,
         ),
         Service(
@@ -111,7 +111,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
             description="Authentication and authorization",
             team_id=teams[3].id,
             owner_id=users[2].id,
-            github_repo="etoro/auth-service",
+            github_repo="opscore/auth-service",
             health_score=98,
         ),
         Service(
@@ -358,18 +358,24 @@ async def seed_demo_data(session: AsyncSession) -> None:
 
 
 DEMO_AUTH_USERS = {
-    "admin@etoro.com": "admin123",
-    "toma@etoro.com": "engineer123",
-    "cto@etoro.com": "manager123",
+    "admin@opscore.com": "admin123",
+    "toma@opscore.com": "engineer123",
+    "cto@opscore.com": "manager123",
 }
 
 
 async def ensure_auth_users(session: AsyncSession) -> None:
-    """Set passwords for the 3 demo persona accounts (runs on every startup)."""
-    for email, password in DEMO_AUTH_USERS.items():
-        user = await session.scalar(select(User).where(User.email == email))
+    """Set passwords and normalize emails for the 3 demo persona accounts."""
+    persona_map = {
+        "Alex Admin": "admin@opscore.com",
+        "Toma SRE": "toma@opscore.com",
+        "David Commander": "cto@opscore.com",
+    }
+    for name, email in persona_map.items():
+        user = await session.scalar(select(User).where(User.name == name))
         if user:
-            user.password_hash = hash_password(password)
+            user.email = email
+            user.password_hash = hash_password(DEMO_AUTH_USERS[email])
     await session.commit()
 
 

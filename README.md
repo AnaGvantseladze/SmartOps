@@ -60,11 +60,15 @@ Three persona accounts are available for testing:
 
 | Role | Email | Password | Landing page |
 |------|-------|----------|--------------|
-| **Administrator** | `admin@etoro.com` | `admin123` | Dashboard |
-| **Engineer** | `toma@etoro.com` | `engineer123` | Alert Console |
-| **Manager** | `cto@etoro.com` | `manager123` | Executive Dashboard |
+| **Administrator** | `admin@opscore.com` | `admin123` | Dashboard |
+| **Engineer** | `toma@opscore.com` | `engineer123` | Alert Console |
+| **Manager** | `cto@opscore.com` | `manager123` | Executive Dashboard |
 
 The login page includes one-click buttons for each account.
+
+## Demo data
+
+On first startup the API seeds sample operational data:
 
 - 4 teams, 6 users (NOC, SRE, Incident Manager, etc.)
 - 7 services across all three tiers
@@ -112,4 +116,4 @@ opscore/
 
 ## License
 
-Proprietary — eToro internal use.
+Proprietary — all rights reserved.
