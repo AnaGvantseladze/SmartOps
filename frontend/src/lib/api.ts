@@ -79,7 +79,15 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error('Session expired');
   }
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    let message = `Request failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (typeof body?.detail === 'string') message = body.detail;
+      else if (Array.isArray(body?.detail)) message = body.detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join(', ');
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message);
   }
   return res.json();
 }

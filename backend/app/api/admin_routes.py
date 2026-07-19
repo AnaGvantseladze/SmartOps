@@ -81,7 +81,11 @@ async def create_user(
         ip_address=request.client.host if request.client else None,
     )
     await db.commit()
-    await db.refresh(user)
+    await db.refresh(user, attribute_names=["team"])
+    if user.team_id and user.team is None:
+        user = await db.scalar(
+            select(User).options(selectinload(User.team)).where(User.id == user.id)
+        )
     return UserAdminResponse.model_validate(user)
 
 

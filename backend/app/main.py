@@ -9,6 +9,7 @@ from app.api.notification_routes import router as notification_router
 from app.api.routes import router
 from app.config import settings
 from app.database import Base, async_session, engine
+from app.migrate_roles import migrate_removed_roles
 from app.seed import ensure_auth_users, seed_demo_data
 from app.seed_audit import seed_audit_logs
 from app.seed_notifications import seed_notifications_and_oncall
@@ -25,6 +26,8 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await ensure_auth_schema(engine)
+    async with async_session() as session:
+        await migrate_removed_roles(session)
     if settings.seed_demo_data:
         async with async_session() as session:
             await seed_demo_data(session)
