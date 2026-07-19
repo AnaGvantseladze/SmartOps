@@ -1,4 +1,4 @@
-# OpsCore
+# Smartops
 
 Unified service-lifecycle platform — alert management, incident management,
 and change management in a single, modular hub.
