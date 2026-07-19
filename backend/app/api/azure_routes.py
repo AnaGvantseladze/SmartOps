@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.entities import AzureIntegration, User
-from app.models.audit import AuditLog
 from app.permissions import Permission, require_permission
 from app.schemas.azure_schemas import (
     AzureIntegrationCreate,
@@ -27,16 +26,14 @@ def _webhook_url(request: Request, integration_id: int) -> str:
 
 @router.get("/integrations", response_model=list[AzureIntegrationResponse])
 async def list_integrations(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: Annotated[User, Depends(require_permission(Permission.INTEGRATIONS_MANAGE.value))] = None,
 ) -> list[AzureIntegrationResponse]:
     result = await db.execute(select(AzureIntegration).order_by(AzureIntegration.created_at.desc()))
     integrations = result.scalars().all()
     return [
-        AzureIntegrationResponse(
-            **AzureIntegrationResponse.model_validate(i).model_dump(),
-            webhook_url=_webhook_url(None, i.id) if not request else _webhook_url(request, i.id),
-        )
+        AzureIntegrationResponse.model_validate(i)
         for i in integrations
     ]
 
@@ -72,10 +69,7 @@ async def create_integration(
     )
     await db.commit()
     await db.refresh(integration)
-    return AzureIntegrationResponse(
-        **AzureIntegrationResponse.model_validate(integration).model_dump(),
-        webhook_url=integration.webhook_url,
-    )
+    return AzureIntegrationResponse.model_validate(integration)
 
 
 @router.patch("/integrations/{integration_id}", response_model=AzureIntegrationResponse)
@@ -94,6 +88,9 @@ async def update_integration(
     for key, value in updates.items():
         setattr(integration, key, value)
 
+    # Refresh the webhook URL in case the app's base URL changed.
+    integration.webhook_url = _webhook_url(request, integration.id)
+
     await write_audit_log(
         db,
         user_id=current_user.id,
@@ -105,10 +102,7 @@ async def update_integration(
     )
     await db.commit()
     await db.refresh(integration)
-    return AzureIntegrationResponse(
-        **AzureIntegrationResponse.model_validate(integration).model_dump(),
-        webhook_url=_webhook_url(request, integration.id),
-    )
+    return AzureIntegrationResponse.model_validate(integration)
 
 
 @router.delete("/integrations/{integration_id}", status_code=204)
