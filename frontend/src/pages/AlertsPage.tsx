@@ -43,38 +43,39 @@ export function AlertsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
   });
 
-  if (isLoading) return <div className="p-8 text-slate-400">Loading alerts...</div>;
+  if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <div className="border-b border-ops-border px-6 py-4">
-        <h1 className="text-xl font-bold text-white">Alert Console</h1>
-        <p className="text-sm text-slate-400">Live feed — PagerDuty-style operations console</p>
-        {alertScope === 'critical_only' && (
-          <p className="mt-1 text-xs text-amber-400">Showing P1/P2 critical alerts only (Manager view)</p>
-        )}
-        {alertScope === 'my_services' && (
-          <p className="mt-1 text-xs text-blue-400">Showing alerts for your services only</p>
-        )}
+      <div className="border-b border-slate-200 bg-white px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Alert Console</h1>
+            <p className="page-subtitle">Live feed — operations console</p>
+          </div>
+          {alertScope === 'critical_only' && (
+            <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
+          )}
+          {alertScope === 'my_services' && (
+            <span className="badge border bg-blue-50 text-blue-700 border-blue-200">My services only</span>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-ops-border px-6 py-3">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-6 py-3">
         {statusFilters.map((f) => (
           <button
             key={f.value}
             onClick={() => setStatusFilter(f.value)}
-            className={cn(
-              'rounded-md px-3 py-1 text-sm',
-              statusFilter === f.value ? 'bg-ops-accent text-white' : 'text-slate-400 hover:bg-slate-800'
-            )}
+            className={statusFilter === f.value ? 'filter-chip-active' : 'filter-chip-inactive'}
           >
             {f.label}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-1/2 overflow-y-auto border-r border-ops-border">
+      <div className="flex flex-1 overflow-hidden bg-slate-50">
+        <div className="w-1/2 overflow-y-auto border-r border-slate-200 bg-white">
           {alerts.map((alert) => (
             <AlertRow
               key={alert.id}
@@ -84,7 +85,7 @@ export function AlertsPage() {
             />
           ))}
           {alerts.length === 0 && (
-            <p className="p-8 text-center text-slate-500">No alerts match filters</p>
+            <p className="p-8 text-center text-sm text-slate-500">No alerts match filters</p>
           )}
         </div>
 
@@ -96,7 +97,7 @@ export function AlertsPage() {
               isAcknowledging={acknowledge.isPending}
               canManage={canManage}
             />
-            <div className="border-t border-ops-border p-4">
+            <div className="border-t border-slate-200 p-4">
               <AISuggestionsPanel suggestions={suggestions} />
             </div>
           </div>
@@ -112,14 +113,14 @@ function AlertRow({ alert, selected, onClick }: { alert: Alert; selected: boolea
     <button
       onClick={onClick}
       className={cn(
-        'flex w-full items-start gap-3 border-b border-ops-border px-4 py-3 text-left transition-colors hover:bg-slate-800/50',
-        selected && 'bg-slate-800/80',
+        'flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50',
+        selected && 'bg-brand-50',
         isP1 && 'alert-pulse'
       )}
     >
       <PriorityBadge priority={alert.priority} />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium text-white">{alert.title}</div>
+        <div className="truncate font-medium text-slate-900">{alert.title}</div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <StatusBadge status={alert.status} />
           <span>{timeAgo(alert.created_at)}</span>
@@ -134,7 +135,7 @@ function AlertRow({ alert, selected, onClick }: { alert: Alert; selected: boolea
         </div>
       </div>
       {alert.occurrence_count > 1 && (
-        <span className="badge bg-slate-700 text-slate-300">×{alert.occurrence_count}</span>
+        <span className="badge border bg-slate-100 text-slate-600">×{alert.occurrence_count}</span>
       )}
     </button>
   );
@@ -159,28 +160,28 @@ function AlertDetail({
             <PriorityBadge priority={alert.priority} />
             <StatusBadge status={alert.status} />
           </div>
-          <h2 className="text-lg font-semibold text-white">{alert.title}</h2>
-          {alert.description && <p className="mt-1 text-sm text-slate-400">{alert.description}</p>}
+          <h2 className="text-lg font-semibold text-slate-900">{alert.title}</h2>
+          {alert.description && <p className="mt-1 text-sm text-slate-600">{alert.description}</p>}
         </div>
       </div>
 
       {alert.service && (
         <div className="card mb-4 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-slate-300">Service Context</h3>
+          <h3 className="mb-2 text-sm font-semibold text-slate-900">Service Context</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><span className="text-slate-500">Service:</span> <span className="text-white">{alert.service.name}</span></div>
-            <div><span className="text-slate-500">Tier:</span> <span className="text-white">{alert.service.tier}</span></div>
-            <div><span className="text-slate-500">Health:</span> <span className="text-white">{alert.service.health_score}%</span></div>
-            <div><span className="text-slate-500">Source:</span> <span className="text-white">{alert.source}</span></div>
+            <div><span className="text-slate-500">Service:</span> <span className="text-slate-900">{alert.service.name}</span></div>
+            <div><span className="text-slate-500">Tier:</span> <span className="text-slate-900">{alert.service.tier}</span></div>
+            <div><span className="text-slate-500">Health:</span> <span className="text-slate-900">{alert.service.health_score}%</span></div>
+            <div><span className="text-slate-500">Source:</span> <span className="text-slate-900">{alert.source}</span></div>
           </div>
         </div>
       )}
 
       <div className="card mb-4 p-4">
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-300">
-          <GitCommit className="h-4 w-4" /> Enrichment
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <GitCommit className="h-4 w-4 text-slate-400" /> Enrichment
         </h3>
-        <ul className="space-y-1 text-sm text-slate-400">
+        <ul className="space-y-1 text-sm text-slate-600">
           <li>• Recent commits in last 24h (GitHub integration)</li>
           <li>• Confluence runbook snippet available</li>
           <li>• 2 change requests in last 72h</li>
@@ -189,7 +190,7 @@ function AlertDetail({
       </div>
 
       {alert.snooze_reason && (
-        <div className="mb-4 flex items-center gap-2 rounded-md bg-purple-500/10 px-3 py-2 text-sm text-purple-300">
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-purple-50 px-3 py-2 text-sm text-purple-700">
           <Clock className="h-4 w-4" />
           Snoozed: {alert.snooze_reason}
         </div>
@@ -211,12 +212,12 @@ function AlertDetail({
 
       {alert.timeline.length > 0 && (
         <div className="card p-4">
-          <h3 className="mb-3 text-sm font-semibold text-slate-300">Timeline</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-900">Timeline</h3>
           <div className="space-y-3">
             {alert.timeline.map((entry) => (
-              <div key={entry.id} className="border-l-2 border-ops-border pl-3">
+              <div key={entry.id} className="border-l-2 border-slate-200 pl-3">
                 <div className="text-xs text-slate-500">{timeAgo(entry.created_at)}</div>
-                <div className="text-sm text-slate-300">{entry.content}</div>
+                <div className="text-sm text-slate-700">{entry.content}</div>
               </div>
             ))}
           </div>

@@ -10,54 +10,79 @@ export function timeAgo(date: string) {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 
-const priorityColors: Record<AlertPriority, string> = {
-  P1: 'bg-red-500/20 text-red-400 border-red-500/30',
-  P2: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  P3: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  P4: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-  P5: 'bg-slate-600/20 text-slate-500 border-slate-600/30',
-};
+export function statusLabel(status: string) {
+  return status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function priorityBadge(priority: AlertPriority | IncidentSeverity) {
-  return priorityColors[priority as AlertPriority] ?? priorityColors.P4;
+  const map: Record<string, string> = {
+    P0: 'bg-red-50 text-red-700 border-red-200',
+    P1: 'bg-red-50 text-red-700 border-red-200',
+    P2: 'bg-amber-50 text-amber-700 border-amber-200',
+    P3: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    P4: 'bg-slate-50 text-slate-600 border-slate-200',
+    P5: 'bg-slate-50 text-slate-500 border-slate-200',
+  };
+  return map[priority] ?? map.P4;
 }
-
-export function statusLabel(status: string) {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-const changeStatusColors: Record<ChangeStatus, string> = {
-  submitted: 'text-slate-400',
-  reviewing: 'text-blue-400',
-  approved: 'text-green-400',
-  scheduled: 'text-cyan-400',
-  in_progress: 'text-amber-400',
-  completed: 'text-green-500',
-  rolled_back: 'text-orange-400',
-  failed: 'text-red-400',
-  rejected: 'text-red-500',
-};
 
 export function changeStatusColor(status: ChangeStatus) {
-  return changeStatusColors[status] ?? 'text-slate-400';
+  const map: Record<ChangeStatus, string> = {
+    submitted: 'text-slate-600',
+    reviewing: 'text-blue-600',
+    approved: 'text-green-600',
+    scheduled: 'text-cyan-600',
+    in_progress: 'text-amber-600',
+    completed: 'text-green-700',
+    rolled_back: 'text-orange-600',
+    failed: 'text-red-600',
+    rejected: 'text-red-700',
+  };
+  return map[status] ?? 'text-slate-600';
 }
 
-const riskColors: Record<ChangeRisk, string> = {
-  low: 'text-green-400',
-  medium: 'text-yellow-400',
-  high: 'text-orange-400',
-  critical: 'text-red-400',
-};
+export function changeStatusBadge(status: ChangeStatus) {
+  const map: Record<ChangeStatus, string> = {
+    submitted: 'bg-slate-50 text-slate-600 border-slate-200',
+    reviewing: 'bg-blue-50 text-blue-600 border-blue-200',
+    approved: 'bg-green-50 text-green-600 border-green-200',
+    scheduled: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+    in_progress: 'bg-amber-50 text-amber-600 border-amber-200',
+    completed: 'bg-green-50 text-green-700 border-green-200',
+    rolled_back: 'bg-orange-50 text-orange-600 border-orange-200',
+    failed: 'bg-red-50 text-red-600 border-red-200',
+    rejected: 'bg-red-50 text-red-700 border-red-200',
+  };
+  return map[status] ?? map.submitted;
+}
 
 export function riskColor(risk: ChangeRisk) {
-  return riskColors[risk];
+  const map: Record<ChangeRisk, string> = {
+    low: 'text-green-600',
+    medium: 'text-yellow-600',
+    high: 'text-orange-600',
+    critical: 'text-red-600',
+  };
+  return map[risk];
+}
+
+export function riskBadge(risk: ChangeRisk) {
+  const map: Record<ChangeRisk, string> = {
+    low: 'bg-green-50 text-green-700 border-green-200',
+    medium: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    high: 'bg-orange-50 text-orange-700 border-orange-200',
+    critical: 'bg-red-50 text-red-700 border-red-200',
+  };
+  return map[risk];
 }
 
 export const incidentColumns: { status: IncidentStatus; label: string }[] = [
   { status: 'open', label: 'Open' },
   { status: 'in_progress', label: 'In Progress' },
   { status: 'pir_pending', label: 'PIR Pending' },
-  { status: 'action_items_pending', label: 'Action Items' },
+  { status: 'action_items_pending', label: 'Action Items Pending' },
   { status: 'closed', label: 'Closed' },
 ];
 
@@ -71,7 +96,30 @@ export function tierLabel(tier: number) {
 }
 
 export function healthColor(score: number) {
-  if (score >= 90) return 'text-green-400';
-  if (score >= 70) return 'text-yellow-400';
-  return 'text-red-400';
+  if (score >= 90) return 'text-green-600';
+  if (score >= 70) return 'text-yellow-600';
+  return 'text-red-600';
+}
+
+export function healthBadge(score: number) {
+  if (score >= 90) return 'bg-green-50 text-green-700 border-green-200';
+  if (score >= 70) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+  return 'bg-red-50 text-red-700 border-red-200';
+}
+
+export function statusBadge(status: string) {
+  const map: Record<string, string> = {
+    triggered: 'bg-red-50 text-red-700 border-red-200',
+    acknowledged: 'bg-blue-50 text-blue-700 border-blue-200',
+    snoozed: 'bg-purple-50 text-purple-700 border-purple-200',
+    resolved: 'bg-green-50 text-green-700 border-green-200',
+    open: 'bg-red-50 text-red-700 border-red-200',
+    in_progress: 'bg-amber-50 text-amber-700 border-amber-200',
+    pir_pending: 'bg-orange-50 text-orange-700 border-orange-200',
+    action_items_pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    closed: 'bg-slate-50 text-slate-600 border-slate-200',
+    connected: 'bg-green-50 text-green-700 border-green-200',
+    pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  };
+  return map[status] ?? 'bg-slate-50 text-slate-600 border-slate-200';
 }

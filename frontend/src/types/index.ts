@@ -152,6 +152,9 @@ export interface DashboardStats {
   action_items_open: number;
   tier1_health_avg: number;
   recent_mttr_hours?: number;
+  changes_by_status?: Record<string, number>;
+  top_risk_services?: ServiceBrief[];
+  open_pirs?: { id: number; title: string; pir_due_at: string }[];
 }
 
 export interface FreezeBanner {

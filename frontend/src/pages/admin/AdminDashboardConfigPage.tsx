@@ -12,15 +12,15 @@ export function AdminDashboardConfigPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard-config'] }),
   });
 
-  if (isLoading || !config) return <div className="p-8 text-slate-400">Loading...</div>;
+  if (isLoading || !config) return <div className="page-container text-slate-500">Loading...</div>;
 
   const values = { ...config, ...form };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Dashboard Parameters</h1>
-        <p className="text-slate-400">Configure refresh intervals, date ranges, and display options</p>
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="page-title">Dashboard Parameters</h1>
+        <p className="page-subtitle">Configure refresh intervals, date ranges, and display options</p>
       </div>
 
       <form
@@ -42,13 +42,15 @@ export function AdminDashboardConfigPage() {
           onChange={(v) => setForm({ ...form, default_date_range_days: Number(v) })} />
         <Field label="TV mode rotation (seconds)" type="number" value={values.tv_rotation_seconds}
           onChange={(v) => setForm({ ...form, tv_rotation_seconds: Number(v) })} />
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <input type="checkbox" checked={Boolean(values.show_tier1_only)}
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            checked={Boolean(values.show_tier1_only)}
             onChange={(e) => setForm({ ...form, show_tier1_only: e.target.checked })} />
           Show Tier 1 services only on executive dashboard
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <input type="checkbox" checked={Boolean(values.executive_summary_enabled)}
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            checked={Boolean(values.executive_summary_enabled)}
             onChange={(e) => setForm({ ...form, executive_summary_enabled: e.target.checked })} />
           Enable executive summary section
         </label>
@@ -63,7 +65,7 @@ export function AdminDashboardConfigPage() {
 function Field({ label, type, value, onChange }: { label: string; type: string; value: string | number; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="mb-1 block text-sm text-slate-400">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
       <input type={type} className="input w-full" value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );

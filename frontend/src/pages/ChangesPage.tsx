@@ -3,7 +3,7 @@ import { Calendar, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
-import { changeStatusColor, riskColor, statusLabel, timeAgo } from '@/lib/utils';
+import { changeStatusBadge, riskBadge, statusLabel, timeAgo } from '@/lib/utils';
 import type { Change, ChangeStatus } from '@/types';
 
 const pipelineSteps: ChangeStatus[] = ['submitted', 'reviewing', 'approved', 'scheduled', 'completed'];
@@ -27,14 +27,14 @@ export function ChangesPage() {
     queryFn: () => api.getAISuggestions('change'),
   });
 
-  if (isLoading) return <div className="p-8 text-slate-400">Loading changes...</div>;
+  if (isLoading) return <div className="page-container text-slate-500">Loading changes...</div>;
 
   return (
-    <div className="p-6">
+    <div className="page-container">
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Change Management</h1>
-          <p className="text-slate-400">
+        <div className="page-header mb-0">
+          <h1 className="page-title">Change Management</h1>
+          <p className="page-subtitle">
             {canApprove ? 'Review, approve, and track changes' : 'View and submit change requests'}
           </p>
         </div>
@@ -47,7 +47,7 @@ export function ChangesPage() {
       </div>
 
       {freeze?.title && !freeze.active && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>
             Upcoming freeze: <strong>{freeze.title}</strong>
@@ -57,7 +57,7 @@ export function ChangesPage() {
       )}
 
       {freeze?.active && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>
             FREEZE ACTIVE: <strong>{freeze.title}</strong>
@@ -66,17 +66,18 @@ export function ChangesPage() {
         </div>
       )}
 
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="table-container">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-ops-border bg-ops-bg text-left text-slate-400">
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Title</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Risk</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Service</th>
-              <th className="px-4 py-3 font-medium">Created</th>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Pipeline</th>
+              <th>Service</th>
+              <th>Created</th>
             </tr>
           </thead>
           <tbody>
@@ -89,12 +90,12 @@ export function ChangesPage() {
 
       {suggestions.length > 0 && (
         <div className="mt-6 card p-4">
-          <h3 className="mb-3 font-semibold text-blue-300">AI Risk Intelligence</h3>
+          <h3 className="mb-3 font-display text-lg font-semibold text-slate-900">AI Risk Intelligence</h3>
           <div className="grid gap-3 md:grid-cols-2">
             {suggestions.map((s) => (
-              <div key={s.id} className="rounded-md bg-ops-bg p-3">
-                <div className="font-medium text-white">{s.title}</div>
-                <p className="mt-1 text-xs text-slate-400">{s.description}</p>
+              <div key={s.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="font-medium text-slate-900">{s.title}</div>
+                <p className="mt-1 text-xs text-slate-600">{s.description}</p>
               </div>
             ))}
           </div>
@@ -106,23 +107,30 @@ export function ChangesPage() {
 
 function ChangeRow({ change }: { change: Change }) {
   return (
-    <tr className="border-b border-ops-border hover:bg-slate-800/30">
-      <td className="px-4 py-3 font-mono text-slate-400">CHG-{change.id}</td>
-      <td className="px-4 py-3 font-medium text-white">{change.title}</td>
-      <td className="px-4 py-3 capitalize text-slate-400">{change.change_type}</td>
-      <td className="px-4 py-3">
-        <span className={riskColor(change.risk)}>
-          {change.risk.toUpperCase()} ({change.risk_score}%)
+    <tr>
+      <td className="font-mono text-slate-500">CHG-{change.id}</td>
+      <td className="font-medium text-slate-900">{change.title}</td>
+      <td className="capitalize text-slate-600">{change.change_type}</td>
+      <td>
+        <span className={cn('badge border', riskBadge(change.risk))}>
+          {change.risk.toUpperCase()}
         </span>
       </td>
-      <td className={`px-4 py-3 capitalize ${changeStatusColor(change.status)}`}>
-        {statusLabel(change.status)}
+      <td>
+        <span className={cn('badge border', changeStatusBadge(change.status))}>
+          {statusLabel(change.status)}
+        </span>
       </td>
-      <td className="px-4 py-3 text-slate-400">{change.service?.name ?? '—'}</td>
-      <td className="px-4 py-3 text-slate-500">{timeAgo(change.created_at)}</td>
+      <td>
+        <ChangePipeline status={change.status} />
+      </td>
+      <td className="text-slate-600">{change.service?.name ?? '—'}</td>
+      <td className="text-slate-500">{timeAgo(change.created_at)}</td>
     </tr>
   );
 }
+
+import { cn } from '@/lib/utils';
 
 export function ChangePipeline({ status }: { status: ChangeStatus }) {
   const currentIdx = pipelineSteps.indexOf(status);
@@ -132,11 +140,11 @@ export function ChangePipeline({ status }: { status: ChangeStatus }) {
         <div key={step} className="flex items-center gap-1">
           <div
             className={`h-2 w-2 rounded-full ${
-              idx <= currentIdx ? 'bg-ops-accent' : 'bg-slate-700'
+              idx <= currentIdx ? 'bg-brand-600' : 'bg-slate-200'
             }`}
           />
           {idx < pipelineSteps.length - 1 && (
-            <div className={`h-0.5 w-6 ${idx < currentIdx ? 'bg-ops-accent' : 'bg-slate-700'}`} />
+            <div className={`h-0.5 w-6 ${idx < currentIdx ? 'bg-brand-600' : 'bg-slate-200'}`} />
           )}
         </div>
       ))}

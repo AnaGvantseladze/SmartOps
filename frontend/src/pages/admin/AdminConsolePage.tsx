@@ -32,12 +32,12 @@ export function AdminConsolePage() {
   const links = adminLinks.filter((l) => can(l.perm));
 
   return (
-    <div className="p-6">
+    <div className="page-container">
       <div className="mb-6 flex items-center gap-3">
-        <Shield className="h-8 w-8 text-ops-accent" />
+        <Shield className="h-8 w-8 text-brand-700" />
         <div>
-          <h1 className="text-2xl font-bold text-white">Administration Console</h1>
-          <p className="text-slate-400">Platform configuration, governance, and audit</p>
+          <h1 className="page-title">Administration Console</h1>
+          <p className="page-subtitle">Platform configuration, governance, and audit</p>
         </div>
       </div>
 
@@ -49,10 +49,10 @@ export function AdminConsolePage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {links.map(({ to, icon: Icon, label, desc }) => (
-          <NavLink key={to} to={to} className="card block p-5 transition-colors hover:border-ops-accent/40">
-            <Icon className="mb-2 h-6 w-6 text-ops-accent" />
-            <h3 className="font-semibold text-white">{label}</h3>
-            <p className="mt-1 text-sm text-slate-400">{desc}</p>
+          <NavLink key={to} to={to} className="card block p-5 transition-all hover:border-brand-300 hover:shadow-md">
+            <Icon className="mb-2 h-6 w-6 text-brand-700" />
+            <h3 className="font-display font-semibold text-slate-900">{label}</h3>
+            <p className="mt-1 text-sm text-slate-500">{desc}</p>
           </NavLink>
         ))}
       </div>
@@ -62,9 +62,9 @@ export function AdminConsolePage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="card p-4">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className="text-2xl font-bold text-white">{value}</div>
+    <div className="stat-card">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
     </div>
   );
 }

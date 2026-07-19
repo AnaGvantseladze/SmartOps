@@ -1,37 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-ops-bg text-slate-100 antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: 'Google Sans Text', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Google Sans', system-ui, sans-serif;
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-lg border border-ops-border bg-ops-surface;
+    @apply rounded-xl border border-slate-200 bg-white shadow-card;
   }
   .btn {
-    @apply inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all;
   }
   .btn-primary {
-    @apply btn bg-ops-accent text-white hover:bg-blue-600;
+    @apply btn bg-brand-900 text-white hover:bg-brand-800 active:bg-brand-700 disabled:opacity-50;
   }
   .btn-secondary {
-    @apply btn border border-ops-border bg-ops-surface hover:bg-slate-700;
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 active:bg-red-800;
   }
   .input {
-    @apply rounded-md border border-ops-border bg-ops-bg px-3 py-2 text-sm text-white focus:border-ops-accent focus:outline-none;
+    @apply rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200;
+  }
+  .select {
+    @apply input appearance-none bg-none pr-8;
   }
   .badge {
-    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .page-container {
+    @apply mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8;
+  }
+  .page-header {
+    @apply mb-6;
+  }
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-slate-900;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-500;
+  }
+  .table-container {
+    @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card;
+  }
+  .data-table {
+    @apply min-w-full text-sm;
+  }
+  .data-table thead {
+    @apply border-b border-slate-200 bg-slate-50;
+  }
+  .data-table th {
+    @apply px-4 py-3 text-left font-medium text-slate-500;
+  }
+  .data-table tbody tr {
+    @apply border-b border-slate-100 transition-colors hover:bg-slate-50;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-slate-700;
+  }
+  .filter-chip {
+    @apply rounded-full px-3 py-1 text-sm font-medium transition-colors;
+  }
+  .filter-chip-inactive {
+    @apply filter-chip border border-slate-200 bg-white text-slate-600 hover:bg-slate-50;
+  }
+  .filter-chip-active {
+    @apply filter-chip bg-brand-900 text-white;
+  }
+  .stat-card {
+    @apply card p-5;
+  }
+  .stat-label {
+    @apply text-sm font-medium text-slate-500;
+  }
+  .stat-value {
+    @apply mt-1 text-2xl font-semibold text-slate-900;
+  }
+  .section-title {
+    @apply text-lg font-semibold text-slate-900;
+  }
+  .empty-state {
+    @apply rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500;
   }
 }
 
 @keyframes pulse-alert {
-  0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
-  50% { background-color: rgba(239, 68, 68, 0.25); }
+  0%, 100% { background-color: rgba(220, 38, 38, 0.08); }
+  50% { background-color: rgba(220, 38, 38, 0.16); }
 }
 
 .alert-pulse {

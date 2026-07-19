@@ -51,7 +51,7 @@ export function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ops-bg text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
         Loading...
       </div>
     );
@@ -62,43 +62,43 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ops-bg p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-ops-accent text-xl font-bold text-white">
-            OC
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-900 text-xl font-bold text-white">
+            SO
           </div>
-          <h1 className="text-2xl font-bold text-white">OpsCore</h1>
-          <p className="mt-1 text-slate-400">Unified Service Lifecycle Platform</p>
+          <h1 className="font-display text-2xl font-bold text-slate-900">SmartOps</h1>
+          <p className="mt-1 text-slate-500">Unified service-lifecycle platform</p>
         </div>
 
         <div className="card p-6">
-          <h2 className="mb-4 text-lg font-semibold text-white">Sign in</h2>
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Sign in</h2>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-slate-400">Email</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-md border border-ops-border bg-ops-bg px-3 py-2 text-white focus:border-ops-accent focus:outline-none"
+                className="input"
                 placeholder="you@opscore.com"
                 required
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-slate-400">Password</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-ops-border bg-ops-bg px-3 py-2 text-white focus:border-ops-accent focus:outline-none"
+                className="input"
                 placeholder="••••••••"
                 required
               />
             </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
             <button type="submit" className="btn-primary w-full justify-center py-2" disabled={loading}>
               <LogIn className="h-4 w-4" />
               {loading ? 'Signing in...' : 'Sign in'}
@@ -116,12 +116,12 @@ export function LoginPage() {
                   key={account.email}
                   onClick={() => handleLogin(account.email, account.password)}
                   disabled={loading}
-                  className="card p-4 text-left transition-colors hover:border-ops-accent/50 disabled:opacity-50"
+                  className="card p-4 text-left transition-all hover:border-brand-300 hover:shadow-md disabled:opacity-50"
                 >
-                  <Icon className="mb-2 h-5 w-5 text-ops-accent" />
-                  <div className="font-medium text-white">{account.role}</div>
+                  <Icon className="mb-2 h-5 w-5 text-brand-600" />
+                  <div className="font-medium text-slate-900">{account.role}</div>
                   <div className="mt-1 text-xs text-slate-500">{account.email}</div>
-                  <div className="mt-2 font-mono text-xs text-slate-600">{account.password}</div>
+                  <div className="mt-2 font-mono text-xs text-slate-400">{account.password}</div>
                 </button>
               );
             })}
