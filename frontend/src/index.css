@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-ops-bg text-slate-100 antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-ops-border bg-ops-surface;
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-ops-accent text-white hover:bg-blue-600;
+  }
+  .btn-secondary {
+    @apply btn border border-ops-border bg-ops-surface hover:bg-slate-700;
+  }
+  .badge {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold;
+  }
+}
+
+@keyframes pulse-alert {
+  0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
+  50% { background-color: rgba(239, 68, 68, 0.25); }
+}
+
+.alert-pulse {
+  animation: pulse-alert 2s ease-in-out 3;
+}
