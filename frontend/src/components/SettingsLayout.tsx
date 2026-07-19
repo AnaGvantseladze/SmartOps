@@ -39,8 +39,8 @@ export function SettingsLayout() {
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
-      <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-4">
-        <div className="mb-6 flex items-center gap-2 px-2">
+      <aside className="w-56 shrink-0 border-r border-slate-200 bg-white p-4">
+        <div className="mb-5 flex items-center gap-2 px-2">
           <Settings className="h-5 w-5 text-slate-400" />
           <h2 className="font-display font-semibold text-slate-900">Settings</h2>
         </div>
