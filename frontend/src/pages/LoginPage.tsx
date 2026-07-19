@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Shield, Wrench, BarChart3, LogIn, GitPullRequest } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -26,17 +26,19 @@ const roleIcons: Record<string, React.ElementType> = {
 export function LoginPage() {
   const { login, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const from = (location.state as { from?: string })?.from;
 
   const handleLogin = async (loginEmail: string, loginPassword: string) => {
     setError('');
     setLoading(true);
     try {
       const landingPage = await login(loginEmail, loginPassword);
-      navigate(landingPage);
+      navigate(from ?? landingPage);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
     } finally {
