@@ -34,14 +34,25 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function loadStored<T>(key: string, fallback: T): T {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? (JSON.parse(stored) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadStoredUser(): UserProfile | null {
+  return loadStored<UserProfile | null>(USER_KEY, null);
+}
+
 function loadStoredPermissions(): string[] {
-  const stored = localStorage.getItem(PERMS_KEY);
-  return stored ? JSON.parse(stored) : [];
+  return loadStored<string[]>(PERMS_KEY, []);
 }
 
 function loadStoredNav(): string[] {
-  const stored = localStorage.getItem(NAV_KEY);
-  return stored ? JSON.parse(stored) : [];
+  return loadStored<string[]>(NAV_KEY, []);
 }
 
 function persistRoleConfig(config: Partial<RoleConfig>) {
@@ -59,10 +70,7 @@ function clearRoleConfig() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const stored = localStorage.getItem(USER_KEY);
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<UserProfile | null>(loadStoredUser);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [permissions, setPermissions] = useState<string[]>(loadStoredPermissions);
   const [navItems, setNavItems] = useState<string[]>(loadStoredNav);
@@ -93,20 +101,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       return;
     }
-    Promise.all([
-      fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('/api/v1/auth/permissions', { headers: { Authorization: `Bearer ${token}` } }),
-    ])
-      .then(async ([meRes, permsRes]) => {
-        if (!meRes.ok || !permsRes.ok) throw new Error('Session expired');
-        const profile = await meRes.json();
-        const config = await permsRes.json();
-        setUser(profile);
-        localStorage.setItem(USER_KEY, JSON.stringify(profile));
-        applyRoleConfig(config);
+
+    // Render immediately with cached data, then refresh in background.
+    setIsLoading(false);
+
+    fetch('/api/v1/auth/session', { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Session expired');
+        const data = await res.json();
+        setUser(data.user);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        applyRoleConfig({
+          role: data.role,
+          role_label: data.role_label,
+          permissions: data.permissions,
+          landing_page: data.landing_page,
+          nav_items: data.nav_items,
+          alert_scope: data.alert_scope,
+        });
       })
-      .catch(() => logout())
-      .finally(() => setIsLoading(false));
+      .catch(() => logout());
   }, [token, logout, applyRoleConfig]);
 
   const login = useCallback(async (email: string, password: string) => {

@@ -68,6 +68,16 @@ class RoleConfigResponse(BaseModel):
     alert_scope: str
 
 
+class SessionResponse(BaseModel):
+    user: UserProfile
+    role: str
+    role_label: str
+    permissions: list[str]
+    landing_page: str
+    nav_items: list[str]
+    alert_scope: str
+
+
 class ServiceBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

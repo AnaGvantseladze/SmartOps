@@ -10,7 +10,7 @@ from app.auth import create_access_token, verify_password
 from app.database import get_db
 from app.models.entities import User
 from app.permissions import get_role_config
-from app.schemas.schemas import LoginRequest, LoginResponse, RoleConfigResponse, UserProfile
+from app.schemas.schemas import LoginRequest, LoginResponse, RoleConfigResponse, SessionResponse, UserProfile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
@@ -83,6 +83,20 @@ async def me(current_user: Annotated[User, Depends(get_current_user)]) -> UserPr
 @router.get("/permissions", response_model=RoleConfigResponse)
 async def get_permissions(current_user: Annotated[User, Depends(get_current_user)]) -> RoleConfigResponse:
     return RoleConfigResponse(**get_role_config(current_user.role))
+
+
+@router.get("/session", response_model=SessionResponse)
+async def get_session(current_user: Annotated[User, Depends(get_current_user)]) -> SessionResponse:
+    config = get_role_config(current_user.role)
+    return SessionResponse(
+        user=UserProfile.model_validate(current_user),
+        role=config["role"],
+        role_label=config["role_label"],
+        permissions=config["permissions"],
+        landing_page=config["landing_page"],
+        nav_items=config["nav_items"],
+        alert_scope=config["alert_scope"],
+    )
 
 
 @router.get("/demo-users")
