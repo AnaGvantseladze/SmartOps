@@ -33,6 +33,29 @@ class UserBrief(BaseModel):
     role: UserRole
 
 
+class UserProfile(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    email: str
+    role: UserRole
+    team_id: Optional[int] = None
+    team: Optional[TeamBrief] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserProfile
+    landing_page: str
+
+
 class ServiceBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

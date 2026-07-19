@@ -54,9 +54,17 @@ npm run dev
 
 App: http://localhost:5173
 
-## Demo data
+## Demo logins
 
-On first startup the API seeds eToro-style demo data:
+Three persona accounts are available for testing:
+
+| Role | Email | Password | Landing page |
+|------|-------|----------|--------------|
+| **Administrator** | `admin@etoro.com` | `admin123` | Dashboard |
+| **Engineer** | `toma@etoro.com` | `engineer123` | Alert Console |
+| **Manager** | `cto@etoro.com` | `manager123` | Executive Dashboard |
+
+The login page includes one-click buttons for each account.
 
 - 4 teams, 6 users (NOC, SRE, Incident Manager, etc.)
 - 7 services across all three tiers

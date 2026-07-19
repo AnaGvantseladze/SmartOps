@@ -6,15 +6,27 @@ import type {
   FreezeBanner,
   Incident,
   Service,
+  UserProfile,
 } from '@/types';
+import { getStoredToken } from '@/context/AuthContext';
 
 const API_BASE = '/api/v1';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = getStoredToken();
   const res = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   });
+  if (res.status === 401 && !url.includes('/auth/')) {
+    localStorage.removeItem('opscore_token');
+    localStorage.removeItem('opscore_user');
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
   if (!res.ok) {
     throw new Error(`API error: ${res.status}`);
   }
@@ -22,6 +34,12 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  login: (email: string, password: string) =>
+    fetchJson<{ access_token: string; user: UserProfile; landing_page: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  getMe: () => fetchJson<UserProfile>('/auth/me'),
   getDashboardStats: () => fetchJson<DashboardStats>('/dashboard/stats'),
   getFreezeBanner: () => fetchJson<FreezeBanner>('/dashboard/freeze'),
   getAlerts: (params?: Record<string, string>) => {

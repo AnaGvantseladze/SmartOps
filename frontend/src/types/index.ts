@@ -14,6 +14,15 @@ export interface UserBrief {
   role: string;
 }
 
+export interface UserProfile {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  team_id?: number;
+  team?: { id: number; name: string };
+}
+
 export interface ServiceBrief {
   id: number;
   name: string;

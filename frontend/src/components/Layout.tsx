@@ -1,5 +1,6 @@
-import { Bell, LayoutDashboard, AlertTriangle, Siren, GitPullRequest, Server, Search } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { Bell, LayoutDashboard, AlertTriangle, Siren, GitPullRequest, Server, Search, LogOut } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -10,7 +11,34 @@ const navItems = [
   { to: '/services', icon: Server, label: 'Services' },
 ];
 
+const roleLabels: Record<string, string> = {
+  administrator: 'Administrator',
+  engineer: 'Engineer',
+  manager: 'Manager',
+  noc_analyst: 'NOC Analyst',
+  incident_manager: 'Incident Manager',
+  change_manager: 'Change Manager',
+  viewer: 'Viewer',
+};
+
+function initials(name: string) {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 border-b border-ops-border bg-ops-surface/95 backdrop-blur">
@@ -52,9 +80,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </span>
             </button>
             <div className="flex items-center gap-2 rounded-md border border-ops-border px-3 py-1.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold">NN</div>
-              <span className="text-sm">Nika NOC</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold">
+                {user ? initials(user.name) : '??'}
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-sm text-white">{user?.name}</div>
+                <div className="text-xs text-slate-500">{user ? roleLabels[user.role] ?? user.role : ''}</div>
+              </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>

@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.auth import hash_password
 
 from app.models.entities import (
     ActionItem,
@@ -353,3 +355,24 @@ async def seed_demo_data(session: AsyncSession) -> None:
     )
 
     await session.commit()
+
+
+DEMO_AUTH_USERS = {
+    "admin@etoro.com": "admin123",
+    "toma@etoro.com": "engineer123",
+    "cto@etoro.com": "manager123",
+}
+
+
+async def ensure_auth_users(session: AsyncSession) -> None:
+    """Set passwords for the 3 demo persona accounts (runs on every startup)."""
+    for email, password in DEMO_AUTH_USERS.items():
+        user = await session.scalar(select(User).where(User.email == email))
+        if user:
+            user.password_hash = hash_password(password)
+    await session.commit()
+
+
+async def ensure_auth_schema(engine) -> None:
+    async with engine.begin() as conn:
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)"))
