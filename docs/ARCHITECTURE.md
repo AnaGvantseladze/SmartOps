@@ -1,12 +1,12 @@
-# OpsCore Architecture (MVP)
+# SmartOps Architecture (MVP)
 
 ## Overview
 
-OpsCore is a modular SaaS platform unifying three operational modules on a shared foundation:
+SmartOps is a modular SaaS platform unifying three operational modules on a shared foundation:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     OpsCore Platform                         │
+│                     SmartOps Platform                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
 │  │    Alert     │  │   Incident   │  │    Change    │       │
 │  │  Management  │  │  Management  │  │  Management  │       │
