@@ -4,6 +4,8 @@ import { api } from '@/lib/api';
 import { cn, healthBadge, healthColor } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { PERMISSIONS } from '@/lib/permissions';
+import { PageHeaderSkeleton, StatCardSkeleton } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 function StatCard({
   label,
@@ -40,7 +42,16 @@ export function DashboardPage() {
   });
 
   if (isLoading || !stats) {
-    return <div className="page-container text-slate-500">Loading dashboard...</div>;
+    return (
+      <div className="page-container">
+        <PageHeaderSkeleton />
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const p1p2 = (stats.alerts_by_priority.P1 ?? 0) + (stats.alerts_by_priority.P2 ?? 0);
@@ -100,20 +111,24 @@ export function DashboardPage() {
         <div className="card p-5">
           <h2 className="section-title mb-4">Alerts by Priority</h2>
           <div className="space-y-3">
-            {Object.entries(stats.alerts_by_priority).map(([priority, count]) => (
-              <div key={priority} className="flex items-center gap-3">
-                <span className="w-8 text-sm font-semibold text-slate-700">{priority}</span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={`h-full rounded-full ${
-                      priority === 'P1' ? 'bg-red-600' : priority === 'P2' ? 'bg-amber-500' : 'bg-slate-400'
-                    }`}
-                    style={{ width: `${Math.min(100, (count / Math.max(stats.active_alerts, 1)) * 100)}%` }}
-                  />
+            {Object.keys(stats.alerts_by_priority).length === 0 ? (
+              <EmptyState title="No alerts" message="No alert data available for this dashboard." />
+            ) : (
+              Object.entries(stats.alerts_by_priority).map(([priority, count]) => (
+                <div key={priority} className="flex items-center gap-3">
+                  <span className="w-8 text-sm font-semibold text-slate-700">{priority}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${
+                        priority === 'P1' ? 'bg-red-600' : priority === 'P2' ? 'bg-amber-500' : 'bg-slate-400'
+                      }`}
+                      style={{ width: `${Math.min(100, (count / Math.max(stats.active_alerts, 1)) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-6 text-right text-sm font-medium text-slate-700">{count}</span>
                 </div>
-                <span className="w-6 text-right text-sm font-medium text-slate-700">{count}</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

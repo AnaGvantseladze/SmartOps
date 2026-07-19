@@ -2,9 +2,13 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { ROLE_LABELS } from '@/lib/permissions';
+import { useToastContext } from '@/context/ToastContext';
+import { CardSkeleton, PageHeaderSkeleton, TableRowSkeleton } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 export function AdminUsersPage() {
   const queryClient = useQueryClient();
+  const toast = useToastContext();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'engineer', team_id: '' });
   const [error, setError] = useState('');
@@ -23,13 +27,35 @@ export function AdminUsersPage() {
       setShowForm(false);
       setForm({ name: '', email: '', password: '', role: 'engineer', team_id: '' });
       setError('');
+      toast.success('User created', `User ${form.email} has been added.`);
     },
     onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to create user');
+      toast.error('Failed to create user', err instanceof Error ? err.message : undefined);
     },
   });
 
-  if (isLoading) return <div className="page-container text-slate-500">Loading users...</div>;
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <PageHeaderSkeleton />
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Team</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} columns={5} />)}
+            </tbody>
+          </table>
+        </div>
+        <h2 className="section-title mb-4 mt-8">Teams</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -80,47 +106,59 @@ export function AdminUsersPage() {
         </form>
       )}
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Team</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td className="font-medium text-slate-900">{u.name}</td>
-                <td className="text-slate-600">{u.email}</td>
-                <td>
-                  <span className="badge border bg-brand-50 text-brand-700 border-brand-200">{ROLE_LABELS[u.role] ?? u.role}</span>
-                </td>
-                <td className="text-slate-600">{u.team?.name ?? '—'}</td>
-                <td>
-                  <span className={`badge border ${u.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                    {u.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
+      {users.length === 0 ? (
+        <EmptyState
+          title="No users"
+          message="There are no users in the system yet. Add one to get started."
+          action={<button className="btn-primary" onClick={() => setShowForm(true)}>+ Add User</button>}
+        />
+      ) : (
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Team</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id}>
+                  <td className="font-medium text-slate-900">{u.name}</td>
+                  <td className="text-slate-600">{u.email}</td>
+                  <td>
+                    <span className="badge border bg-brand-50 text-brand-700 border-brand-200">{ROLE_LABELS[u.role] ?? u.role}</span>
+                  </td>
+                  <td className="text-slate-600">{u.team?.name ?? '—'}</td>
+                  <td>
+                    <span className={`badge border ${u.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                      {u.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <h2 className="section-title mb-4 mt-8">Teams</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {teams.map((t) => (
-          <div key={t.id} className="card p-4">
-            <div className="font-medium text-slate-900">{t.name}</div>
-            <div className="text-sm text-slate-500">{t.member_count} members</div>
-            {t.description && <p className="mt-1 text-xs text-slate-600">{t.description}</p>}
-          </div>
-        ))}
-      </div>
+      {teams.length === 0 ? (
+        <EmptyState title="No teams" message="No teams have been created yet." />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {teams.map((t) => (
+            <div key={t.id} className="card p-4">
+              <div className="font-medium text-slate-900">{t.name}</div>
+              <div className="text-sm text-slate-500">{t.member_count} members</div>
+              {t.description && <p className="mt-1 text-xs text-slate-600">{t.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

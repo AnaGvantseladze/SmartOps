@@ -4,6 +4,9 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { Layout } from '@/components/Layout';
 import { SettingsLayout } from '@/components/SettingsLayout';
+import { CommandPalette } from '@/components/CommandPalette';
+import { ToastContainer } from '@/components/Toast';
+import { ToastProvider, useToastContext } from '@/context/ToastContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { AlertsPage } from '@/pages/AlertsPage';
 import { ChangesPage } from '@/pages/ChangesPage';
@@ -168,14 +171,28 @@ function AppRoutes() {
   );
 }
 
+function AppShell() {
+  const { toasts, remove } = useToastContext();
+
+  return (
+    <>
+      <AppRoutes />
+      <CommandPalette />
+      <ToastContainer toasts={toasts} onRemove={remove} />
+    </>
+  );
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppShell />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
