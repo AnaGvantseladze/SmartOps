@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin_routes import router as admin_router
 from app.api.auth import router as auth_router
+from app.api.azure_routes import router as azure_router
 from app.api.notification_routes import router as notification_router
 from app.api.routes import router
 from app.config import settings
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     import app.models.audit  # noqa: F401
     import app.models.notifications  # noqa: F401
     import app.models.oncall  # noqa: F401
+    import app.models.entities  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -56,7 +58,11 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(notification_router, prefix="/api/v1")
+app.include_router(azure_router, prefix="/api/v1")
 app.include_router(router, prefix="/api/v1")
+
+# Public Azure webhook endpoint (no auth — called by Azure Monitor)
+app.include_router(azure_router, prefix="/api/v1/webhooks")
 
 
 @app.get("/health")

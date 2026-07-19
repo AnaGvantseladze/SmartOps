@@ -21,6 +21,7 @@ import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminConsolePage } from '@/pages/admin/AdminConsolePage';
 import { AdminDashboardConfigPage } from '@/pages/admin/AdminDashboardConfigPage';
+import { AdminAzureIntegrationPage } from '@/pages/admin/AdminAzureIntegrationPage';
 import { AdminExportPage } from '@/pages/admin/AdminExportPage';
 import { AdminSystemPage } from '@/pages/admin/AdminSystemPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
@@ -157,6 +158,14 @@ function AppRoutes() {
                     element={
                       <PermissionGuard permission={PERMISSIONS.EXPORT_DATA}>
                         <AdminExportPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="azure"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.INTEGRATIONS_MANAGE}>
+                        <AdminAzureIntegrationPage />
                       </PermissionGuard>
                     }
                   />
