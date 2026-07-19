@@ -15,6 +15,8 @@ This initial scaffold implements the core foundation from the PRD:
 | **Change Management** | Change list, AI risk scoring, deployment freeze banners |
 | **Dashboards** | Executive overview with MTTR, PIR tracking, tier-1 health |
 | **AI Layer** | Human-in-the-loop suggestions with confidence scores (mock inference) |
+| **Notification Policy Engine** | Org → Team → User hierarchy, rule builder, channels, mandatory rules, notification log |
+| **On-Call Schedules** | Rotations, current on-call, overrides, multi-level escalation policies |
 
 ## Stack
 

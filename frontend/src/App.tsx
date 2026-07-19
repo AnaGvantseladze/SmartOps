@@ -8,6 +8,8 @@ import { ChangesPage } from '@/pages/ChangesPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { IncidentsPage } from '@/pages/IncidentsPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { NotificationSettingsPage } from '@/pages/NotificationSettingsPage';
+import { OnCallPage } from '@/pages/OnCallPage';
 import { ServicesPage } from '@/pages/ServicesPage';
 
 const queryClient = new QueryClient({
@@ -34,6 +36,8 @@ function AppRoutes() {
                 <Route path="/incidents" element={<IncidentsPage />} />
                 <Route path="/changes" element={<ChangesPage />} />
                 <Route path="/services" element={<ServicesPage />} />
+                <Route path="/on-call" element={<OnCallPage />} />
+                <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

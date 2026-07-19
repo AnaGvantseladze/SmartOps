@@ -4,15 +4,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.notification_routes import router as notification_router
 from app.api.routes import router
 from app.config import settings
 from app.database import Base, async_session, engine
 from app.seed import ensure_auth_users, seed_demo_data
+from app.seed_notifications import seed_notifications_and_oncall
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.seed import ensure_auth_schema
+
+    import app.models.notifications  # noqa: F401
+    import app.models.oncall  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -21,6 +26,7 @@ async def lifespan(app: FastAPI):
         async with async_session() as session:
             await seed_demo_data(session)
             await ensure_auth_users(session)
+            await seed_notifications_and_oncall(session)
     yield
     await engine.dispose()
 
@@ -41,6 +47,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(notification_router, prefix="/api/v1")
 app.include_router(router, prefix="/api/v1")
 
 

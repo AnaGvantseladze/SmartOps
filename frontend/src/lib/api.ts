@@ -8,6 +8,13 @@ import type {
   Service,
   UserProfile,
 } from '@/types';
+import type {
+  CurrentOnCall,
+  EscalationPolicy,
+  NotificationLog,
+  NotificationPolicy,
+  OnCallSchedule,
+} from '@/types/notifications';
 import { getStoredToken } from '@/context/AuthContext';
 
 const API_BASE = '/api/v1';
@@ -70,4 +77,11 @@ export const api = {
     if (contextId) params.set('context_id', String(contextId));
     return fetchJson<AISuggestion[]>(`/ai/suggestions?${params}`);
   },
+  getNotificationPolicies: () => fetchJson<NotificationPolicy[]>('/notification-policies'),
+  getEffectiveNotificationPolicies: () => fetchJson<NotificationPolicy[]>('/notification-policies/effective'),
+  getNotificationLog: () => fetchJson<NotificationLog[]>('/notification-log'),
+  testNotification: () => fetchJson<{ status: string; message: string }>('/notification-policies/test', { method: 'POST' }),
+  getOnCallSchedules: () => fetchJson<OnCallSchedule[]>('/on-call/schedules'),
+  getCurrentOnCall: () => fetchJson<CurrentOnCall[]>('/on-call/current'),
+  getEscalationPolicies: () => fetchJson<EscalationPolicy[]>('/escalation-policies'),
 };

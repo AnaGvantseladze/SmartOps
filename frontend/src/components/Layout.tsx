@@ -1,4 +1,4 @@
-import { Bell, LayoutDashboard, AlertTriangle, Siren, GitPullRequest, Server, Search, LogOut } from 'lucide-react';
+import { Bell, LayoutDashboard, AlertTriangle, Siren, GitPullRequest, Server, Search, LogOut, CalendarClock, Settings } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,8 @@ const navItems = [
   { to: '/incidents', icon: Siren, label: 'Incidents' },
   { to: '/changes', icon: GitPullRequest, label: 'Changes' },
   { to: '/services', icon: Server, label: 'Services' },
+  { to: '/on-call', icon: CalendarClock, label: 'On-Call' },
+  { to: '/settings/notifications', icon: Settings, label: 'Notifications' },
 ];
 
 const roleLabels: Record<string, string> = {
