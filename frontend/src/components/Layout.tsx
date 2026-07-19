@@ -1,4 +1,4 @@
-import { Bell, LayoutDashboard, AlertTriangle, Siren, GitPullRequest, Server, Search, LogOut, CalendarClock, Settings, ChevronDown } from 'lucide-react';
+import { Bell, LayoutDashboard, AlertTriangle, Siren, GitPullRequest, Server, Search, LogOut, CalendarClock, Settings, ChevronDown, Shield } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -11,6 +11,7 @@ const allNavItems = [
   { key: 'incidents', to: '/incidents', icon: Siren, label: 'Incidents' },
   { key: 'changes', to: '/changes', icon: GitPullRequest, label: 'Changes' },
   { key: 'services', to: '/services', icon: Server, label: 'Services' },
+  { key: 'administration', to: '/settings/admin', icon: Shield, label: 'Administration' },
 ];
 
 function initials(name: string) {

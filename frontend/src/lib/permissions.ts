@@ -1,6 +1,7 @@
 export const PERMISSIONS = {
   DASHBOARD_VIEW: 'dashboard:view',
   DASHBOARD_EXECUTIVE: 'dashboard:executive',
+  DASHBOARD_MANAGE: 'dashboard:manage',
   ALERTS_VIEW: 'alerts:view',
   ALERTS_MANAGE: 'alerts:manage',
   INCIDENTS_VIEW: 'incidents:view',
@@ -12,12 +13,17 @@ export const PERMISSIONS = {
   CHANGES_MANAGE: 'changes:manage',
   SERVICES_VIEW: 'services:view',
   SERVICES_MANAGE: 'services:manage',
+  SYSTEM_CONFIG: 'system:config',
+  INTEGRATIONS_MANAGE: 'integrations:manage',
   SETTINGS_VIEW: 'settings:view',
   SETTINGS_NOTIFICATIONS: 'settings:notifications',
   SETTINGS_ON_CALL: 'settings:on_call',
   SETTINGS_ADMIN: 'settings:admin',
+  SCHEDULES_MANAGE: 'schedules:manage',
   USERS_MANAGE: 'users:manage',
+  TEAMS_MANAGE: 'teams:manage',
   AUDIT_VIEW: 'audit:view',
+  EXPORT_DATA: 'export:data',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -28,6 +34,7 @@ export const NAV_PERMISSIONS: Record<string, Permission> = {
   incidents: PERMISSIONS.INCIDENTS_VIEW,
   changes: PERMISSIONS.CHANGES_VIEW,
   services: PERMISSIONS.SERVICES_VIEW,
+  administration: PERMISSIONS.USERS_MANAGE,
 };
 
 export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
@@ -37,8 +44,14 @@ export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
   '/changes': PERMISSIONS.CHANGES_VIEW,
   '/services': PERMISSIONS.SERVICES_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/admin': PERMISSIONS.USERS_MANAGE,
+  '/settings/users-teams': PERMISSIONS.USERS_MANAGE,
+  '/settings/system': PERMISSIONS.SYSTEM_CONFIG,
+  '/settings/dashboard-config': PERMISSIONS.DASHBOARD_MANAGE,
   '/settings/notifications': PERMISSIONS.SETTINGS_NOTIFICATIONS,
   '/settings/on-call': PERMISSIONS.SETTINGS_ON_CALL,
+  '/settings/audit': PERMISSIONS.AUDIT_VIEW,
+  '/settings/export': PERMISSIONS.EXPORT_DATA,
 };
 
 export const ROLE_LABELS: Record<string, string> = {
@@ -70,4 +83,8 @@ export function canNav(permissions: string[], navItems: string[], item: string):
   if (navItems.length > 0) return navItems.includes(item);
   const perm = NAV_PERMISSIONS[item];
   return perm ? hasPermission(permissions, perm) : false;
+}
+
+export function isAdmin(permissions: string[]): boolean {
+  return hasPermission(permissions, PERMISSIONS.USERS_MANAGE);
 }

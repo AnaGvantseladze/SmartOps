@@ -1,3 +1,4 @@
+import { getStoredToken } from '@/context/AuthContext';
 import type {
   AISuggestion,
   Alert,
@@ -15,7 +16,50 @@ import type {
   NotificationPolicy,
   OnCallSchedule,
 } from '@/types/notifications';
-import { getStoredToken } from '@/context/AuthContext';
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  team_id?: number;
+  is_active: boolean;
+  team?: { id: number; name: string };
+}
+
+export interface AdminTeam {
+  id: number;
+  name: string;
+  description?: string;
+  member_count: number;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  details?: string;
+  ip_address?: string;
+  created_at: string;
+  user?: { id: number; name: string; email: string; role: string };
+}
+
+export interface Integration {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  description: string;
+}
+
+export interface DashboardConfig {
+  refresh_interval_seconds: number;
+  default_date_range_days: number;
+  tv_rotation_seconds: number;
+  show_tier1_only: boolean;
+  executive_summary_enabled: boolean;
+}
 
 const API_BASE = '/api/v1';
 
@@ -84,4 +128,26 @@ export const api = {
   getOnCallSchedules: () => fetchJson<OnCallSchedule[]>('/on-call/schedules'),
   getCurrentOnCall: () => fetchJson<CurrentOnCall[]>('/on-call/current'),
   getEscalationPolicies: () => fetchJson<EscalationPolicy[]>('/escalation-policies'),
+  getAdminUsers: () => fetchJson<AdminUser[]>('/admin/users'),
+  createAdminUser: (data: { name: string; email: string; password: string; role: string; team_id?: number }) =>
+    fetchJson<AdminUser>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  getAdminTeams: () => fetchJson<AdminTeam[]>('/admin/teams'),
+  getAuditLogs: () => fetchJson<AuditLogEntry[]>('/admin/audit-logs'),
+  getIntegrations: () => fetchJson<Integration[]>('/admin/integrations'),
+  getDashboardConfig: () => fetchJson<DashboardConfig>('/admin/dashboard-config'),
+  updateDashboardConfig: (data: Partial<DashboardConfig>) =>
+    fetchJson<DashboardConfig>('/admin/dashboard-config', { method: 'PATCH', body: JSON.stringify(data) }),
+  exportData: async (resource: string, format: string) => {
+    const token = getStoredToken();
+    const res = await fetch('/api/v1/admin/export', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ resource, format }),
+    });
+    if (!res.ok) throw new Error('Export failed');
+    return res.blob();
+  },
 };

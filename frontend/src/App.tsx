@@ -15,6 +15,12 @@ import { OnCallPage } from '@/pages/OnCallPage';
 import { ServicesPage } from '@/pages/ServicesPage';
 import { SettingsProfilePage } from '@/pages/SettingsProfilePage';
 import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
+import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
+import { AdminConsolePage } from '@/pages/admin/AdminConsolePage';
+import { AdminDashboardConfigPage } from '@/pages/admin/AdminDashboardConfigPage';
+import { AdminExportPage } from '@/pages/admin/AdminExportPage';
+import { AdminSystemPage } from '@/pages/admin/AdminSystemPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { PERMISSIONS } from '@/lib/permissions';
 
 const queryClient = new QueryClient({
@@ -100,6 +106,54 @@ function AppRoutes() {
                     element={
                       <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
                         <OnCallPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="admin"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.USERS_MANAGE}>
+                        <AdminConsolePage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="users-teams"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.USERS_MANAGE}>
+                        <AdminUsersPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="system"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.SYSTEM_CONFIG}>
+                        <AdminSystemPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="dashboard-config"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.DASHBOARD_MANAGE}>
+                        <AdminDashboardConfigPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="audit"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.AUDIT_VIEW}>
+                        <AdminAuditPage />
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="export"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.EXPORT_DATA}>
+                        <AdminExportPage />
                       </PermissionGuard>
                     }
                   />

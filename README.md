@@ -62,11 +62,44 @@ Three persona accounts are available for testing:
 
 | Role | Email | Password | Landing page |
 |------|-------|----------|--------------|
-| **Administrator** | `admin@opscore.com` | `admin123` | Dashboard |
+| **Administrator** | `admin@opscore.com` | `admin123` | Settings / Administration |
 | **Engineer** | `sre@opscore.com` | `engineer123` | Alert Console |
 | **Manager** | `cto@opscore.com` | `manager123` | Executive Dashboard |
 
-The login page includes one-click buttons for each account.
+| **NOC Analyst** | `noc@opscore.com` | `noc123` | Alert Console |
+| **Incident Manager** | `sarah@opscore.com` | `manager123` | Incident Board |
+| **Change Manager** | `change@opscore.com` | `change123` | Changes |
+
+The login page includes one-click buttons for each role.
+
+## Role-based access
+
+Each role sees different navigation, pages, and actions:
+
+| Role | Nav items | Key access |
+|------|-----------|------------|
+| **Administrator** | All modules + Administration | Users & teams, system config, full alerts/incidents, schedules & policies, dashboard parameters, audit logs, export |
+| **Engineer** | All modules | Manage alerts & incidents, submit changes, own services |
+| **Manager** | All modules | Executive dashboard, critical alerts only (P1/P2), approve changes |
+| **NOC Analyst** | Dashboard, Alerts, Incidents, Services | Full alert console, no Changes module |
+| **Incident Manager** | Dashboard, Alerts, Incidents, Services | Manage incidents, executive dashboard |
+| **Change Manager** | Dashboard, Changes, Services | Approve & manage changes only |
+
+Unauthorized page access returns a 403 from the API and redirects to `/unauthorized` in the UI.
+
+### Administrator capabilities
+
+Administrators land on **Settings** and have access to the **Administration** section:
+
+| Capability | Where |
+|------------|-------|
+| Users & teams | `/settings/users-teams` — add users, assign roles, view teams |
+| System & integrations | `/settings/system` — service catalog link, integration status |
+| Alerts & incidents | `/alerts`, `/incidents` — view, edit, change statuses |
+| Schedules & policies | `/settings/notifications`, `/settings/on-call` |
+| Dashboard parameters | `/settings/dashboard-config` — refresh interval, date range, TV mode |
+| Audit logs | `/settings/audit` — who did what, when |
+| Export data | `/settings/export` — CSV/JSON download for alerts, incidents, changes, services, audit |
 
 ## Demo data
 
@@ -94,6 +127,13 @@ On first startup the API seeds sample operational data:
 | `GET /api/v1/on-call/schedules` | On-call schedule list with shifts |
 | `GET /api/v1/on-call/current` | Who is on-call right now |
 | `GET /api/v1/escalation-policies` | Multi-level escalation policies |
+| `GET /api/v1/admin/users` | List users (admin) |
+| `POST /api/v1/admin/users` | Create user (admin) |
+| `GET /api/v1/admin/teams` | List teams (admin) |
+| `GET /api/v1/admin/audit-logs` | Audit trail (admin) |
+| `GET /api/v1/admin/integrations` | Integration status (admin) |
+| `GET/PATCH /api/v1/admin/dashboard-config` | Dashboard parameters (admin) |
+| `POST /api/v1/admin/export` | Export platform data (admin) |
 | `WS /api/v1/ws/alerts` | Real-time alert WebSocket |
 
 ## Project structure

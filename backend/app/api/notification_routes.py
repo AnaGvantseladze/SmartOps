@@ -41,7 +41,9 @@ router = APIRouter()
 async def list_notification_policies(
     level: Optional[PolicyLevel] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ADMIN.value))] = None,
+    current_user: Annotated[User, Depends(require_any_permission(
+        Permission.SETTINGS_ADMIN.value, Permission.SCHEDULES_MANAGE.value
+    ))] = None,
 ) -> list[NotificationPolicyResponse]:
     query = (
         select(NotificationPolicy)
@@ -173,7 +175,9 @@ async def test_notification(
 @router.get("/on-call/schedules", response_model=list[OnCallScheduleResponse])
 async def list_on_call_schedules(
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_ON_CALL.value))] = None,
+    current_user: Annotated[User, Depends(require_any_permission(
+        Permission.SETTINGS_ON_CALL.value, Permission.SCHEDULES_MANAGE.value
+    ))] = None,
 ) -> list[OnCallScheduleResponse]:
     result = await db.execute(
         select(OnCallSchedule)

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -29,6 +29,7 @@ from app.models.entities import (
     User,
 )
 from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
+from app.services.audit_service import write_audit_log
 from app.schemas.schemas import (
     AISuggestion,
     AlertCreate,
@@ -277,6 +278,7 @@ async def create_alert(payload: AlertCreate, db: AsyncSession = Depends(get_db))
 async def update_alert(
     alert_id: int,
     payload: AlertUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: Annotated[User, Depends(require_permission(Permission.ALERTS_MANAGE.value))] = None,
 ) -> AlertResponse:
@@ -297,6 +299,15 @@ async def update_alert(
                 entry_type="status-change",
                 content=f"Status changed to {payload.status.value}",
             )
+        )
+        await write_audit_log(
+            db,
+            user_id=current_user.id,
+            action="alert.status_changed",
+            resource_type="alert",
+            resource_id=str(alert.id),
+            details=f"Status → {payload.status.value}",
+            ip_address=request.client.host if request.client else None,
         )
     await db.commit()
     return await get_alert(alert_id, db)
