@@ -105,9 +105,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Render immediately with cached data, then refresh in background.
     setIsLoading(false);
 
-    fetch('/api/v1/auth/session', { headers: { Authorization: `Bearer ${token}` } })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Session expired');
+    const refreshSession = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/session', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Only a 401 means the session is actually invalid; everything else should not log the user out.
+        if (res.status === 401) {
+          logout();
+          return;
+        }
+
+        // If the combined /session endpoint is missing (e.g. stale backend process), fall back to the legacy endpoints.
+        if (res.status === 404) {
+          const [meRes, permsRes] = await Promise.all([
+            fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+            fetch('/api/v1/auth/permissions', { headers: { Authorization: `Bearer ${token}` } }),
+          ]);
+          if (meRes.status === 401 || permsRes.status === 401) {
+            logout();
+            return;
+          }
+          if (!meRes.ok || !permsRes.ok) return;
+          const me = await meRes.json();
+          const perms = await permsRes.json();
+          setUser(me);
+          localStorage.setItem(USER_KEY, JSON.stringify(me));
+          applyRoleConfig({
+            role: me.role,
+            role_label: perms.role_label,
+            permissions: perms.permissions,
+            landing_page: perms.landing_page,
+            nav_items: perms.nav_items,
+            alert_scope: perms.alert_scope,
+          });
+          return;
+        }
+
+        if (!res.ok) return;
         const data = await res.json();
         setUser(data.user);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
@@ -119,8 +155,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           nav_items: data.nav_items,
           alert_scope: data.alert_scope,
         });
-      })
-      .catch(() => logout());
+      } catch {
+        // Network or transient errors keep the cached session so the UI does not loop back to login.
+      }
+    };
+
+    refreshSession();
   }, [token, logout, applyRoleConfig]);
 
   const login = useCallback(async (email: string, password: string) => {
