@@ -49,7 +49,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     users = [
         User(email="admin@opscore.com", name="Alex Admin", role=UserRole.ADMIN, team_id=teams[0].id),
         User(email="noc@opscore.com", name="Nika NOC", role=UserRole.NOC_ANALYST, team_id=teams[0].id),
-        User(email="toma@opscore.com", name="Toma SRE", role=UserRole.ENGINEER, team_id=teams[1].id),
+        User(email="sre@opscore.com", name="Toma SRE", role=UserRole.ENGINEER, team_id=teams[1].id),
         User(email="sarah@opscore.com", name="Sarah Manager", role=UserRole.INCIDENT_MANAGER, team_id=teams[0].id),
         User(email="cto@opscore.com", name="David Commander", role=UserRole.MANAGER, team_id=teams[3].id),
         User(email="change@opscore.com", name="Maya Change", role=UserRole.CHANGE_MANAGER, team_id=teams[3].id),
@@ -359,7 +359,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
 
 DEMO_AUTH_USERS = {
     "admin@opscore.com": "admin123",
-    "toma@opscore.com": "engineer123",
+    "sre@opscore.com": "engineer123",
     "cto@opscore.com": "manager123",
 }
 
@@ -368,7 +368,7 @@ async def ensure_auth_users(session: AsyncSession) -> None:
     """Set passwords and normalize emails for the 3 demo persona accounts."""
     persona_map = {
         "Alex Admin": "admin@opscore.com",
-        "Toma SRE": "toma@opscore.com",
+        "Toma SRE": "sre@opscore.com",
         "David Commander": "cto@opscore.com",
     }
     for name, email in persona_map.items():

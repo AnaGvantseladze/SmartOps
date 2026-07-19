@@ -18,7 +18,7 @@ const DEMO_ACCOUNTS: DemoUser[] = [
     landing_page: '/',
   },
   {
-    email: 'toma@opscore.com',
+    email: 'sre@opscore.com',
     password: 'engineer123',
     role: 'Engineer',
     landing_page: '/alerts',

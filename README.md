@@ -61,7 +61,7 @@ Three persona accounts are available for testing:
 | Role | Email | Password | Landing page |
 |------|-------|----------|--------------|
 | **Administrator** | `admin@opscore.com` | `admin123` | Dashboard |
-| **Engineer** | `toma@opscore.com` | `engineer123` | Alert Console |
+| **Engineer** | `sre@opscore.com` | `engineer123` | Alert Console |
 | **Manager** | `cto@opscore.com` | `manager123` | Executive Dashboard |
 
 The login page includes one-click buttons for each account.
