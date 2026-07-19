@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -9,7 +9,8 @@ import { CommandPalette } from '@/components/CommandPalette';
 import { ToastContainer } from '@/components/Toast';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ToastProvider, useToastContext } from '@/context/ToastContext';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })));
@@ -240,6 +241,23 @@ function AppRoutes() {
 
 function AppShell() {
   const { toasts, remove } = useToastContext();
+  const { token, landingPage } = useAuth();
+
+  useEffect(() => {
+    if (!token) return;
+    // Prefetch dashboard stats so the landing page renders instantly
+    queryClient.prefetchQuery({
+      queryKey: ['dashboard-stats'],
+      queryFn: api.getDashboardStats,
+      staleTime: 30000,
+    });
+    // Prefetch common landing-page data based on role
+    if (landingPage === '/alerts') {
+      queryClient.prefetchQuery({ queryKey: ['alerts', 'all'], queryFn: () => api.getAlerts() });
+    } else if (landingPage === '/changes') {
+      queryClient.prefetchQuery({ queryKey: ['changes'], queryFn: api.getChanges });
+    }
+  }, [token, landingPage]);
 
   return (
     <>
