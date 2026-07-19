@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -6,26 +7,34 @@ import { Layout } from '@/components/Layout';
 import { SettingsLayout } from '@/components/SettingsLayout';
 import { CommandPalette } from '@/components/CommandPalette';
 import { ToastContainer } from '@/components/Toast';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { ToastProvider, useToastContext } from '@/context/ToastContext';
 import { AuthProvider } from '@/context/AuthContext';
-import { AlertsPage } from '@/pages/AlertsPage';
-import { ChangesPage } from '@/pages/ChangesPage';
-import { DashboardPage } from '@/pages/DashboardPage';
-import { IncidentsPage } from '@/pages/IncidentsPage';
-import { LoginPage } from '@/pages/LoginPage';
-import { NotificationSettingsPage } from '@/pages/NotificationSettingsPage';
-import { OnCallPage } from '@/pages/OnCallPage';
-import { ServicesPage } from '@/pages/ServicesPage';
-import { SettingsProfilePage } from '@/pages/SettingsProfilePage';
-import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
-import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
-import { AdminConsolePage } from '@/pages/admin/AdminConsolePage';
-import { AdminDashboardConfigPage } from '@/pages/admin/AdminDashboardConfigPage';
-import { AdminAzureIntegrationPage } from '@/pages/admin/AdminAzureIntegrationPage';
-import { AdminExportPage } from '@/pages/admin/AdminExportPage';
-import { AdminSystemPage } from '@/pages/admin/AdminSystemPage';
-import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { PERMISSIONS } from '@/lib/permissions';
+
+const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const AlertsPage = lazy(() => import('@/pages/AlertsPage').then((m) => ({ default: m.AlertsPage })));
+const IncidentsPage = lazy(() => import('@/pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })));
+const ChangesPage = lazy(() => import('@/pages/ChangesPage').then((m) => ({ default: m.ChangesPage })));
+const ServicesPage = lazy(() => import('@/pages/ServicesPage').then((m) => ({ default: m.ServicesPage })));
+const NotificationSettingsPage = lazy(() =>
+  import('@/pages/NotificationSettingsPage').then((m) => ({ default: m.NotificationSettingsPage }))
+);
+const OnCallPage = lazy(() => import('@/pages/OnCallPage').then((m) => ({ default: m.OnCallPage })));
+const SettingsProfilePage = lazy(() => import('@/pages/SettingsProfilePage').then((m) => ({ default: m.SettingsProfilePage })));
+const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage })));
+const AdminConsolePage = lazy(() => import('@/pages/admin/AdminConsolePage').then((m) => ({ default: m.AdminConsolePage })));
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })));
+const AdminSystemPage = lazy(() => import('@/pages/admin/AdminSystemPage').then((m) => ({ default: m.AdminSystemPage })));
+const AdminDashboardConfigPage = lazy(() =>
+  import('@/pages/admin/AdminDashboardConfigPage').then((m) => ({ default: m.AdminDashboardConfigPage }))
+);
+const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage })));
+const AdminExportPage = lazy(() => import('@/pages/admin/AdminExportPage').then((m) => ({ default: m.AdminExportPage })));
+const AdminAzureIntegrationPage = lazy(() =>
+  import('@/pages/admin/AdminAzureIntegrationPage').then((m) => ({ default: m.AdminAzureIntegrationPage }))
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,19 +48,35 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <Suspense fallback={<LoadingScreen />}>
+            <LoginPage />
+          </Suspense>
+        }
+      />
       <Route
         path="/*"
         element={
           <ProtectedRoute>
             <Layout>
               <Routes>
-                <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                <Route
+                  path="/unauthorized"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <UnauthorizedPage />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="/"
                   element={
                     <PermissionGuard permission={PERMISSIONS.DASHBOARD_VIEW}>
-                      <DashboardPage />
+                      <Suspense fallback={<LoadingScreen />}>
+                        <DashboardPage />
+                      </Suspense>
                     </PermissionGuard>
                   }
                 />
@@ -59,7 +84,9 @@ function AppRoutes() {
                   path="/alerts"
                   element={
                     <PermissionGuard permission={PERMISSIONS.ALERTS_VIEW}>
-                      <AlertsPage />
+                      <Suspense fallback={<LoadingScreen />}>
+                        <AlertsPage />
+                      </Suspense>
                     </PermissionGuard>
                   }
                 />
@@ -67,7 +94,9 @@ function AppRoutes() {
                   path="/incidents"
                   element={
                     <PermissionGuard permission={PERMISSIONS.INCIDENTS_VIEW}>
-                      <IncidentsPage />
+                      <Suspense fallback={<LoadingScreen />}>
+                        <IncidentsPage />
+                      </Suspense>
                     </PermissionGuard>
                   }
                 />
@@ -75,7 +104,9 @@ function AppRoutes() {
                   path="/changes"
                   element={
                     <PermissionGuard permission={PERMISSIONS.CHANGES_VIEW}>
-                      <ChangesPage />
+                      <Suspense fallback={<LoadingScreen />}>
+                        <ChangesPage />
+                      </Suspense>
                     </PermissionGuard>
                   }
                 />
@@ -83,7 +114,9 @@ function AppRoutes() {
                   path="/services"
                   element={
                     <PermissionGuard permission={PERMISSIONS.SERVICES_VIEW}>
-                      <ServicesPage />
+                      <Suspense fallback={<LoadingScreen />}>
+                        <ServicesPage />
+                      </Suspense>
                     </PermissionGuard>
                   }
                 />
@@ -96,12 +129,21 @@ function AppRoutes() {
                     </PermissionGuard>
                   }
                 >
-                  <Route index element={<SettingsProfilePage />} />
+                  <Route
+                    index
+                    element={
+                      <Suspense fallback={<LoadingScreen />}>
+                        <SettingsProfilePage />
+                      </Suspense>
+                    }
+                  />
                   <Route
                     path="notifications"
                     element={
                       <PermissionGuard permission={PERMISSIONS.SETTINGS_NOTIFICATIONS}>
-                        <NotificationSettingsPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <NotificationSettingsPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -109,7 +151,9 @@ function AppRoutes() {
                     path="on-call"
                     element={
                       <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
-                        <OnCallPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <OnCallPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -117,7 +161,9 @@ function AppRoutes() {
                     path="admin"
                     element={
                       <PermissionGuard permission={PERMISSIONS.USERS_MANAGE}>
-                        <AdminConsolePage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminConsolePage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -125,7 +171,9 @@ function AppRoutes() {
                     path="users-teams"
                     element={
                       <PermissionGuard permission={PERMISSIONS.USERS_MANAGE}>
-                        <AdminUsersPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminUsersPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -133,7 +181,9 @@ function AppRoutes() {
                     path="system"
                     element={
                       <PermissionGuard permission={PERMISSIONS.SYSTEM_CONFIG}>
-                        <AdminSystemPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminSystemPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -141,7 +191,9 @@ function AppRoutes() {
                     path="dashboard-config"
                     element={
                       <PermissionGuard permission={PERMISSIONS.DASHBOARD_MANAGE}>
-                        <AdminDashboardConfigPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminDashboardConfigPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -149,7 +201,9 @@ function AppRoutes() {
                     path="audit"
                     element={
                       <PermissionGuard permission={PERMISSIONS.AUDIT_VIEW}>
-                        <AdminAuditPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminAuditPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -157,7 +211,9 @@ function AppRoutes() {
                     path="export"
                     element={
                       <PermissionGuard permission={PERMISSIONS.EXPORT_DATA}>
-                        <AdminExportPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminExportPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
@@ -165,7 +221,9 @@ function AppRoutes() {
                     path="azure"
                     element={
                       <PermissionGuard permission={PERMISSIONS.INTEGRATIONS_MANAGE}>
-                        <AdminAzureIntegrationPage />
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminAzureIntegrationPage />
+                        </Suspense>
                       </PermissionGuard>
                     }
                   />
