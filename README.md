@@ -1,4 +1,4 @@
-# OpsCore
+# SmartOps
 
 Unified service-lifecycle platform — alert management, incident management,
 and change management in a single, modular hub.
@@ -22,7 +22,7 @@ This initial scaffold implements the core foundation from the PRD:
 
 ## Stack
 
-- **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS + React Router + TanStack React Query
+- **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS + Google Sans Text + React Router + TanStack React Query
 - **Backend:** Python 3.12 + FastAPI + SQLAlchemy (async) + JWT + bcrypt + pydantic-settings
 - **Database:** PostgreSQL 16
 - **Schema management:** SQLAlchemy `create_all` on startup (Alembic listed in requirements but not configured yet)
@@ -113,7 +113,7 @@ Unauthorized page access returns a 403 from the API and redirects to `/unauthori
 
 ### Administrator capabilities
 
-Administrators land on **Settings** and have access to the **Administration** section:
+Administrators land on **Settings** and have access to the **Administration** section. The UI uses a light, corporate design system with Google Sans Text typography:
 
 | Capability | Where |
 |------------|-------|
@@ -237,6 +237,16 @@ opscore/
 │   └── ARCHITECTURE.md
 └── README.md
 ```
+
+## Design
+
+The UI follows a clean, corporate design system:
+
+- **Light theme:** white and slate backgrounds, subtle borders, soft shadows
+- **Typography:** Google Sans for headings, Google Sans Text for body text
+- **Color palette:** neutral slate with a single brand indigo accent
+- **Components:** rounded cards, clean buttons, subtle badges, and readable data tables
+- **Layout:** top navigation + main content; settings uses a left sidebar
 
 ## Architecture
 
