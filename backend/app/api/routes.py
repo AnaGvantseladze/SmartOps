@@ -366,6 +366,80 @@ async def add_alert_note(
     return await get_alert(alert_id, db)
 
 
+@router.post("/alerts/{alert_id}/incident", response_model=IncidentResponse, status_code=201)
+async def create_incident_from_alert(
+    alert_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+) -> IncidentResponse:
+    alert = await db.scalar(
+        select(Alert)
+        .options(selectinload(Alert.service).selectinload(Service.team))
+        .where(Alert.id == alert_id)
+    )
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    if alert.incident_id:
+        raise HTTPException(status_code=400, detail="Alert is already linked to an incident")
+
+    try:
+        severity = IncidentSeverity(alert.priority.value)
+    except ValueError:
+        severity = IncidentSeverity.P2
+
+    monitoring_sources = {"splunk", "grafana", "azure monitor", "coralogix"}
+    category = "Monitoring" if alert.source.lower() in monitoring_sources else "Application"
+    team_id = alert.service.team_id if alert.service else None
+    service_ids = [alert.service_id] if alert.service_id else []
+
+    incident = Incident(
+        title=alert.title,
+        description=alert.description or f"Escalated from alert #{alert.id} via {alert.source}",
+        severity=severity,
+        category=category,
+        business_impact=alert.description or f"{alert.priority.value} alert detected via {alert.source}",
+        team_id=team_id,
+        commander_id=current_user.id,
+        manager_id=current_user.id,
+    )
+    if severity in (IncidentSeverity.P0, IncidentSeverity.P1):
+        incident.war_room_url = "https://teams.microsoft.com/l/channel/auto-war-room"
+
+    db.add(incident)
+    await db.flush()
+
+    for service_id in service_ids:
+        db.add(IncidentService(incident_id=incident.id, service_id=service_id))
+
+    alert.incident_id = incident.id
+    if alert.status == AlertStatus.TRIGGERED:
+        alert.status = AlertStatus.ACKNOWLEDGED
+        if not alert.assignee_id:
+            alert.assignee_id = current_user.id
+
+    db.add(
+        IncidentTimelineEntry(
+            incident_id=incident.id,
+            author_id=current_user.id,
+            entry_type="status-change",
+            content=(
+                f"Incident created from alert #{alert.id} "
+                f"({alert.source}, {alert.priority.value})"
+            ),
+        )
+    )
+    db.add(
+        AlertTimelineEntry(
+            alert_id=alert.id,
+            author_id=current_user.id,
+            entry_type="action",
+            content=f"Incident #{incident.id} created from this alert",
+        )
+    )
+    await db.commit()
+    return await get_incident(incident.id, db)
+
+
 @router.get("/incidents", response_model=list[IncidentResponse])
 async def list_incidents(
     status: Optional[IncidentStatus] = None,
