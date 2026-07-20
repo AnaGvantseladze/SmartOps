@@ -332,15 +332,6 @@ class DashboardStats(BaseModel):
     pending_teams: int
 
 
-class AISuggestion(BaseModel):
-    id: str
-    type: str
-    title: str
-    description: str
-    confidence: int
-    reasoning: str
-
-
 class FreezeBanner(BaseModel):
     active: bool
     title: Optional[str] = None

@@ -22,11 +22,6 @@ export function ChangesPage() {
     queryFn: api.getFreezeBanner,
   });
 
-  const { data: suggestions = [] } = useQuery({
-    queryKey: ['ai-suggestions', 'change'],
-    queryFn: () => api.getAISuggestions('change'),
-  });
-
   if (isLoading) return <div className="page-container text-slate-500">Loading changes...</div>;
 
   return (
@@ -87,20 +82,6 @@ export function ChangesPage() {
           </tbody>
         </table>
       </div>
-
-      {suggestions.length > 0 && (
-        <div className="mt-6 card p-4">
-          <h3 className="mb-3 font-display text-lg font-semibold text-slate-900">AI Risk Intelligence</h3>
-          <div className="grid gap-3 md:grid-cols-2">
-            {suggestions.map((s) => (
-              <div key={s.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <div className="font-medium text-slate-900">{s.title}</div>
-                <p className="mt-1 text-xs text-slate-600">{s.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

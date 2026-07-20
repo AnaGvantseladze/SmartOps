@@ -1,6 +1,5 @@
 import { getStoredToken } from '@/context/AuthContext';
 import type {
-  AISuggestion,
   Alert,
   Change,
   DashboardStats,
@@ -159,11 +158,6 @@ export const api = {
     return fetchJson<Service[]>(`/services${qs}`);
   },
   getService: (id: number) => fetchJson<Service>(`/services/${id}`),
-  getAISuggestions: (contextType: string, contextId?: number) => {
-    const params = new URLSearchParams({ context_type: contextType });
-    if (contextId) params.set('context_id', String(contextId));
-    return fetchJson<AISuggestion[]>(`/ai/suggestions?${params}`);
-  },
   getNotificationPolicies: () => fetchJson<NotificationPolicy[]>('/notification-policies'),
   getEffectiveNotificationPolicies: () => fetchJson<NotificationPolicy[]>('/notification-policies/effective'),
   getNotificationLog: () => fetchJson<NotificationLog[]>('/notification-log'),
