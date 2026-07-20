@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, ChevronDown, Search, ArrowDown, ArrowUp } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
@@ -153,6 +153,7 @@ export function AlertsPage() {
   const canManage = can(PERMISSIONS.ALERTS_MANAGE);
   const canManageIncidents = can(PERMISSIONS.INCIDENTS_MANAGE);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<AlertStatus[]>(loadStatusFilter);
   const [priorityFilter, setPriorityFilter] = useState<AlertPriority[]>(loadPriorityFilter);
@@ -167,6 +168,11 @@ export function AlertsPage() {
   const priorityFilterRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToastContext();
+
+  useEffect(() => {
+    const alertId = Number(searchParams.get('alertId'));
+    if (alertId > 0) setSelectedId(alertId);
+  }, [searchParams]);
 
   useEffect(() => {
     localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));

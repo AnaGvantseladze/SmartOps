@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Video, X, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Video, X, ExternalLink, AlertTriangle } from 'lucide-react';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { useToastContext } from '@/context/ToastContext';
@@ -165,7 +166,9 @@ function IncidentDetailPanel({
   onClose: () => void;
   onUpdate: (data: Partial<Incident>) => void;
 }) {
+  const navigate = useNavigate();
   const [description, setDescription] = useState(incident.description ?? '');
+  const sourceAlerts = incident.source_alerts ?? [];
 
   useEffect(() => {
     setDescription(incident.description ?? '');
@@ -185,94 +188,158 @@ function IncidentDetailPanel({
         aria-label="Close incident details"
         onClick={onClose}
       />
-      <div className="relative flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
+      <div className="relative flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 className="text-lg font-semibold text-slate-900">Incident Details</h2>
           <button type="button" onClick={onClose} className="btn-secondary px-2 py-2" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+
+        <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <PriorityBadge priority={incident.severity} />
             <StatusBadge status={incident.status} />
           </div>
           <h3 className="text-lg font-semibold text-slate-900">{incident.title}</h3>
 
-          {canManage ? (
-            <div className="card mt-4 space-y-4 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">Update incident</h4>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="incident-priority" className="mb-1 block text-sm font-medium text-slate-700">
-                    Priority
-                  </label>
-                  <select
-                    id="incident-priority"
-                    value={incident.severity}
-                    disabled={isUpdating}
-                    onChange={(event) => onUpdate({ severity: event.target.value as IncidentSeverity })}
-                    className="input"
-                  >
-                    {INCIDENT_PRIORITIES.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="incident-status" className="mb-1 block text-sm font-medium text-slate-700">
-                    Status
-                  </label>
-                  <select
-                    id="incident-status"
-                    value={incident.status}
-                    disabled={isUpdating}
-                    onChange={(event) => onUpdate({ status: event.target.value as IncidentStatus })}
-                    className="input"
-                  >
-                    {incidentColumns.map((column) => (
-                      <option key={column.status} value={column.status}>
-                        {column.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div className="card mt-4 p-4">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900">Timeframe</h4>
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <div>
+                <span className="text-slate-500">Created:</span>{' '}
+                <span className="font-medium text-slate-900">{formatDateTime(incident.created_at)}</span>
               </div>
               <div>
-                <label htmlFor="incident-description" className="mb-1 block text-sm font-medium text-slate-700">
-                  Description
+                <span className="text-slate-500">Last updated:</span>{' '}
+                <span className="text-slate-900">{formatDateTime(incident.updated_at)}</span>
+              </div>
+              {incident.resolved_at && (
+                <div>
+                  <span className="text-slate-500">Resolved:</span>{' '}
+                  <span className="text-slate-900">{formatDateTime(incident.resolved_at)}</span>
+                </div>
+              )}
+              {incident.closed_at && (
+                <div>
+                  <span className="text-slate-500">Closed:</span>{' '}
+                  <span className="text-slate-900">{formatDateTime(incident.closed_at)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {sourceAlerts.length > 0 && (
+            <div className="card mt-4 p-4">
+              <h4 className="mb-3 text-sm font-semibold text-slate-900">Source alert</h4>
+              <div className="space-y-2">
+                {sourceAlerts.map((alert) => (
+                  <button
+                    key={alert.id}
+                    type="button"
+                    onClick={() => navigate(`/alerts?alertId=${alert.id}`)}
+                    className="flex w-full items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+                  >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <PriorityBadge priority={alert.priority} />
+                        <StatusBadge status={alert.status} />
+                      </div>
+                      <div className="text-sm font-medium text-slate-900">{alert.title}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Alert #{alert.id} · created {formatDateTime(alert.created_at)}
+                      </div>
+                    </div>
+                    <ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {canManage && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="incident-priority" className="mb-1 block text-sm font-medium text-slate-700">
+                  Priority
                 </label>
+                <select
+                  id="incident-priority"
+                  value={incident.severity}
+                  disabled={isUpdating}
+                  onChange={(event) => onUpdate({ severity: event.target.value as IncidentSeverity })}
+                  className="input w-full"
+                >
+                  {INCIDENT_PRIORITIES.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {priority}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="incident-status" className="mb-1 block text-sm font-medium text-slate-700">
+                  Status
+                </label>
+                <select
+                  id="incident-status"
+                  value={incident.status}
+                  disabled={isUpdating}
+                  onChange={(event) => onUpdate({ status: event.target.value as IncidentStatus })}
+                  className="input w-full"
+                >
+                  {incidentColumns.map((column) => (
+                    <option key={column.status} value={column.status}>
+                      {column.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex min-h-0 flex-1 flex-col">
+            <label htmlFor="incident-description" className="mb-1 block text-sm font-medium text-slate-700">
+              Description
+            </label>
+            {canManage ? (
+              <>
                 <textarea
                   id="incident-description"
                   value={description}
                   disabled={isUpdating}
                   onChange={(event) => setDescription(event.target.value)}
-                  rows={12}
                   placeholder="Add incident details, impact notes, investigation findings..."
-                  className="input min-h-[280px] resize-y"
+                  className="input min-h-0 w-full flex-1 resize-none"
                 />
-                <button
-                  type="button"
-                  className="btn-primary mt-2 px-3 py-1.5 text-xs"
-                  disabled={isUpdating || description.trim() === (incident.description ?? '').trim()}
-                  onClick={handleDescriptionSave}
-                >
-                  Save
-                </button>
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    className="btn-primary px-3 py-1.5 text-xs"
+                    disabled={isUpdating || description.trim() === (incident.description ?? '').trim()}
+                    onClick={handleDescriptionSave}
+                  >
+                    Save
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="input min-h-0 w-full flex-1 overflow-y-auto whitespace-pre-wrap bg-slate-50 text-sm text-slate-700">
+                {incident.description || 'No description provided.'}
               </div>
-            </div>
-          ) : (
-            incident.description && <p className="mt-2 text-sm text-slate-600">{incident.description}</p>
-          )}
+            )}
+          </div>
+        </div>
+
+        <div className="max-h-[38%] overflow-y-auto border-t border-slate-200 px-5 py-4">
 
           {incident.war_room_url && (
             <a
               href={incident.war_room_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-900"
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-900"
             >
               <Video className="h-4 w-4" />
               Join war room
@@ -280,13 +347,9 @@ function IncidentDetailPanel({
             </a>
           )}
 
-          <div className="card mt-4 p-4">
+          <div className="card p-4">
             <h4 className="mb-3 text-sm font-semibold text-slate-900">Details</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <span className="text-slate-500">Created:</span>{' '}
-                <span className="text-slate-900">{formatDateTime(incident.created_at)}</span>
-              </div>
               <div>
                 <span className="text-slate-500">Priority:</span>{' '}
                 <span className="text-slate-900">{incident.severity}</span>
@@ -311,18 +374,6 @@ function IncidentDetailPanel({
                 <div>
                   <span className="text-slate-500">Commander:</span>{' '}
                   <span className="text-slate-900">{incident.commander.name}</span>
-                </div>
-              )}
-              {incident.resolved_at && (
-                <div>
-                  <span className="text-slate-500">Resolved:</span>{' '}
-                  <span className="text-slate-900">{formatDateTime(incident.resolved_at)}</span>
-                </div>
-              )}
-              {incident.closed_at && (
-                <div>
-                  <span className="text-slate-500">Closed:</span>{' '}
-                  <span className="text-slate-900">{formatDateTime(incident.closed_at)}</span>
                 </div>
               )}
             </div>
