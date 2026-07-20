@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown, Search } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
@@ -80,6 +80,26 @@ function getLatestNote(alert: Alert): string | undefined {
   )[0].content;
 }
 
+function matchesAlertSearch(alert: Alert, query: string): boolean {
+  const term = query.trim().toLowerCase();
+  if (!term) return true;
+  const haystack = [
+    alert.title,
+    alert.description,
+    alert.source,
+    alert.service?.name,
+    alert.assignee?.name,
+    alert.responsible_team?.name,
+    alert.status,
+    alert.priority,
+    getLatestNote(alert),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(term);
+}
+
 export function AlertsPage() {
   const { can, alertScope } = useAuth();
   const canManage = can(PERMISSIONS.ALERTS_MANAGE);
@@ -92,6 +112,7 @@ export function AlertsPage() {
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const [showPriorityFilter, setShowPriorityFilter] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const columnPickerRef = useRef<HTMLDivElement>(null);
   const statusFilterRef = useRef<HTMLDivElement>(null);
   const priorityFilterRef = useRef<HTMLDivElement>(null);
@@ -141,6 +162,7 @@ export function AlertsPage() {
   });
 
   const selected = alerts.find((a) => a.id === selectedId);
+  const filteredAlerts = alerts.filter((alert) => matchesAlertSearch(alert, searchQuery));
 
   const { data: suggestions = [] } = useQuery({
     queryKey: ['ai-suggestions', 'alert', selected?.id],
@@ -316,6 +338,19 @@ export function AlertsPage() {
                     </label>
                   ))}
                 </div>
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <Search className="h-3 w-3" />
+                    Search
+                  </label>
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search alerts..."
+                    className="input w-full px-2 py-1.5 text-xs"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -453,7 +488,7 @@ export function AlertsPage() {
             </tr>
           </thead>
           <tbody>
-            {alerts.map((alert) => (
+            {filteredAlerts.map((alert) => (
               <AlertTableRow
                 key={alert.id}
                 alert={alert}
@@ -474,8 +509,10 @@ export function AlertsPage() {
             ))}
           </tbody>
         </table>
-        {alerts.length === 0 && (
-          <p className="p-8 text-center text-sm text-slate-500">No alerts match the selected filters</p>
+        {filteredAlerts.length === 0 && (
+          <p className="p-8 text-center text-sm text-slate-500">
+            {alerts.length === 0 ? 'No alerts match the selected filters' : 'No alerts match your search'}
+          </p>
         )}
       </div>
 
