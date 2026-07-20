@@ -704,7 +704,9 @@ async def get_change(change_id: int, db: AsyncSession = Depends(get_db)) -> Chan
 async def create_change(
     payload: ChangeCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_permission(Permission.CHANGES_SUBMIT.value))] = None,
+    current_user: Annotated[User, Depends(require_any_permission(
+        Permission.CHANGES_SUBMIT.value, Permission.CHANGES_MANAGE.value
+    ))] = None,
 ) -> ChangeResponse:
     service = await db.get(Service, payload.service_id) if payload.service_id else None
     risk, score, reasoning = _compute_change_risk(service)

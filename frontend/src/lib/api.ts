@@ -153,6 +153,14 @@ export const api = {
     }),
   getChanges: () => fetchJson<Change[]>('/changes'),
   getChange: (id: number) => fetchJson<Change>(`/changes/${id}`),
+  createChange: (data: {
+    title: string;
+    description?: string;
+    change_type: string;
+    service_id?: number;
+    implementation_plan?: string;
+    rollback_plan?: string;
+  }) => fetchJson<Change>('/changes', { method: 'POST', body: JSON.stringify(data) }),
   getServices: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
     return fetchJson<Service[]>(`/services${qs}`);
