@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown, Search, ArrowDown, ArrowUp } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, ChevronDown, Search, ArrowDown, ArrowUp } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
@@ -606,8 +606,11 @@ export function AlertsPage() {
                   )}
                 </th>
               ))}
-              {canManage && <th className="min-w-[220px]">Actions</th>}
-              {!canManage && canManageIncidents && <th className="min-w-[100px]">Incident</th>}
+              {(canManage || canManageIncidents) && (
+                <th className={cn('min-w-[100px]', canManage && 'min-w-[220px]')}>
+                  {canManage ? 'Actions' : 'Incident'}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -618,10 +621,12 @@ export function AlertsPage() {
                 selected={selected?.id === alert.id}
                 visibleColumns={columnVisibility}
                 canManage={canManage}
+                canManageIncidents={canManageIncidents}
                 onSelect={() => setSelectedId(alert.id)}
                 onAcknowledge={() => acknowledge.mutate(alert.id)}
                 onSnooze={(reason, hours) => handleSnooze(alert.id, reason, hours)}
                 onResolve={() => resolve.mutate(alert.id)}
+                onCreateIncident={() => createIncident.mutate(alert.id)}
                 onViewIncident={() => navigate('/incidents')}
                 isUpdating={isUpdating}
                 onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
@@ -656,15 +661,57 @@ export function AlertsPage() {
   );
 }
 
+function IncidentLink({
+  incidentId,
+  canCreate,
+  onCreate,
+  onView,
+  disabled = false,
+  compact = false,
+}: {
+  incidentId?: number | null;
+  canCreate: boolean;
+  onCreate?: () => void;
+  onView: () => void;
+  disabled?: boolean;
+  compact?: boolean;
+}) {
+  const className = cn(
+    'font-medium hover:underline disabled:opacity-50',
+    compact ? 'text-xs' : 'text-sm',
+    incidentId ? 'text-brand-700 hover:text-brand-900' : 'text-slate-500 hover:text-brand-700'
+  );
+
+  if (incidentId) {
+    return (
+      <button type="button" onClick={onView} className={className}>
+        INC-{incidentId}
+      </button>
+    );
+  }
+
+  if (canCreate && onCreate) {
+    return (
+      <button type="button" onClick={onCreate} disabled={disabled} className={className}>
+        INC
+      </button>
+    );
+  }
+
+  return <span className={cn(compact ? 'text-xs' : 'text-sm', 'text-slate-400')}>—</span>;
+}
+
 function AlertTableRow({
   alert,
   selected,
   visibleColumns,
   canManage,
+  canManageIncidents,
   onSelect,
   onAcknowledge,
   onSnooze,
   onResolve,
+  onCreateIncident,
   onViewIncident,
   isUpdating,
   onAddNote,
@@ -674,10 +721,12 @@ function AlertTableRow({
   selected: boolean;
   visibleColumns: Record<AlertColumnKey, boolean>;
   canManage: boolean;
+  canManageIncidents: boolean;
   onSelect: () => void;
   onAcknowledge: () => void;
   onSnooze: (reason: string, hours: number) => void;
   onResolve: () => void;
+  onCreateIncident: () => void;
   onViewIncident: () => void;
   isUpdating: boolean;
   onAddNote: (content: string) => void;
@@ -731,25 +780,31 @@ function AlertTableRow({
           />
         </td>
       )}
-      {canManage && (
+      {(canManage || canManageIncidents) && (
         <td onClick={(event) => event.stopPropagation()}>
-          <AlertActions
-            alert={alert}
-            compact
-            disabled={isUpdating}
-            canManage={canManage}
-            onAcknowledge={onAcknowledge}
-            onSnooze={onSnooze}
-            onResolve={onResolve}
-            onViewIncident={onViewIncident}
-          />
-        </td>
-      )}
-      {!canManage && alert.incident_id && (
-        <td onClick={(event) => event.stopPropagation()}>
-          <button type="button" className="btn-secondary px-2 py-1 text-xs" onClick={onViewIncident}>
-            INC-{alert.incident_id}
-          </button>
+          {canManage ? (
+            <AlertActions
+              alert={alert}
+              compact
+              disabled={isUpdating}
+              canManage={canManage}
+              canManageIncidents={canManageIncidents}
+              onAcknowledge={onAcknowledge}
+              onSnooze={onSnooze}
+              onResolve={onResolve}
+              onCreateIncident={onCreateIncident}
+              onViewIncident={onViewIncident}
+            />
+          ) : (
+            <IncidentLink
+              incidentId={alert.incident_id}
+              canCreate={canManageIncidents && !alert.incident_id && alert.status !== 'resolved'}
+              onCreate={onCreateIncident}
+              onView={onViewIncident}
+              disabled={isUpdating}
+              compact
+            />
+          )}
         </td>
       )}
     </tr>
@@ -761,18 +816,22 @@ function AlertActions({
   compact = false,
   disabled = false,
   canManage = true,
+  canManageIncidents = false,
   onAcknowledge,
   onSnooze,
   onResolve,
+  onCreateIncident,
   onViewIncident,
 }: {
   alert: Alert;
   compact?: boolean;
   disabled?: boolean;
   canManage?: boolean;
+  canManageIncidents?: boolean;
   onAcknowledge: () => void;
   onSnooze: (reason: string, hours: number) => void;
   onResolve: () => void;
+  onCreateIncident?: () => void;
   onViewIncident: () => void;
 }) {
   const [showSnooze, setShowSnooze] = useState(false);
@@ -783,7 +842,10 @@ function AlertActions({
   const canAcknowledge = canManage && alert.status === 'triggered';
   const canSnooze = canManage && (alert.status === 'triggered' || alert.status === 'acknowledged');
   const canResolve = canManage && alert.status !== 'resolved';
+  const canCreateIncident =
+    canManageIncidents && !alert.incident_id && alert.status !== 'resolved';
   const hasLinkedIncident = !!alert.incident_id;
+  const showIncidentLink = hasLinkedIncident || canCreateIncident;
 
   useEffect(() => {
     if (!showSnooze) return;
@@ -807,17 +869,21 @@ function AlertActions({
 
   const buttonClass = compact ? 'btn-secondary px-2 py-1 text-xs' : 'btn-secondary';
 
-  if (!canAcknowledge && !canSnooze && !canResolve && !hasLinkedIncident) {
+  if (!canAcknowledge && !canSnooze && !canResolve && !showIncidentLink) {
     return <span className="text-xs text-slate-400">No actions</span>;
   }
 
   return (
     <div className={cn('flex flex-wrap items-center gap-1.5', compact ? '' : 'gap-2')}>
-      {hasLinkedIncident && (
-        <button type="button" className={buttonClass} onClick={onViewIncident}>
-          <Siren className="h-3.5 w-3.5" />
-          INC-{alert.incident_id}
-        </button>
+      {showIncidentLink && (
+        <IncidentLink
+          incidentId={alert.incident_id}
+          canCreate={canCreateIncident}
+          onCreate={onCreateIncident}
+          onView={onViewIncident}
+          disabled={disabled}
+          compact={compact}
+        />
       )}
       {canAcknowledge && (
         <button
@@ -1126,45 +1192,32 @@ function AlertDetail({
         </div>
       )}
 
-      {(canManage || (canManageIncidents && !alert.incident_id && alert.status !== 'resolved')) && (
+      {(canManage || canManageIncidents) && (
         <div className="card mb-4 p-4">
-          {canManage && (
-            <>
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">Actions</h3>
-              <AlertActions
-                alert={alert}
-                disabled={isUpdating}
-                canManage={canManage}
-                onAcknowledge={onAcknowledge}
-                onSnooze={onSnooze}
-                onResolve={onResolve}
-                onViewIncident={onViewIncident}
-              />
-            </>
-          )}
-          {canManageIncidents && !alert.incident_id && alert.status !== 'resolved' && (
-            <button
-              type="button"
-              onClick={onCreateIncident}
+          <h3 className="mb-3 text-sm font-semibold text-slate-900">
+            {canManage ? 'Actions' : 'Incident'}
+          </h3>
+          {canManage ? (
+            <AlertActions
+              alert={alert}
               disabled={isUpdating}
-              className={cn(
-                'text-xs text-slate-500 hover:text-brand-700 hover:underline disabled:opacity-50',
-                canManage && 'mt-3 border-t border-slate-100 pt-3'
-              )}
-            >
-              Create incident from this alert
-            </button>
+              canManage={canManage}
+              canManageIncidents={canManageIncidents}
+              onAcknowledge={onAcknowledge}
+              onSnooze={onSnooze}
+              onResolve={onResolve}
+              onCreateIncident={onCreateIncident}
+              onViewIncident={onViewIncident}
+            />
+          ) : (
+            <IncidentLink
+              incidentId={alert.incident_id}
+              canCreate={canManageIncidents && !alert.incident_id && alert.status !== 'resolved'}
+              onCreate={onCreateIncident}
+              onView={onViewIncident}
+              disabled={isUpdating}
+            />
           )}
-        </div>
-      )}
-
-      {alert.incident_id && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-          <Siren className="h-4 w-4 shrink-0" />
-          Linked to incident <strong>INC-{alert.incident_id}</strong>
-          <button type="button" className="ml-auto text-xs font-medium underline" onClick={onViewIncident}>
-            View on board
-          </button>
         </div>
       )}
 
