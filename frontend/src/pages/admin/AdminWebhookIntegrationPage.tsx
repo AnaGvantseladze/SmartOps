@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Webhook, Copy, Play, Trash2, Plus } from 'lucide-react';
+import { Webhook, Copy, Play, Trash2, Plus, Terminal } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToastContext } from '@/context/ToastContext';
 import { CardSkeleton, PageHeaderSkeleton } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { cn, statusBadge } from '@/lib/utils';
+import type { WebhookIntegration } from '@/lib/api';
 
 const SAMPLE_PAYLOAD = `{
   "title": "High CPU usage",
@@ -14,6 +15,16 @@ const SAMPLE_PAYLOAD = `{
   "source": "postman",
   "service": "api-gateway"
 }`;
+
+function buildCurlCommand(integration: WebhookIntegration): string {
+  const headers = ['-H "Content-Type: application/json"'];
+  if (integration.webhook_secret) {
+    headers.push(`-H "X-Webhook-Secret: ${integration.webhook_secret}"`);
+  }
+  return `curl -X POST "${integration.webhook_url}" \\
+${headers.map((h) => `  ${h} \\
+`).join('')}  -d '${SAMPLE_PAYLOAD.replace(/\n/g, ' ')}'`;
+}
 
 export function AdminWebhookIntegrationPage() {
   const queryClient = useQueryClient();
@@ -78,6 +89,11 @@ export function AdminWebhookIntegrationPage() {
   const copyPayload = () => {
     navigator.clipboard.writeText(SAMPLE_PAYLOAD);
     toast.success('Sample payload copied');
+  };
+
+  const copyCurl = (integration: WebhookIntegration) => {
+    navigator.clipboard.writeText(buildCurlCommand(integration));
+    toast.success('curl command copied');
   };
 
   if (isLoading) {
@@ -197,9 +213,20 @@ export function AdminWebhookIntegrationPage() {
                 <label className="mb-1 block text-sm font-medium text-slate-700">Webhook URL (POST)</label>
                 <div className="flex gap-2">
                   <input readOnly className="input flex-1 font-mono text-xs" value={integration.webhook_url} />
-                  <button className="btn-secondary" onClick={() => copyWebhook(integration.webhook_url)}>
+                  <button className="btn-secondary" onClick={() => copyWebhook(integration.webhook_url)} title="Copy URL">
                     <Copy className="h-4 w-4" />
                   </button>
+                </div>
+
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-slate-700">curl command</h3>
+                    <button className="btn-secondary py-1 text-xs" onClick={() => copyCurl(integration)}>
+                      <Terminal className="h-3.5 w-3.5" />
+                      Copy
+                    </button>
+                  </div>
+                  <pre className="overflow-x-auto rounded-lg bg-slate-900 p-4 text-xs text-slate-100">{buildCurlCommand(integration)}</pre>
                 </div>
 
                 {integration.webhook_secret && (
