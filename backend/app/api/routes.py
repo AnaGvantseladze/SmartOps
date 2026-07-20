@@ -220,7 +220,7 @@ async def create_service(
 
 @router.get("/alerts", response_model=list[AlertResponse])
 async def list_alerts(
-    status: Optional[AlertStatus] = None,
+    status: Optional[list[AlertStatus]] = Query(None),
     priority: Optional[AlertPriority] = None,
     service_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
@@ -244,7 +244,7 @@ async def list_alerts(
         )
         query = query.where(Alert.service_id.in_(service_ids))
     if status:
-        query = query.where(Alert.status == status)
+        query = query.where(Alert.status.in_(status))
     if priority:
         query = query.where(Alert.priority == priority)
     if service_id:

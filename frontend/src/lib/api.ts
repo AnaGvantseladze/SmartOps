@@ -114,9 +114,15 @@ export const api = {
   getMe: () => fetchJson<UserProfile>('/auth/me'),
   getDashboardStats: () => fetchJson<DashboardStats>('/dashboard/stats'),
   getFreezeBanner: () => fetchJson<FreezeBanner>('/dashboard/freeze'),
-  getAlerts: (params?: Record<string, string>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return fetchJson<Alert[]>(`/alerts${qs}`);
+  getAlerts: (params?: { status?: string[]; priority?: string; service_id?: string }) => {
+    const search = new URLSearchParams();
+    if (params?.status?.length) {
+      params.status.forEach((value) => search.append('status', value));
+    }
+    if (params?.priority) search.set('priority', params.priority);
+    if (params?.service_id) search.set('service_id', params.service_id);
+    const qs = search.toString();
+    return fetchJson<Alert[]>(`/alerts${qs ? `?${qs}` : ''}`);
   },
   getAlert: (id: number) => fetchJson<Alert>(`/alerts/${id}`),
   acknowledgeAlert: (id: number) =>
