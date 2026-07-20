@@ -13,6 +13,7 @@ from app.database import Base, async_session, engine
 from app.migrate_roles import migrate_removed_roles
 from app.migrate_change_impact import migrate_change_impact_fields
 from app.migrate_engineers import migrate_engineers
+from app.migrate_incident_status import migrate_incident_statuses
 from app.migrate_oncall_schedules import ensure_default_oncall_schedules, migrate_oncall_schedules
 from app.migrate_webhooks import migrate_azure_to_webhooks
 from app.seed import ensure_auth_users, seed_demo_data

@@ -3,10 +3,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.oncall import OnCallSchedule, OnCallScheduleType, OnCallShift, RotationFrequency
 
+LOWERCASE_SCHEDULE_TYPES = (
+    "engineer",
+    "incident_manager",
+    "change_manager",
+    "noc",
+    "service_owner",
+    "incident_commander",
+)
+
 
 async def migrate_oncall_schedules(session: AsyncSession) -> None:
     """Normalize on-call schedules to engineer, incident manager, and change manager."""
-    for value in ("engineer", "change_manager"):
+    for value in LOWERCASE_SCHEDULE_TYPES:
         await session.execute(
             text(
                 f"""
@@ -20,41 +29,81 @@ async def migrate_oncall_schedules(session: AsyncSession) -> None:
         )
     await session.commit()
 
-    schedules = (await session.scalars(select(OnCallSchedule).order_by(OnCallSchedule.id))).all()
-    if not schedules:
+    rows = (
+        await session.execute(text("SELECT id, schedule_type::text FROM on_call_schedules ORDER BY id"))
+    ).all()
+    if not rows:
         return
 
-    engineer = next(
-        (s for s in schedules if s.schedule_type in (OnCallScheduleType.ENGINEER, OnCallScheduleType.NOC, OnCallScheduleType.SERVICE_OWNER)),
-        None,
-    )
-    incident_manager = next(
-        (s for s in schedules if s.schedule_type == OnCallScheduleType.INCIDENT_MANAGER),
-        None,
-    )
-    change_manager = next(
-        (
-            s
-            for s in schedules
-            if s.schedule_type in (OnCallScheduleType.CHANGE_MANAGER, OnCallScheduleType.INCIDENT_COMMANDER)
-        ),
-        None,
-    )
+    engineer_id: int | None = None
+    incident_manager_id: int | None = None
+    change_manager_id: int | None = None
 
-    if engineer:
-        engineer.name = "Engineer On-Call"
-        engineer.schedule_type = OnCallScheduleType.ENGINEER
-    if incident_manager:
-        incident_manager.name = "Incident Manager On-Call"
-        incident_manager.schedule_type = OnCallScheduleType.INCIDENT_MANAGER
-    if change_manager:
-        change_manager.name = "Change Manager On-Call"
-        change_manager.schedule_type = OnCallScheduleType.CHANGE_MANAGER
+    for schedule_id, schedule_type in rows:
+        normalized = schedule_type.lower()
+        if normalized in {"noc", "service_owner", "engineer"} and engineer_id is None:
+            engineer_id = schedule_id
+        elif normalized == "incident_manager" and incident_manager_id is None:
+            incident_manager_id = schedule_id
+        elif normalized in {"incident_commander", "change_manager"} and change_manager_id is None:
+            change_manager_id = schedule_id
 
-    primary_ids = {s.id for s in (engineer, incident_manager, change_manager) if s}
-    for schedule in schedules:
-        if schedule.id not in primary_ids:
-            schedule.is_active = False
+    if engineer_id is not None:
+        await session.execute(
+            text(
+                "UPDATE on_call_schedules SET name = 'Engineer On-Call', schedule_type = 'engineer' WHERE id = :id"
+            ),
+            {"id": engineer_id},
+        )
+    if incident_manager_id is not None:
+        await session.execute(
+            text(
+                "UPDATE on_call_schedules SET name = 'Incident Manager On-Call', "
+                "schedule_type = 'incident_manager' WHERE id = :id"
+            ),
+            {"id": incident_manager_id},
+        )
+    if change_manager_id is not None:
+        await session.execute(
+            text(
+                "UPDATE on_call_schedules SET name = 'Change Manager On-Call', "
+                "schedule_type = 'change_manager' WHERE id = :id"
+            ),
+            {"id": change_manager_id},
+        )
+
+    keep_ids = [schedule_id for schedule_id in (engineer_id, incident_manager_id, change_manager_id) if schedule_id]
+    if keep_ids:
+        placeholders = ", ".join(str(schedule_id) for schedule_id in keep_ids)
+        await session.execute(text(f"UPDATE on_call_schedules SET is_active = false WHERE id NOT IN ({placeholders})"))
+
+    for value in ("daily", "weekly", "custom"):
+        await session.execute(
+            text(
+                f"""
+                DO $$ BEGIN
+                    ALTER TYPE rotationfrequency ADD VALUE '{value}';
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END $$;
+                """
+            )
+        )
+    await session.commit()
+
+    await session.execute(
+        text(
+            """
+            UPDATE on_call_schedules
+            SET rotation_frequency = CASE rotation_frequency::text
+                WHEN 'DAILY' THEN 'daily'
+                WHEN 'WEEKLY' THEN 'weekly'
+                WHEN 'CUSTOM' THEN 'custom'
+                ELSE rotation_frequency::text
+            END::rotationfrequency
+            """
+        )
+    )
 
     await session.commit()
 
