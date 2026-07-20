@@ -24,6 +24,13 @@ export const PERMISSIONS = {
   TEAMS_MANAGE: 'teams:manage',
   AUDIT_VIEW: 'audit:view',
   EXPORT_DATA: 'export:data',
+  ALERT_RULES_MANAGE: 'alert_rules:manage',
+  NOTIFICATION_CHANNELS_MANAGE: 'notifications:channels',
+  SEVERITY_MANAGE: 'severity:manage',
+  CATEGORIES_MANAGE: 'categories:manage',
+  PERMISSIONS_MANAGE: 'permissions:manage',
+  BACKUP_RESTORE: 'backup:restore',
+  AUTH_CONFIG: 'auth:config',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -33,8 +40,10 @@ export const NAV_PERMISSIONS: Record<string, Permission> = {
   alerts: PERMISSIONS.ALERTS_VIEW,
   incidents: PERMISSIONS.INCIDENTS_VIEW,
   changes: PERMISSIONS.CHANGES_VIEW,
+  'on-call': PERMISSIONS.SETTINGS_ON_CALL,
   services: PERMISSIONS.SERVICES_VIEW,
   administration: PERMISSIONS.USERS_MANAGE,
+  settings: PERMISSIONS.SETTINGS_VIEW,
 };
 
 export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
@@ -42,6 +51,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
   '/alerts': PERMISSIONS.ALERTS_VIEW,
   '/incidents': PERMISSIONS.INCIDENTS_VIEW,
   '/changes': PERMISSIONS.CHANGES_VIEW,
+  '/on-call': PERMISSIONS.SETTINGS_ON_CALL,
   '/services': PERMISSIONS.SERVICES_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/admin': PERMISSIONS.USERS_MANAGE,
@@ -49,10 +59,11 @@ export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
   '/settings/system': PERMISSIONS.SYSTEM_CONFIG,
   '/settings/dashboard-config': PERMISSIONS.DASHBOARD_MANAGE,
   '/settings/notifications': PERMISSIONS.SETTINGS_NOTIFICATIONS,
-  '/settings/on-call': PERMISSIONS.SETTINGS_ON_CALL,
   '/settings/audit': PERMISSIONS.AUDIT_VIEW,
   '/settings/export': PERMISSIONS.EXPORT_DATA,
   '/settings/webhooks': PERMISSIONS.INTEGRATIONS_MANAGE,
+  '/settings/platform': PERMISSIONS.SYSTEM_CONFIG,
+  '/settings/permissions': PERMISSIONS.PERMISSIONS_MANAGE,
 };
 
 export const ROLE_LABELS: Record<string, string> = {

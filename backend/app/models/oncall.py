@@ -8,11 +8,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class OnCallScheduleType(str, enum.Enum):
+    ENGINEER = "engineer"
+    INCIDENT_MANAGER = "incident_manager"
+    CHANGE_MANAGER = "change_manager"
+    # Legacy values kept for existing databases until migration runs
     SERVICE_OWNER = "service_owner"
     NOC = "noc"
     INCIDENT_COMMANDER = "incident_commander"
-    INCIDENT_MANAGER = "incident_manager"
 
 
 class RotationFrequency(str, enum.Enum):
@@ -32,11 +39,14 @@ class OnCallSchedule(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    schedule_type: Mapped[OnCallScheduleType] = mapped_column(Enum(OnCallScheduleType), nullable=False)
+    schedule_type: Mapped[OnCallScheduleType] = mapped_column(
+        Enum(OnCallScheduleType, values_callable=_enum_values),
+        nullable=False,
+    )
     team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.id"))
     service_id: Mapped[Optional[int]] = mapped_column(ForeignKey("services.id"))
     rotation_frequency: Mapped[RotationFrequency] = mapped_column(
-        Enum(RotationFrequency), default=RotationFrequency.WEEKLY
+        Enum(RotationFrequency, values_callable=_enum_values), default=RotationFrequency.WEEKLY
     )
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -99,7 +109,9 @@ class EscalationPolicyLevel(Base):
     policy_id: Mapped[int] = mapped_column(ForeignKey("escalation_policies.id", ondelete="CASCADE"))
     level_number: Mapped[int] = mapped_column(Integer, nullable=False)
     timeout_minutes: Mapped[int] = mapped_column(Integer, default=5)
-    target_type: Mapped[EscalationTargetType] = mapped_column(Enum(EscalationTargetType), nullable=False)
+    target_type: Mapped[EscalationTargetType] = mapped_column(
+        Enum(EscalationTargetType, values_callable=_enum_values), nullable=False
+    )
     target_id: Mapped[Optional[int]] = mapped_column(Integer)
     target_label: Mapped[Optional[str]] = mapped_column(String(200))
 

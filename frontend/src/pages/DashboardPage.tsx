@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Siren, GitPullRequest, Clock } from 'lucide-react';
+import { AlertTriangle, Siren, GitPullRequest, Clock, ShieldCheck, FileDown } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +47,7 @@ function StatCard({
 export function DashboardPage() {
   const { can } = useAuth();
   const isExecutive = can(PERMISSIONS.DASHBOARD_EXECUTIVE);
+  const canExport = can(PERMISSIONS.EXPORT_DATA);
   const [period, setPeriod] = useState<DashboardPeriod>('week');
 
   const { data: stats, isLoading } = useQuery({
@@ -130,6 +132,47 @@ export function DashboardPage() {
           color="text-orange-600"
         />
       </div>
+
+      {isExecutive && (
+        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <div className="card p-5 lg:col-span-2">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="section-title">SLA Compliance</h2>
+              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg bg-slate-50 px-4 py-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Compliance</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{stats.sla_compliance_percent}%</div>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-4 py-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">At risk</div>
+                <div className="mt-1 text-2xl font-semibold text-amber-600">{stats.sla_at_risk}</div>
+                <div className="mt-1 text-xs text-slate-500">Open incidents over 4 hours</div>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-4 py-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Pending approval</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{stats.pending_teams}</div>
+                <div className="mt-1 text-xs text-slate-500">Awaiting resolution sign-off</div>
+              </div>
+            </div>
+          </div>
+          {canExport && (
+            <div className="card flex flex-col justify-between p-5">
+              <div>
+                <h2 className="section-title mb-2">Reports</h2>
+                <p className="text-sm text-slate-600">
+                  Generate exports for incidents, alerts, and operational KPIs.
+                </p>
+              </div>
+              <Link to="/settings/export" className="btn-secondary mt-4 justify-center">
+                <FileDown className="h-4 w-4" />
+                Export data
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card p-5">

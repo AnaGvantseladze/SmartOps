@@ -15,11 +15,17 @@ from app.schemas.schemas import LoginRequest, LoginResponse, RoleConfigResponse,
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
 
-from app.engineers import DEMO_AUTH_USERS, ENGINEERS
+from app.engineers import DEMO_AUTH_USERS, DEMO_USERS
+from app.permissions import ROLE_LABELS
 
-DEMO_USERS = [
-    {"email": email, "password": DEMO_AUTH_USERS[email], "role_label": "Engineer", "name": name}
-    for name, email in ENGINEERS
+DEMO_USERS_API = [
+    {
+        "email": email,
+        "password": DEMO_AUTH_USERS[email],
+        "role_label": ROLE_LABELS[role],
+        "name": name,
+    }
+    for name, email, role in DEMO_USERS
 ]
 
 
@@ -106,7 +112,7 @@ async def demo_users() -> list[dict]:
 
     role_by_label = {label: role for role, label in ROLE_LABELS.items()}
     result = []
-    for u in DEMO_USERS:
+    for u in DEMO_USERS_API:
         role = role_by_label.get(u["role_label"], UserRole.ENGINEER)
         result.append(
             {

@@ -23,8 +23,10 @@ from app.schemas.notification_schemas import (
     NotificationLogResponse,
     NotificationPolicyCreate,
     NotificationPolicyResponse,
+    NotificationRuleUpdate,
     OnCallOverrideCreate,
     OnCallOverrideResponse,
+    OnCallScheduleCreate,
     OnCallScheduleResponse,
 )
 from app.services.notification_service import (
@@ -147,6 +149,41 @@ async def create_notification_policy(
     return policy_to_response(policy)
 
 
+@router.patch("/notification-policies/rules/{rule_id}", response_model=NotificationPolicyResponse)
+async def update_notification_rule(
+    rule_id: int,
+    payload: NotificationRuleUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_NOTIFICATIONS.value))] = None,
+) -> NotificationPolicyResponse:
+    import json
+
+    rule = await db.get(NotificationRule, rule_id)
+    if not rule:
+        raise HTTPException(status_code=404, detail="Notification rule not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    if "channels" in updates:
+        rule.channels = json.dumps(updates["channels"])
+    if "suppress" in updates:
+        rule.suppress = updates["suppress"]
+
+    await db.commit()
+
+    policy = await db.scalar(
+        select(NotificationPolicy)
+        .options(
+            selectinload(NotificationPolicy.rules),
+            selectinload(NotificationPolicy.team),
+            selectinload(NotificationPolicy.user),
+        )
+        .where(NotificationPolicy.id == rule.policy_id)
+    )
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    return policy_to_response(policy)
+
+
 @router.get("/notification-log", response_model=list[NotificationLogResponse])
 async def get_notification_log(
     current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_NOTIFICATIONS.value))],
@@ -192,6 +229,47 @@ async def list_on_call_schedules(
     )
     schedules = result.scalars().unique().all()
     return [await schedule_to_response(db, s) for s in schedules]
+
+
+@router.post("/on-call/schedules", response_model=OnCallScheduleResponse, status_code=201)
+async def create_on_call_schedule(
+    payload: OnCallScheduleCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SCHEDULES_MANAGE.value))] = None,
+) -> OnCallScheduleResponse:
+    schedule = OnCallSchedule(
+        name=payload.name.strip(),
+        schedule_type=payload.schedule_type,
+        team_id=payload.team_id,
+        rotation_frequency=payload.rotation_frequency,
+        timezone=payload.timezone,
+    )
+    db.add(schedule)
+    await db.flush()
+
+    for shift_data in payload.shifts:
+        db.add(
+            OnCallShift(
+                schedule_id=schedule.id,
+                user_id=shift_data.user_id,
+                start_time=shift_data.start_time,
+                end_time=shift_data.end_time,
+            )
+        )
+
+    await db.commit()
+    schedule = await db.scalar(
+        select(OnCallSchedule)
+        .options(
+            selectinload(OnCallSchedule.team),
+            selectinload(OnCallSchedule.service),
+            selectinload(OnCallSchedule.shifts).selectinload(OnCallShift.user),
+            selectinload(OnCallSchedule.overrides).selectinload(OnCallOverride.original_user),
+            selectinload(OnCallSchedule.overrides).selectinload(OnCallOverride.override_user),
+        )
+        .where(OnCallSchedule.id == schedule.id)
+    )
+    return await schedule_to_response(db, schedule)
 
 
 @router.get("/on-call/current", response_model=list[CurrentOnCallResponse])

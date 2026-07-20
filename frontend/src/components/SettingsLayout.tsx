@@ -1,7 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   Bell,
-  CalendarClock,
   Webhook,
   Download,
   LayoutDashboard,
@@ -11,6 +10,8 @@ import {
   User,
   Users,
   Wrench,
+  SlidersHorizontal,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { PERMISSIONS } from '@/lib/permissions';
@@ -19,7 +20,6 @@ import { cn } from '@/lib/utils';
 const generalNav = [
   { to: '/settings', icon: User, label: 'Profile', end: true, permission: PERMISSIONS.SETTINGS_VIEW },
   { to: '/settings/notifications', icon: Bell, label: 'Notification Policies', permission: PERMISSIONS.SETTINGS_NOTIFICATIONS },
-  { to: '/settings/on-call', icon: CalendarClock, label: 'On-Call Schedules', permission: PERMISSIONS.SETTINGS_ON_CALL },
 ];
 
 const adminNav = [
@@ -27,6 +27,8 @@ const adminNav = [
   { to: '/settings/users-teams', icon: Users, label: 'Users & Teams', permission: PERMISSIONS.USERS_MANAGE },
   { to: '/settings/system', icon: Wrench, label: 'System & Integrations', permission: PERMISSIONS.SYSTEM_CONFIG },
   { to: '/settings/webhooks', icon: Webhook, label: 'Webhook Integrations', permission: PERMISSIONS.INTEGRATIONS_MANAGE },
+  { to: '/settings/platform', icon: SlidersHorizontal, label: 'Platform Configuration', permission: PERMISSIONS.SYSTEM_CONFIG },
+  { to: '/settings/permissions', icon: KeyRound, label: 'Permissions', permission: PERMISSIONS.PERMISSIONS_MANAGE },
   { to: '/settings/dashboard-config', icon: LayoutDashboard, label: 'Dashboard Parameters', permission: PERMISSIONS.DASHBOARD_MANAGE },
   { to: '/settings/audit', icon: ScrollText, label: 'Audit Logs', permission: PERMISSIONS.AUDIT_VIEW },
   { to: '/settings/export', icon: Download, label: 'Export Data', permission: PERMISSIONS.EXPORT_DATA },
@@ -36,6 +38,7 @@ export function SettingsLayout() {
   const { can } = useAuth();
   const visibleGeneral = generalNav.filter((item) => can(item.permission));
   const visibleAdmin = adminNav.filter((item) => can(item.permission));
+  const adminSectionTitle = can(PERMISSIONS.USERS_MANAGE) ? 'Administration' : 'Management';
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
@@ -56,7 +59,7 @@ export function SettingsLayout() {
         {visibleAdmin.length > 0 && (
           <>
             <div className="mb-2 mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Administration
+              {adminSectionTitle}
             </div>
             <nav className="space-y-1">
               {visibleAdmin.map(({ to, icon: Icon, label, end }) => (

@@ -2,8 +2,8 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import hash_password
-from app.engineers import ENGINEERS, ENGINEER_PASSWORD
-from app.models.entities import User, UserRole
+from app.engineers import DEMO_PASSWORD, DEMO_USERS
+from app.models.entities import User
 
 USER_FK_UPDATES = [
     ("services", "owner_id"),
@@ -25,17 +25,19 @@ USER_FK_UPDATES = [
 
 
 async def migrate_engineers(session: AsyncSession) -> None:
-    """Replace demo personas with the SmartOps engineer team."""
+    """Ensure demo accounts exist with the correct roles and credentials."""
     users = list((await session.scalars(select(User).order_by(User.id))).all())
     default_team_id = users[0].team_id if users else None
 
-    for index, (name, email) in enumerate(ENGINEERS):
-        if index < len(users):
-            user = users[index]
+    for name, email, role in DEMO_USERS:
+        user = await session.scalar(select(User).where(User.email == email))
+        if not user:
+            user = await session.scalar(select(User).where(User.name == name))
+        if user:
             user.name = name
             user.email = email
-            user.role = UserRole.ENGINEER
-            user.password_hash = hash_password(ENGINEER_PASSWORD)
+            user.role = role
+            user.password_hash = hash_password(DEMO_PASSWORD)
             if user.team_id is None:
                 user.team_id = default_team_id
         else:
@@ -43,9 +45,9 @@ async def migrate_engineers(session: AsyncSession) -> None:
                 User(
                     name=name,
                     email=email,
-                    role=UserRole.ENGINEER,
+                    role=role,
                     team_id=default_team_id,
-                    password_hash=hash_password(ENGINEER_PASSWORD),
+                    password_hash=hash_password(DEMO_PASSWORD),
                 )
             )
 
@@ -55,10 +57,17 @@ async def migrate_engineers(session: AsyncSession) -> None:
         await session.commit()
         return
 
-    keep_users = users[: len(ENGINEERS)]
-    primary_id = keep_users[0].id
+    demo_emails = {email for _, email, _ in DEMO_USERS}
+    keep_users = [user for user in users if user.email in demo_emails]
+    if not keep_users:
+        keep_users = users[: len(DEMO_USERS)]
 
-    for extra_user in users[len(ENGINEERS) :]:
+    primary_id = keep_users[0].id
+    keep_ids = {user.id for user in keep_users}
+
+    for extra_user in users:
+        if extra_user.id in keep_ids:
+            continue
         for table, column in USER_FK_UPDATES:
             await session.execute(
                 text(f"UPDATE {table} SET {column} = :primary_id WHERE {column} = :user_id"),

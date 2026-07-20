@@ -37,6 +37,13 @@ class Permission(str, Enum):
     TEAMS_MANAGE = "teams:manage"
     AUDIT_VIEW = "audit:view"
     EXPORT_DATA = "export:data"
+    ALERT_RULES_MANAGE = "alert_rules:manage"
+    NOTIFICATION_CHANNELS_MANAGE = "notifications:channels"
+    SEVERITY_MANAGE = "severity:manage"
+    CATEGORIES_MANAGE = "categories:manage"
+    PERMISSIONS_MANAGE = "permissions:manage"
+    BACKUP_RESTORE = "backup:restore"
+    AUTH_CONFIG = "auth:config"
 
 
 # Explicit Administrator permissions per product spec
@@ -64,36 +71,47 @@ ADMIN_PERMISSIONS: set[str] = {
     Permission.DASHBOARD_EXECUTIVE,
     Permission.AUDIT_VIEW,
     Permission.EXPORT_DATA,
+    Permission.ALERT_RULES_MANAGE,
+    Permission.NOTIFICATION_CHANNELS_MANAGE,
+    Permission.SEVERITY_MANAGE,
+    Permission.CATEGORIES_MANAGE,
+    Permission.PERMISSIONS_MANAGE,
+    Permission.BACKUP_RESTORE,
+    Permission.AUTH_CONFIG,
+    Permission.INCIDENTS_COMMAND,
+    Permission.CHANGES_SUBMIT,
+}
+
+# Engineer baseline used by manager role expansion
+ENGINEER_PERMISSIONS: set[str] = {
+    Permission.DASHBOARD_VIEW,
+    Permission.ALERTS_VIEW,
+    Permission.ALERTS_MANAGE,
+    Permission.INCIDENTS_VIEW,
+    Permission.INCIDENTS_MANAGE,
+    Permission.CHANGES_VIEW,
+    Permission.CHANGES_SUBMIT,
+    Permission.SERVICES_VIEW,
+    Permission.SERVICES_MANAGE,
+    Permission.SETTINGS_VIEW,
+    Permission.SETTINGS_NOTIFICATIONS,
+    Permission.SETTINGS_ON_CALL,
+}
+
+MANAGER_EXTRA_PERMISSIONS: set[str] = {
+    Permission.DASHBOARD_EXECUTIVE,
+    Permission.DASHBOARD_MANAGE,
+    Permission.EXPORT_DATA,
+    Permission.AUDIT_VIEW,
+    Permission.INCIDENTS_COMMAND,
+    Permission.CHANGES_APPROVE,
+    Permission.SCHEDULES_MANAGE,
 }
 
 ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
     UserRole.ADMIN: ADMIN_PERMISSIONS,
-    UserRole.ENGINEER: {
-        Permission.DASHBOARD_VIEW,
-        Permission.ALERTS_VIEW,
-        Permission.ALERTS_MANAGE,
-        Permission.INCIDENTS_VIEW,
-        Permission.INCIDENTS_MANAGE,
-        Permission.CHANGES_VIEW,
-        Permission.CHANGES_SUBMIT,
-        Permission.SERVICES_VIEW,
-        Permission.SERVICES_MANAGE,
-        Permission.SETTINGS_VIEW,
-        Permission.SETTINGS_NOTIFICATIONS,
-        Permission.SETTINGS_ON_CALL,
-    },
-    UserRole.MANAGER: {
-        Permission.DASHBOARD_VIEW,
-        Permission.DASHBOARD_EXECUTIVE,
-        Permission.ALERTS_VIEW,
-        Permission.INCIDENTS_VIEW,
-        Permission.INCIDENTS_COMMAND,
-        Permission.CHANGES_VIEW,
-        Permission.CHANGES_APPROVE,
-        Permission.SERVICES_VIEW,
-        Permission.SETTINGS_VIEW,
-        Permission.SETTINGS_NOTIFICATIONS,
-    },
+    UserRole.ENGINEER: set(ENGINEER_PERMISSIONS),
+    UserRole.MANAGER: set(ENGINEER_PERMISSIONS) | MANAGER_EXTRA_PERMISSIONS,
     UserRole.CHANGE_MANAGER: {
         Permission.DASHBOARD_VIEW,
         Permission.CHANGES_VIEW,
@@ -102,8 +120,120 @@ ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
         Permission.SERVICES_VIEW,
         Permission.SETTINGS_VIEW,
         Permission.SETTINGS_NOTIFICATIONS,
+        Permission.SETTINGS_ON_CALL,
     },
 }
+
+# Mutable copy used at runtime — admins can customize via the permissions UI
+_effective_role_permissions: dict[UserRole, set[str]] = {
+    role: set(perms) for role, perms in ROLE_PERMISSIONS.items()
+}
+
+PERMISSION_LABELS: dict[str, str] = {
+    Permission.DASHBOARD_VIEW.value: "View dashboard",
+    Permission.DASHBOARD_EXECUTIVE.value: "Executive dashboard",
+    Permission.DASHBOARD_MANAGE.value: "Manage dashboard settings",
+    Permission.ALERTS_VIEW.value: "View alerts",
+    Permission.ALERTS_MANAGE.value: "Manage alerts",
+    Permission.INCIDENTS_VIEW.value: "View incidents",
+    Permission.INCIDENTS_MANAGE.value: "Manage incidents",
+    Permission.INCIDENTS_COMMAND.value: "Incident command (assign, priority)",
+    Permission.CHANGES_VIEW.value: "View changes",
+    Permission.CHANGES_SUBMIT.value: "Submit change requests",
+    Permission.CHANGES_APPROVE.value: "Approve changes",
+    Permission.CHANGES_MANAGE.value: "Manage changes",
+    Permission.SERVICES_VIEW.value: "View service catalog",
+    Permission.SERVICES_MANAGE.value: "Manage services",
+    Permission.SYSTEM_CONFIG.value: "System configuration",
+    Permission.INTEGRATIONS_MANAGE.value: "Manage integrations",
+    Permission.SETTINGS_VIEW.value: "View settings",
+    Permission.SETTINGS_NOTIFICATIONS.value: "Notification settings",
+    Permission.SETTINGS_ON_CALL.value: "On-call schedules",
+    Permission.SETTINGS_ADMIN.value: "Admin settings",
+    Permission.SCHEDULES_MANAGE.value: "Create and manage on-call schedules",
+    Permission.USERS_MANAGE.value: "Manage users",
+    Permission.TEAMS_MANAGE.value: "Manage teams",
+    Permission.AUDIT_VIEW.value: "View audit logs",
+    Permission.EXPORT_DATA.value: "Export data",
+    Permission.ALERT_RULES_MANAGE.value: "Manage alert rules",
+    Permission.NOTIFICATION_CHANNELS_MANAGE.value: "Manage notification channels",
+    Permission.SEVERITY_MANAGE.value: "Manage severity levels",
+    Permission.CATEGORIES_MANAGE.value: "Manage categories",
+    Permission.PERMISSIONS_MANAGE.value: "Manage permissions",
+    Permission.BACKUP_RESTORE.value: "Backup and restore",
+    Permission.AUTH_CONFIG.value: "Authentication configuration",
+}
+
+PERMISSION_GROUPS: list[dict] = [
+    {
+        "id": "dashboard",
+        "label": "Dashboard",
+        "permissions": [
+            Permission.DASHBOARD_VIEW.value,
+            Permission.DASHBOARD_EXECUTIVE.value,
+            Permission.DASHBOARD_MANAGE.value,
+        ],
+    },
+    {
+        "id": "alerts_incidents",
+        "label": "Alerts & Incidents",
+        "permissions": [
+            Permission.ALERTS_VIEW.value,
+            Permission.ALERTS_MANAGE.value,
+            Permission.INCIDENTS_VIEW.value,
+            Permission.INCIDENTS_MANAGE.value,
+            Permission.INCIDENTS_COMMAND.value,
+        ],
+    },
+    {
+        "id": "changes",
+        "label": "Change Management",
+        "permissions": [
+            Permission.CHANGES_VIEW.value,
+            Permission.CHANGES_SUBMIT.value,
+            Permission.CHANGES_APPROVE.value,
+            Permission.CHANGES_MANAGE.value,
+        ],
+    },
+    {
+        "id": "services",
+        "label": "Services & System",
+        "permissions": [
+            Permission.SERVICES_VIEW.value,
+            Permission.SERVICES_MANAGE.value,
+            Permission.SYSTEM_CONFIG.value,
+            Permission.INTEGRATIONS_MANAGE.value,
+        ],
+    },
+    {
+        "id": "settings",
+        "label": "Settings",
+        "permissions": [
+            Permission.SETTINGS_VIEW.value,
+            Permission.SETTINGS_NOTIFICATIONS.value,
+            Permission.SETTINGS_ON_CALL.value,
+            Permission.SETTINGS_ADMIN.value,
+            Permission.SCHEDULES_MANAGE.value,
+        ],
+    },
+    {
+        "id": "administration",
+        "label": "Administration",
+        "permissions": [
+            Permission.USERS_MANAGE.value,
+            Permission.TEAMS_MANAGE.value,
+            Permission.AUDIT_VIEW.value,
+            Permission.EXPORT_DATA.value,
+            Permission.ALERT_RULES_MANAGE.value,
+            Permission.NOTIFICATION_CHANNELS_MANAGE.value,
+            Permission.SEVERITY_MANAGE.value,
+            Permission.CATEGORIES_MANAGE.value,
+            Permission.PERMISSIONS_MANAGE.value,
+            Permission.BACKUP_RESTORE.value,
+            Permission.AUTH_CONFIG.value,
+        ],
+    },
+]
 
 ROLE_LANDING_PAGES: dict[UserRole, str] = {
     UserRole.ADMIN: "/settings",
@@ -113,10 +243,10 @@ ROLE_LANDING_PAGES: dict[UserRole, str] = {
 }
 
 ROLE_NAV_ITEMS: dict[UserRole, list[str]] = {
-    UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "services", "administration"],
-    UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "services"],
-    UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "services"],
-    UserRole.CHANGE_MANAGER: ["dashboard", "changes", "services"],
+    UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "administration"],
+    UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "settings"],
+    UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "settings"],
+    UserRole.CHANGE_MANAGER: ["dashboard", "changes", "on-call", "services"],
 }
 
 ROLE_LABELS: dict[UserRole, str] = {
@@ -129,24 +259,60 @@ ROLE_LABELS: dict[UserRole, str] = {
 ROLE_ALERT_SCOPE: dict[UserRole, str] = {
     UserRole.ADMIN: "all",
     UserRole.ENGINEER: "my_services",
-    UserRole.MANAGER: "critical_only",
+    UserRole.MANAGER: "all",
     UserRole.CHANGE_MANAGER: "none",
 }
 
 # Human-readable capability groups returned to admin UI
 ADMIN_CAPABILITIES = [
-    {"id": "users", "label": "Users & Teams", "description": "Add and manage users, teams, and their roles"},
-    {"id": "system", "label": "System Configuration", "description": "Add services, integrations, and system parameters"},
-    {"id": "alerts_incidents", "label": "Alerts & Incidents", "description": "View, edit, and change status of alerts and incidents"},
-    {"id": "schedules", "label": "Schedules & Policies", "description": "Manage on-call schedules and notification policies"},
-    {"id": "dashboard", "label": "Dashboard Parameters", "description": "Configure dashboard refresh, date ranges, and display options"},
+    {"id": "users", "label": "Users & Teams", "description": "Create, edit, delete users and assign roles"},
+    {"id": "integrations", "label": "Integrations", "description": "Configure Azure Monitor, Application Insights, APIs, and servers"},
+    {"id": "alert_rules", "label": "Alert Rules", "description": "Configure alert ingestion and routing rules"},
+    {"id": "notifications", "label": "Notification Channels", "description": "Configure Email, Teams, Slack, and SMS delivery"},
+    {"id": "taxonomy", "label": "Severity & Categories", "description": "Manage severity levels and incident categories"},
+    {"id": "permissions", "label": "Permissions", "description": "Review and manage role permission assignments"},
+    {"id": "dashboard", "label": "Dashboard Parameters", "description": "Configure dashboard refresh, date ranges, and visibility"},
+    {"id": "auth", "label": "Authentication", "description": "Configure SSO, LDAP, and session policies"},
+    {"id": "backup", "label": "Backup & Restore", "description": "Backup and restore platform configuration"},
     {"id": "audit", "label": "Audit Logs", "description": "View audit trail of all platform actions"},
-    {"id": "export", "label": "Export Data", "description": "Export alerts, incidents, changes, services, and audit data"},
+    {"id": "export", "label": "Export Data", "description": "Export alerts, incidents, changes, and audit data"},
 ]
 
 
 def get_permissions(role: UserRole) -> set[str]:
-    return ROLE_PERMISSIONS.get(role, set())
+    return set(_effective_role_permissions.get(role, set()))
+
+
+def get_all_permission_values() -> list[str]:
+    return sorted(p.value for p in Permission)
+
+
+def get_permission_catalog() -> list[dict]:
+    return [
+        {
+            "value": perm.value,
+            "label": PERMISSION_LABELS.get(perm.value, perm.value),
+            "group": next(
+                (group["label"] for group in PERMISSION_GROUPS if perm.value in group["permissions"]),
+                "Other",
+            ),
+        }
+        for perm in Permission
+    ]
+
+
+def set_role_permissions(role: UserRole, permissions: list[str]) -> set[str]:
+    valid = {p.value for p in Permission}
+    unknown = set(permissions) - valid
+    if unknown:
+        raise ValueError(f"Unknown permissions: {', '.join(sorted(unknown))}")
+    _effective_role_permissions[role] = set(permissions)
+    return _effective_role_permissions[role]
+
+
+def reset_role_permissions(role: UserRole) -> set[str]:
+    _effective_role_permissions[role] = set(ROLE_PERMISSIONS.get(role, set()))
+    return _effective_role_permissions[role]
 
 
 def has_permission(role: UserRole, permission: str) -> bool:

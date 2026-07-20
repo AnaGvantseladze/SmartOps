@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, ChevronDown, Search, ArrowDown, ArrowUp } from 'lucide-react';
-import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, statusLabel, timeAgo } from '@/lib/utils';
-import type { Alert, AlertPriority, AlertStatus, AISuggestion } from '@/types';
+import type { Alert, AlertPriority, AlertStatus } from '@/types';
 
 const ALERT_STATUSES: AlertStatus[] = ['triggered', 'acknowledged', 'snoozed', 'resolved'];
 const ALERT_PRIORITIES: AlertPriority[] = ['P1', 'P2', 'P3', 'P4', 'P5'];
@@ -153,6 +152,7 @@ export function AlertsPage() {
   const canManage = can(PERMISSIONS.ALERTS_MANAGE);
   const canManageIncidents = can(PERMISSIONS.INCIDENTS_MANAGE);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<AlertStatus[]>(loadStatusFilter);
   const [priorityFilter, setPriorityFilter] = useState<AlertPriority[]>(loadPriorityFilter);
@@ -167,6 +167,11 @@ export function AlertsPage() {
   const priorityFilterRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToastContext();
+
+  useEffect(() => {
+    const alertId = Number(searchParams.get('alertId'));
+    if (alertId > 0) setSelectedId(alertId);
+  }, [searchParams]);
 
   useEffect(() => {
     localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));
@@ -241,12 +246,6 @@ export function AlertsPage() {
         : { field: 'priority', direction: 'desc' }
     );
   }
-
-  const { data: suggestions = [] } = useQuery({
-    queryKey: ['ai-suggestions', 'alert', selected?.id],
-    queryFn: () => api.getAISuggestions('alert', selected?.id),
-    enabled: !!selected,
-  });
 
   useEffect(() => {
     if (!selectedId) return;
@@ -661,7 +660,6 @@ export function AlertsPage() {
       {selected && (
         <AlertDetailPanel
           alert={selected}
-          suggestions={suggestions}
           onClose={() => setSelectedId(null)}
           onAcknowledge={() => acknowledge.mutate(selected.id)}
           onSnooze={(reason, hours) => handleSnooze(selected.id, reason, hours)}
@@ -1054,7 +1052,6 @@ function AlertNoteCell({
 
 function AlertDetailPanel({
   alert,
-  suggestions,
   onClose,
   onAcknowledge,
   onSnooze,
@@ -1066,7 +1063,6 @@ function AlertDetailPanel({
   canManageIncidents,
 }: {
   alert: Alert;
-  suggestions: AISuggestion[];
   onClose: () => void;
   onAcknowledge: () => void;
   onSnooze: (reason: string, hours: number) => void;
@@ -1104,9 +1100,6 @@ function AlertDetailPanel({
             canManage={canManage}
             canManageIncidents={canManageIncidents}
           />
-          <div className="border-t border-slate-200 p-4">
-            <AISuggestionsPanel suggestions={suggestions} />
-          </div>
         </div>
       </div>
     </div>

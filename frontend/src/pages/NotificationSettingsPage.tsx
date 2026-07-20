@@ -11,6 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { cn, timeAgo } from '@/lib/utils';
 import type { NotificationPolicy, PolicyLevel } from '@/types/notifications';
@@ -42,6 +43,7 @@ const levelConfig: Record<PolicyLevel, { label: string; color: string; border: s
 export function NotificationSettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToastContext();
 
   const { data: policies = [], isLoading } = useQuery({
     queryKey: ['notification-policies-effective'],
@@ -56,6 +58,16 @@ export function NotificationSettingsPage() {
   const testMutation = useMutation({
     mutationFn: api.testNotification,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notification-log'] }),
+  });
+
+  const updateRule = useMutation({
+    mutationFn: ({ ruleId, data }: { ruleId: number; data: { channels?: string[]; suppress?: boolean } }) =>
+      api.updateNotificationRule(ruleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-policies-effective'] });
+      toast.success('Notification rule updated');
+    },
+    onError: (err: Error) => toast.error('Failed to update rule', err.message),
   });
 
   if (isLoading) return <div className="page-container text-slate-500">Loading notification policies...</div>;
@@ -99,7 +111,19 @@ export function NotificationSettingsPage() {
 
       <div className="space-y-6">
         {policies.map((policy) => (
-          <PolicyCard key={policy.id} policy={policy} />
+          <PolicyCard
+            key={policy.id}
+            policy={policy}
+            isUpdating={updateRule.isPending}
+            onToggleChannel={(ruleId, channel, enabled, currentChannels, isMandatory) => {
+              if (isMandatory && !enabled) return;
+              const channels = enabled
+                ? [...currentChannels, channel]
+                : currentChannels.filter((ch) => ch !== channel);
+              updateRule.mutate({ ruleId, data: { channels } });
+            }}
+            onToggleSuppress={(ruleId, suppress) => updateRule.mutate({ ruleId, data: { suppress } })}
+          />
         ))}
         {policies.length === 0 && (
           <p className="text-center text-slate-500">No notification policies configured.</p>
@@ -149,9 +173,26 @@ export function NotificationSettingsPage() {
   );
 }
 
-function PolicyCard({ policy }: { policy: NotificationPolicy }) {
+function PolicyCard({
+  policy,
+  isUpdating,
+  onToggleChannel,
+  onToggleSuppress,
+}: {
+  policy: NotificationPolicy;
+  isUpdating: boolean;
+  onToggleChannel: (
+    ruleId: number,
+    channel: string,
+    enabled: boolean,
+    currentChannels: string[],
+    isMandatory: boolean,
+  ) => void;
+  onToggleSuppress: (ruleId: number, suppress: boolean) => void;
+}) {
   const config = levelConfig[policy.level];
   const LevelIcon = config.icon;
+  const allChannels = Object.keys(channelLabels);
 
   return (
     <div className={cn('card overflow-hidden border', config.border)}>
@@ -198,19 +239,41 @@ function PolicyCard({ policy }: { policy: NotificationPolicy }) {
               </div>
             </div>
             <div className="flex flex-wrap gap-1">
-              {rule.channels.map((ch) => {
+              {allChannels.map((ch) => {
                 const Icon = channelIcons[ch] ?? Bell;
+                const active = rule.channels.includes(ch);
                 return (
-                  <span
+                  <button
                     key={ch}
-                    className="flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-xs text-slate-600"
+                    type="button"
+                    disabled={isUpdating || (rule.is_mandatory && active)}
+                    onClick={() => onToggleChannel(rule.id, ch, !active, rule.channels, rule.is_mandatory)}
+                    className={cn(
+                      'flex items-center gap-1 rounded-md px-2 py-0.5 text-xs transition-colors',
+                      active
+                        ? 'bg-brand-100 text-brand-800 ring-1 ring-brand-200'
+                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                    )}
                     title={channelLabels[ch]}
                   >
                     <Icon className="h-3 w-3" />
                     {channelLabels[ch]}
-                  </span>
+                  </button>
                 );
               })}
+              {!rule.is_mandatory && (
+                <button
+                  type="button"
+                  disabled={isUpdating}
+                  onClick={() => onToggleSuppress(rule.id, !rule.suppress)}
+                  className={cn(
+                    'rounded-md px-2 py-0.5 text-xs',
+                    rule.suppress ? 'bg-amber-100 text-amber-800' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  )}
+                >
+                  {rule.suppress ? 'Unsuppress' : 'Suppress'}
+                </button>
+              )}
             </div>
           </div>
         ))}

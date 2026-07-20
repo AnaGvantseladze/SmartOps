@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import hash_password
-from app.engineers import DEMO_AUTH_USERS, ENGINEERS, build_engineer_users
+from app.engineers import DEMO_AUTH_USERS, DEMO_USERS, build_demo_users
 
 from app.models.entities import (
     ActionItem,
@@ -47,7 +47,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     session.add_all(teams)
     await session.flush()
 
-    users = build_engineer_users(team_id=teams[3].id)
+    users = build_demo_users(team_id=teams[3].id)
     session.add_all(users)
     await session.flush()
 
@@ -307,6 +307,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             submitter_id=ana.id,
             implementation_plan="Rolling deployment via ArgoCD, 25% traffic increments",
             rollback_plan="Revert to v2.3.0 via ArgoCD rollback",
+            potential_business_impact="Minor latency increase possible during rollout; no expected order loss",
+            affected_scope="Order Service, internal API consumers",
+            expected_downtime="None",
             scheduled_start=now + timedelta(days=2),
         ),
         Change(
@@ -321,6 +324,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             submitter_id=ana.id,
             implementation_plan="Online DDL migration during low-traffic window",
             rollback_plan="Drop index if query performance degrades",
+            potential_business_impact="Slower login and session lookups if migration fails",
+            affected_scope="All authenticated users, session service",
+            expected_downtime="Up to 15 minutes",
             scheduled_start=now + timedelta(days=5),
         ),
         Change(
@@ -334,6 +340,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             submitter_id=ana.id,
             implementation_plan="Deploy hotfix branch directly to production",
             rollback_plan="Revert commit abc123",
+            potential_business_impact="Users unable to log in until fix is deployed",
+            affected_scope="All users attempting OAuth login",
+            expected_downtime="None — rolling hotfix",
             scheduled_start=now + timedelta(hours=4),
         ),
     ]
@@ -363,15 +372,15 @@ async def seed_demo_data(session: AsyncSession) -> None:
 
 
 async def ensure_auth_users(session: AsyncSession) -> None:
-    """Set passwords and normalize emails for the engineer accounts."""
-    for name, email in ENGINEERS:
+    """Set passwords and roles for the demo accounts."""
+    for name, email, role in DEMO_USERS:
         user = await session.scalar(select(User).where(User.email == email))
         if not user:
             user = await session.scalar(select(User).where(User.name == name))
         if user:
             user.name = name
             user.email = email
-            user.role = UserRole.ENGINEER
+            user.role = role
             user.password_hash = hash_password(DEMO_AUTH_USERS[email])
     await session.commit()
 

@@ -167,95 +167,65 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
         )
 
     # --- On-call schedules ---
-    noc_schedule = OnCallSchedule(
-        name="NOC 24/7 Coverage",
-        schedule_type=OnCallScheduleType.NOC,
-        team_id=noc_team.id if noc_team else None,
-        rotation_frequency=RotationFrequency.WEEKLY,
-        timezone="UTC",
-    )
-    session.add(noc_schedule)
-    await session.flush()
-
-    saba = users.get(ENGINEERS[0][1])
     eka = users.get(ENGINEERS[2][1])
-    if saba and eka:
-        session.add_all(
-            [
-                OnCallShift(
-                    schedule_id=noc_schedule.id,
-                    user_id=saba.id,
-                    start_time=now - timedelta(days=now.weekday()),
-                    end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
-                ),
-                OnCallShift(
-                    schedule_id=noc_schedule.id,
-                    user_id=eka.id,
-                    start_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
-                    end_time=now - timedelta(days=now.weekday()) + timedelta(days=14),
-                ),
-            ]
-        )
-
-    trading_team = teams.get("Trading Platform")
-    service_owner_schedule = OnCallSchedule(
-        name="Trading Platform — Service Owner",
-        schedule_type=OnCallScheduleType.SERVICE_OWNER,
-        team_id=trading_team.id if trading_team else None,
-        rotation_frequency=RotationFrequency.WEEKLY,
-        timezone="UTC",
-    )
-    session.add(service_owner_schedule)
-    await session.flush()
-
     ana = users.get(ENGINEERS[1][1])
-    if ana:
-        session.add(
-            OnCallShift(
-                schedule_id=service_owner_schedule.id,
-                user_id=ana.id,
-                start_time=now - timedelta(days=3),
-                end_time=now + timedelta(days=4),
-            )
-        )
+    saba = users.get(ENGINEERS[0][1])
+    week_start = now - timedelta(days=now.weekday())
 
-    eka = users.get(ENGINEERS[2][1])
-    commander_schedule = OnCallSchedule(
-        name="Incident Commander Rotation",
-        schedule_type=OnCallScheduleType.INCIDENT_COMMANDER,
+    engineer_schedule = OnCallSchedule(
+        name="Engineer On-Call",
+        schedule_type=OnCallScheduleType.ENGINEER,
         rotation_frequency=RotationFrequency.WEEKLY,
         timezone="UTC",
     )
-    session.add(commander_schedule)
-    await session.flush()
-
-    if eka:
-        session.add(
-            OnCallShift(
-                schedule_id=commander_schedule.id,
-                user_id=eka.id,
-                start_time=now - timedelta(days=now.weekday()),
-                end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
-            )
-        )
-
-    manager_schedule = OnCallSchedule(
-        name="Incident Manager Rotation",
+    incident_manager_schedule = OnCallSchedule(
+        name="Incident Manager On-Call",
         schedule_type=OnCallScheduleType.INCIDENT_MANAGER,
         rotation_frequency=RotationFrequency.WEEKLY,
         timezone="UTC",
     )
-    session.add(manager_schedule)
+    change_manager_schedule = OnCallSchedule(
+        name="Change Manager On-Call",
+        schedule_type=OnCallScheduleType.CHANGE_MANAGER,
+        rotation_frequency=RotationFrequency.WEEKLY,
+        timezone="UTC",
+    )
+    session.add_all([engineer_schedule, incident_manager_schedule, change_manager_schedule])
     await session.flush()
 
-    saba = users.get(ENGINEERS[0][1])
+    if eka:
+        session.add_all(
+            [
+                OnCallShift(
+                    schedule_id=engineer_schedule.id,
+                    user_id=eka.id,
+                    start_time=week_start,
+                    end_time=week_start + timedelta(days=7),
+                ),
+                OnCallShift(
+                    schedule_id=engineer_schedule.id,
+                    user_id=eka.id,
+                    start_time=week_start + timedelta(days=7),
+                    end_time=week_start + timedelta(days=14),
+                ),
+            ]
+        )
+    if ana:
+        session.add(
+            OnCallShift(
+                schedule_id=incident_manager_schedule.id,
+                user_id=ana.id,
+                start_time=week_start,
+                end_time=week_start + timedelta(days=7),
+            )
+        )
     if saba:
         session.add(
             OnCallShift(
-                schedule_id=manager_schedule.id,
+                schedule_id=change_manager_schedule.id,
                 user_id=saba.id,
-                start_time=now - timedelta(days=now.weekday()),
-                end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
+                start_time=week_start,
+                end_time=week_start + timedelta(days=7),
             )
         )
 
@@ -267,6 +237,8 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     session.add(escalation)
     await session.flush()
 
+    trading_team = teams.get("Trading Platform")
+
     session.add_all(
         [
             EscalationPolicyLevel(
@@ -274,31 +246,32 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
                 level_number=1,
                 timeout_minutes=5,
                 target_type=EscalationTargetType.SCHEDULE,
-                target_id=noc_schedule.id,
-                target_label="NOC + Service Owner On-Call",
+                target_id=engineer_schedule.id,
+                target_label="Engineer On-Call",
             ),
             EscalationPolicyLevel(
                 policy_id=escalation.id,
                 level_number=2,
                 timeout_minutes=5,
-                target_type=EscalationTargetType.TEAM,
-                target_id=trading_team.id if trading_team else None,
-                target_label="Secondary On-Call + Team Lead",
+                target_type=EscalationTargetType.SCHEDULE,
+                target_id=incident_manager_schedule.id,
+                target_label="Incident Manager On-Call",
             ),
             EscalationPolicyLevel(
                 policy_id=escalation.id,
                 level_number=3,
                 timeout_minutes=10,
-                target_type=EscalationTargetType.USER,
-                target_label="Engineering Manager",
+                target_type=EscalationTargetType.SCHEDULE,
+                target_id=change_manager_schedule.id,
+                target_label="Change Manager On-Call",
             ),
             EscalationPolicyLevel(
                 policy_id=escalation.id,
                 level_number=4,
                 timeout_minutes=10,
-                target_type=EscalationTargetType.SCHEDULE,
-                target_id=commander_schedule.id,
-                target_label="VP Engineering / Incident Commander",
+                target_type=EscalationTargetType.TEAM,
+                target_id=trading_team.id if trading_team else None,
+                target_label="Platform Leadership",
             ),
         ]
     )
