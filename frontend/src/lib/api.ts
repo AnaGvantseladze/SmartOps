@@ -4,6 +4,7 @@ import type {
   Alert,
   Change,
   DashboardStats,
+  DashboardPeriod,
   FreezeBanner,
   Incident,
   Service,
@@ -112,7 +113,8 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   getMe: () => fetchJson<UserProfile>('/auth/me'),
-  getDashboardStats: () => fetchJson<DashboardStats>('/dashboard/stats'),
+  getDashboardStats: (period: DashboardPeriod = 'week') =>
+    fetchJson<DashboardStats>(`/dashboard/stats?period=${period}`),
   getFreezeBanner: () => fetchJson<FreezeBanner>('/dashboard/freeze'),
   getAlerts: (params?: { status?: string[]; priority?: string[]; service_id?: string }) => {
     const search = new URLSearchParams();

@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Annotated, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy import func, or_, select
@@ -41,6 +41,7 @@ from app.schemas.schemas import (
     ChangeResponse,
     ChangeUpdate,
     DashboardStats,
+    EngineerResolvedCount,
     FreezeBanner,
     IncidentCreate,
     IncidentResponse,
@@ -50,6 +51,18 @@ from app.schemas.schemas import (
 )
 
 router = APIRouter()
+
+DashboardPeriod = Literal["day", "week", "month", "year"]
+PERIOD_DAYS: dict[DashboardPeriod, int] = {
+    "day": 1,
+    "week": 7,
+    "month": 30,
+    "year": 365,
+}
+
+
+def _period_start(period: DashboardPeriod) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(days=PERIOD_DAYS[period])
 
 
 def _alert_to_response(
@@ -104,31 +117,51 @@ def _compute_change_risk(service: Optional[Service]) -> tuple[ChangeRisk, int, s
 
 @router.get("/dashboard/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
+    period: DashboardPeriod = Query("week"),
     db: AsyncSession = Depends(get_db),
     current_user: Annotated[User, Depends(require_permission(Permission.DASHBOARD_VIEW.value))] = None,
 ) -> DashboardStats:
+    start = _period_start(period)
+
     active_alerts = await db.scalar(
-        select(func.count()).select_from(Alert).where(
-            Alert.status.in_([AlertStatus.TRIGGERED, AlertStatus.ACKNOWLEDGED, AlertStatus.SNOOZED])
+        select(func.count())
+        .select_from(Alert)
+        .where(
+            Alert.status.in_([AlertStatus.TRIGGERED, AlertStatus.ACKNOWLEDGED, AlertStatus.SNOOZED]),
+            Alert.created_at >= start,
         )
     )
 
     priority_rows = await db.execute(
         select(Alert.priority, func.count())
-        .where(Alert.status != AlertStatus.RESOLVED)
+        .where(Alert.created_at >= start)
         .group_by(Alert.priority)
     )
     alerts_by_priority = {priority.value: count for priority, count in priority_rows.all()}
     for priority in AlertPriority:
         alerts_by_priority.setdefault(priority.value, 0)
 
+    resolved_rows = await db.execute(
+        select(User.id, User.name, func.count())
+        .join(Alert, Alert.assignee_id == User.id)
+        .where(Alert.status == AlertStatus.RESOLVED, Alert.resolved_at >= start)
+        .group_by(User.id, User.name)
+        .order_by(func.count().desc())
+    )
+    alerts_resolved_by_engineer = [
+        EngineerResolvedCount(engineer_id=engineer_id, engineer_name=name, count=count)
+        for engineer_id, name, count in resolved_rows.all()
+    ]
+
     open_incidents = await db.scalar(
-        select(func.count()).select_from(Incident).where(Incident.status != IncidentStatus.CLOSED)
+        select(func.count())
+        .select_from(Incident)
+        .where(Incident.status != IncidentStatus.CLOSED, Incident.created_at >= start)
     )
 
     severity_rows = await db.execute(
         select(Incident.severity, func.count())
-        .where(Incident.status != IncidentStatus.CLOSED)
+        .where(Incident.status != IncidentStatus.CLOSED, Incident.created_at >= start)
         .group_by(Incident.severity)
     )
     incidents_by_severity = {severity.value: count for severity, count in severity_rows.all()}
@@ -138,23 +171,33 @@ async def get_dashboard_stats(
     pending_changes = await db.scalar(
         select(func.count())
         .select_from(Change)
-        .where(Change.status.in_([ChangeStatus.SUBMITTED, ChangeStatus.REVIEWING, ChangeStatus.APPROVED]))
+        .where(
+            Change.status.in_([ChangeStatus.SUBMITTED, ChangeStatus.REVIEWING, ChangeStatus.APPROVED]),
+            Change.created_at >= start,
+        )
     )
     pending_teams = await db.scalar(
-        select(func.count()).select_from(Incident).where(Incident.status == IncidentStatus.PENDING_TEAMS)
+        select(func.count())
+        .select_from(Incident)
+        .where(Incident.status == IncidentStatus.PENDING_TEAMS, Incident.created_at >= start)
     )
     action_items_open = await db.scalar(
         select(func.count())
         .select_from(ActionItem)
-        .where(ActionItem.status.in_([ActionItemStatus.OPEN, ActionItemStatus.IN_PROGRESS]))
+        .where(
+            ActionItem.status.in_([ActionItemStatus.OPEN, ActionItemStatus.IN_PROGRESS]),
+            ActionItem.created_at >= start,
+        )
     )
     tier1_avg = await db.scalar(
         select(func.avg(Service.health_score)).where(Service.tier == ServiceTier.BUSINESS)
     )
 
     return DashboardStats(
+        period=period,
         active_alerts=active_alerts or 0,
         alerts_by_priority=alerts_by_priority,
+        alerts_resolved_by_engineer=alerts_resolved_by_engineer,
         open_incidents=open_incidents or 0,
         incidents_by_severity=incidents_by_severity,
         pending_changes=pending_changes or 0,
@@ -343,10 +386,13 @@ async def update_alert(
 
     if payload.status == AlertStatus.RESOLVED:
         alert.resolved_at = datetime.now(timezone.utc)
+        if not alert.assignee_id:
+            alert.assignee_id = current_user.id
     if payload.status:
         db.add(
             AlertTimelineEntry(
                 alert_id=alert.id,
+                author_id=current_user.id,
                 entry_type="status-change",
                 content=f"Status changed to {payload.status.value}",
             )
