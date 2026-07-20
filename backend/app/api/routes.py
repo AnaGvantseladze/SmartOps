@@ -304,11 +304,18 @@ async def update_alert(
     if payload.status == AlertStatus.RESOLVED:
         alert.resolved_at = datetime.now(timezone.utc)
     if payload.status:
+        if payload.status == AlertStatus.SNOOZED and payload.snooze_reason:
+            timeline_content = f"Snoozed: {payload.snooze_reason}"
+            if payload.snoozed_until:
+                timeline_content += f" (until {payload.snoozed_until.isoformat()})"
+        else:
+            timeline_content = f"Status changed to {payload.status.value}"
         db.add(
             AlertTimelineEntry(
                 alert_id=alert.id,
+                author_id=current_user.id,
                 entry_type="status-change",
-                content=f"Status changed to {payload.status.value}",
+                content=timeline_content,
             )
         )
         await write_audit_log(

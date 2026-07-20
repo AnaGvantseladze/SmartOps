@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown } from 'lucide-react';
-import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, statusLabel, timeAgo } from '@/lib/utils';
-import type { Alert, AlertPriority, AlertStatus, AISuggestion } from '@/types';
+import type { Alert, AlertPriority, AlertStatus } from '@/types';
 
 const ALERT_STATUSES: AlertStatus[] = ['triggered', 'acknowledged', 'snoozed', 'resolved'];
 const ALERT_PRIORITIES: AlertPriority[] = ['P1', 'P2', 'P3', 'P4', 'P5'];
@@ -143,12 +142,6 @@ export function AlertsPage() {
 
   const selected = alerts.find((a) => a.id === selectedId);
 
-  const { data: suggestions = [] } = useQuery({
-    queryKey: ['ai-suggestions', 'alert', selected?.id],
-    queryFn: () => api.getAISuggestions('alert', selected?.id),
-    enabled: !!selected,
-  });
-
   useEffect(() => {
     if (!selectedId) return;
     function handleEscape(event: KeyboardEvent) {
@@ -164,7 +157,7 @@ export function AlertsPage() {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       toast.success('Alert acknowledged');
     },
-    onError: () => toast.error('Failed to acknowledge alert'),
+    onError: (error: Error) => toast.error('Failed to acknowledge alert', error.message),
   });
 
   const snooze = useMutation({
@@ -178,16 +171,16 @@ export function AlertsPage() {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       toast.success('Alert snoozed');
     },
-    onError: () => toast.error('Failed to snooze alert'),
+    onError: (error: Error) => toast.error('Failed to snooze alert', error.message),
   });
 
   const resolve = useMutation({
     mutationFn: (id: number) => api.updateAlert(id, { status: 'resolved' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
-      toast.success('Alert resolved');
+      toast.success('Alert resolved', 'Resolved alerts are hidden unless you include "Resolved" in the status filter');
     },
-    onError: () => toast.error('Failed to resolve alert'),
+    onError: (error: Error) => toast.error('Failed to resolve alert', error.message),
   });
 
   const createIncident = useMutation({
@@ -195,7 +188,9 @@ export function AlertsPage() {
     onSuccess: (incident) => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      setSelectedId(null);
       toast.success('Incident created', `INC-${incident.id} is now on the Incident board`);
+      navigate('/incidents');
     },
     onError: (error: Error) => toast.error('Failed to create incident', error.message),
   });
@@ -212,7 +207,11 @@ export function AlertsPage() {
 
   const addNote = useMutation({
     mutationFn: ({ id, content }: { id: number; content: string }) => api.addAlertNote(id, content),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      toast.success('Note saved');
+    },
+    onError: (error: Error) => toast.error('Failed to save note', error.message),
   });
 
   const visibleColumns = ALERT_COLUMNS.filter((column) => columnVisibility[column.key]);
@@ -447,7 +446,6 @@ export function AlertsPage() {
       {selected && (
         <AlertDetailPanel
           alert={selected}
-          suggestions={suggestions}
           onClose={() => setSelectedId(null)}
           onAcknowledge={() => acknowledge.mutate(selected.id)}
           onSnooze={(reason, hours) => handleSnooze(selected.id, reason, hours)}
@@ -789,7 +787,6 @@ function AlertNoteCell({
 
 function AlertDetailPanel({
   alert,
-  suggestions,
   onClose,
   onAcknowledge,
   onSnooze,
@@ -801,7 +798,6 @@ function AlertDetailPanel({
   canManageIncidents,
 }: {
   alert: Alert;
-  suggestions: AISuggestion[];
   onClose: () => void;
   onAcknowledge: () => void;
   onSnooze: (reason: string, hours: number) => void;
@@ -839,9 +835,6 @@ function AlertDetailPanel({
             canManage={canManage}
             canManageIncidents={canManageIncidents}
           />
-          <div className="border-t border-slate-200 p-4">
-            <AISuggestionsPanel suggestions={suggestions} />
-          </div>
         </div>
       </div>
     </div>
