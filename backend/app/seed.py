@@ -307,6 +307,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             submitter_id=ana.id,
             implementation_plan="Rolling deployment via ArgoCD, 25% traffic increments",
             rollback_plan="Revert to v2.3.0 via ArgoCD rollback",
+            potential_business_impact="Minor latency increase possible during rollout; no expected order loss",
+            affected_scope="Order Service, internal API consumers",
+            expected_downtime="None",
             scheduled_start=now + timedelta(days=2),
         ),
         Change(
@@ -321,6 +324,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             submitter_id=ana.id,
             implementation_plan="Online DDL migration during low-traffic window",
             rollback_plan="Drop index if query performance degrades",
+            potential_business_impact="Slower login and session lookups if migration fails",
+            affected_scope="All authenticated users, session service",
+            expected_downtime="Up to 15 minutes",
             scheduled_start=now + timedelta(days=5),
         ),
         Change(
@@ -334,6 +340,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
             submitter_id=ana.id,
             implementation_plan="Deploy hotfix branch directly to production",
             rollback_plan="Revert commit abc123",
+            potential_business_impact="Users unable to log in until fix is deployed",
+            affected_scope="All users attempting OAuth login",
+            expected_downtime="None — rolling hotfix",
             scheduled_start=now + timedelta(hours=4),
         ),
     ]

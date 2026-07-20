@@ -160,6 +160,9 @@ export const api = {
     service_id?: number;
     implementation_plan?: string;
     rollback_plan?: string;
+    potential_business_impact?: string;
+    affected_scope?: string;
+    expected_downtime?: string;
   }) => fetchJson<Change>('/changes', { method: 'POST', body: JSON.stringify(data) }),
   getServices: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
