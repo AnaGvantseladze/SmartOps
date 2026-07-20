@@ -73,6 +73,7 @@ export interface Alert {
   resolved_at?: string;
   service?: ServiceBrief;
   assignee?: UserBrief;
+  responsible_team?: { id: number; name: string };
   timeline: AlertTimelineEntry[];
 }
 

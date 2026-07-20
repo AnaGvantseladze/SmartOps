@@ -121,6 +121,8 @@ export const api = {
   getAlert: (id: number) => fetchJson<Alert>(`/alerts/${id}`),
   acknowledgeAlert: (id: number) =>
     fetchJson<Alert>(`/alerts/${id}/acknowledge`, { method: 'POST' }),
+  addAlertNote: (id: number, content: string) =>
+    fetchJson<Alert>(`/alerts/${id}/notes`, { method: 'POST', body: JSON.stringify({ content }) }),
   updateAlert: (id: number, data: Partial<Alert>) =>
     fetchJson<Alert>(`/alerts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   getIncidents: (params?: Record<string, string>) => {

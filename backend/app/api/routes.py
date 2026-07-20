@@ -33,8 +33,10 @@ from app.services.audit_service import write_audit_log
 from app.schemas.schemas import (
     AISuggestion,
     AlertCreate,
+    AlertNoteCreate,
     AlertResponse,
     AlertUpdate,
+    TeamBrief,
     ChangeCreate,
     ChangeResponse,
     ChangeUpdate,
@@ -48,6 +50,15 @@ from app.schemas.schemas import (
 )
 
 router = APIRouter()
+
+
+def _alert_to_response(alert: Alert) -> AlertResponse:
+    response = AlertResponse.model_validate(alert)
+    if alert.service and alert.service.team:
+        response = response.model_copy(
+            update={"responsible_team": TeamBrief.model_validate(alert.service.team)}
+        )
+    return response
 
 
 def _compute_change_risk(service: Optional[Service]) -> tuple[ChangeRisk, int, str]:
@@ -218,7 +229,7 @@ async def list_alerts(
     query = (
         select(Alert)
         .options(
-            selectinload(Alert.service),
+            selectinload(Alert.service).selectinload(Service.team),
             selectinload(Alert.assignee),
             selectinload(Alert.timeline).selectinload(AlertTimelineEntry.author),
         )
@@ -239,7 +250,7 @@ async def list_alerts(
     if service_id:
         query = query.where(Alert.service_id == service_id)
     result = await db.execute(query)
-    return [AlertResponse.model_validate(a) for a in result.scalars().all()]
+    return [_alert_to_response(a) for a in result.scalars().all()]
 
 
 @router.get("/alerts/{alert_id}", response_model=AlertResponse)
@@ -247,7 +258,7 @@ async def get_alert(alert_id: int, db: AsyncSession = Depends(get_db)) -> AlertR
     alert = await db.scalar(
         select(Alert)
         .options(
-            selectinload(Alert.service),
+            selectinload(Alert.service).selectinload(Service.team),
             selectinload(Alert.assignee),
             selectinload(Alert.timeline).selectinload(AlertTimelineEntry.author),
         )
@@ -255,7 +266,7 @@ async def get_alert(alert_id: int, db: AsyncSession = Depends(get_db)) -> AlertR
     )
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
-    return AlertResponse.model_validate(alert)
+    return _alert_to_response(alert)
 
 
 @router.post("/alerts", response_model=AlertResponse, status_code=201)
@@ -327,6 +338,28 @@ async def acknowledge_alert(
     db.add(
         AlertTimelineEntry(
             alert_id=alert.id, author_id=current_user.id, entry_type="action", content="Alert acknowledged"
+        )
+    )
+    await db.commit()
+    return await get_alert(alert_id, db)
+
+
+@router.post("/alerts/{alert_id}/notes", response_model=AlertResponse)
+async def add_alert_note(
+    alert_id: int,
+    payload: AlertNoteCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.ALERTS_VIEW.value))] = None,
+) -> AlertResponse:
+    alert = await db.get(Alert, alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    db.add(
+        AlertTimelineEntry(
+            alert_id=alert.id,
+            author_id=current_user.id,
+            entry_type="note",
+            content=payload.content.strip(),
         )
     )
     await db.commit()
