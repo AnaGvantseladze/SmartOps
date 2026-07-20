@@ -1,5 +1,4 @@
 import {
-  Bell,
   LayoutDashboard,
   AlertTriangle,
   Siren,
@@ -139,12 +138,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                3
-              </span>
-            </button>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white lg:hidden">
               {user ? initials(user.name) : '??'}
             </div>
