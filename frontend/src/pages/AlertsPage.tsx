@@ -341,14 +341,14 @@ export function AlertsPage() {
               </div>
             )}
           </div>
-          <div className="relative w-44 sm:w-52">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <div className="relative w-56 sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search alerts..."
-              className="input w-full py-1.5 pl-8 pr-2 text-xs"
+              className="input w-full py-2 pl-9 pr-3 text-sm"
             />
           </div>
         </div>
