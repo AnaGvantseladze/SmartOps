@@ -249,17 +249,17 @@ function IncidentDetailPanel({
                   value={description}
                   disabled={isUpdating}
                   onChange={(event) => setDescription(event.target.value)}
-                  rows={6}
+                  rows={12}
                   placeholder="Add incident details, impact notes, investigation findings..."
-                  className="input min-h-[140px] resize-y"
+                  className="input min-h-[280px] resize-y"
                 />
                 <button
                   type="button"
-                  className="btn-primary mt-2"
+                  className="btn-primary mt-2 px-3 py-1.5 text-xs"
                   disabled={isUpdating || description.trim() === (incident.description ?? '').trim()}
                   onClick={handleDescriptionSave}
                 >
-                  Save description
+                  Save
                 </button>
               </div>
             </div>
