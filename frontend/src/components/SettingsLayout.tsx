@@ -11,6 +11,8 @@ import {
   User,
   Users,
   Wrench,
+  SlidersHorizontal,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { PERMISSIONS } from '@/lib/permissions';
@@ -27,6 +29,8 @@ const adminNav = [
   { to: '/settings/users-teams', icon: Users, label: 'Users & Teams', permission: PERMISSIONS.USERS_MANAGE },
   { to: '/settings/system', icon: Wrench, label: 'System & Integrations', permission: PERMISSIONS.SYSTEM_CONFIG },
   { to: '/settings/webhooks', icon: Webhook, label: 'Webhook Integrations', permission: PERMISSIONS.INTEGRATIONS_MANAGE },
+  { to: '/settings/platform', icon: SlidersHorizontal, label: 'Platform Configuration', permission: PERMISSIONS.SYSTEM_CONFIG },
+  { to: '/settings/permissions', icon: KeyRound, label: 'Permissions', permission: PERMISSIONS.PERMISSIONS_MANAGE },
   { to: '/settings/dashboard-config', icon: LayoutDashboard, label: 'Dashboard Parameters', permission: PERMISSIONS.DASHBOARD_MANAGE },
   { to: '/settings/audit', icon: ScrollText, label: 'Audit Logs', permission: PERMISSIONS.AUDIT_VIEW },
   { to: '/settings/export', icon: Download, label: 'Export Data', permission: PERMISSIONS.EXPORT_DATA },

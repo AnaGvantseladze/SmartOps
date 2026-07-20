@@ -37,6 +37,13 @@ class Permission(str, Enum):
     TEAMS_MANAGE = "teams:manage"
     AUDIT_VIEW = "audit:view"
     EXPORT_DATA = "export:data"
+    ALERT_RULES_MANAGE = "alert_rules:manage"
+    NOTIFICATION_CHANNELS_MANAGE = "notifications:channels"
+    SEVERITY_MANAGE = "severity:manage"
+    CATEGORIES_MANAGE = "categories:manage"
+    PERMISSIONS_MANAGE = "permissions:manage"
+    BACKUP_RESTORE = "backup:restore"
+    AUTH_CONFIG = "auth:config"
 
 
 # Explicit Administrator permissions per product spec
@@ -64,6 +71,15 @@ ADMIN_PERMISSIONS: set[str] = {
     Permission.DASHBOARD_EXECUTIVE,
     Permission.AUDIT_VIEW,
     Permission.EXPORT_DATA,
+    Permission.ALERT_RULES_MANAGE,
+    Permission.NOTIFICATION_CHANNELS_MANAGE,
+    Permission.SEVERITY_MANAGE,
+    Permission.CATEGORIES_MANAGE,
+    Permission.PERMISSIONS_MANAGE,
+    Permission.BACKUP_RESTORE,
+    Permission.AUTH_CONFIG,
+    Permission.INCIDENTS_COMMAND,
+    Permission.CHANGES_SUBMIT,
 }
 
 # Engineer baseline used by manager role expansion
@@ -136,13 +152,17 @@ ROLE_ALERT_SCOPE: dict[UserRole, str] = {
 
 # Human-readable capability groups returned to admin UI
 ADMIN_CAPABILITIES = [
-    {"id": "users", "label": "Users & Teams", "description": "Add and manage users, teams, and their roles"},
-    {"id": "system", "label": "System Configuration", "description": "Add services, integrations, and system parameters"},
-    {"id": "alerts_incidents", "label": "Alerts & Incidents", "description": "View, edit, and change status of alerts and incidents"},
-    {"id": "schedules", "label": "Schedules & Policies", "description": "Manage on-call schedules and notification policies"},
-    {"id": "dashboard", "label": "Dashboard Parameters", "description": "Configure dashboard refresh, date ranges, and display options"},
+    {"id": "users", "label": "Users & Teams", "description": "Create, edit, delete users and assign roles"},
+    {"id": "integrations", "label": "Integrations", "description": "Configure Azure Monitor, Application Insights, APIs, and servers"},
+    {"id": "alert_rules", "label": "Alert Rules", "description": "Configure alert ingestion and routing rules"},
+    {"id": "notifications", "label": "Notification Channels", "description": "Configure Email, Teams, Slack, and SMS delivery"},
+    {"id": "taxonomy", "label": "Severity & Categories", "description": "Manage severity levels and incident categories"},
+    {"id": "permissions", "label": "Permissions", "description": "Review and manage role permission assignments"},
+    {"id": "dashboard", "label": "Dashboard Parameters", "description": "Configure dashboard refresh, date ranges, and visibility"},
+    {"id": "auth", "label": "Authentication", "description": "Configure SSO, LDAP, and session policies"},
+    {"id": "backup", "label": "Backup & Restore", "description": "Backup and restore platform configuration"},
     {"id": "audit", "label": "Audit Logs", "description": "View audit trail of all platform actions"},
-    {"id": "export", "label": "Export Data", "description": "Export alerts, incidents, changes, services, and audit data"},
+    {"id": "export", "label": "Export Data", "description": "Export alerts, incidents, changes, and audit data"},
 ]
 
 
