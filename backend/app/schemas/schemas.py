@@ -279,6 +279,9 @@ class ChangeCreate(BaseModel):
     service_id: Optional[int] = None
     implementation_plan: Optional[str] = None
     rollback_plan: Optional[str] = None
+    potential_business_impact: Optional[str] = None
+    affected_scope: Optional[str] = None
+    expected_downtime: Optional[str] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
 
@@ -288,6 +291,9 @@ class ChangeUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[ChangeStatus] = None
     risk: Optional[ChangeRisk] = None
+    potential_business_impact: Optional[str] = None
+    affected_scope: Optional[str] = None
+    expected_downtime: Optional[str] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
 
@@ -307,6 +313,9 @@ class ChangeResponse(BaseModel):
     submitter_id: Optional[int]
     implementation_plan: Optional[str]
     rollback_plan: Optional[str]
+    potential_business_impact: Optional[str]
+    affected_scope: Optional[str]
+    expected_downtime: Optional[str]
     scheduled_start: Optional[datetime]
     scheduled_end: Optional[datetime]
     created_at: datetime

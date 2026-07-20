@@ -145,6 +145,9 @@ export interface Change {
   submitter_id?: number;
   implementation_plan?: string;
   rollback_plan?: string;
+  potential_business_impact?: string;
+  affected_scope?: string;
+  expected_downtime?: string;
   scheduled_start?: string;
   scheduled_end?: string;
   created_at: string;

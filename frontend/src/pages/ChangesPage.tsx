@@ -139,12 +139,18 @@ function NewChangeRequestModal({
     service_id?: number;
     implementation_plan?: string;
     rollback_plan?: string;
+    potential_business_impact?: string;
+    affected_scope?: string;
+    expected_downtime?: string;
   }) => void;
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [changeType, setChangeType] = useState<ChangeType>('standard');
   const [serviceId, setServiceId] = useState('');
+  const [potentialBusinessImpact, setPotentialBusinessImpact] = useState('');
+  const [affectedScope, setAffectedScope] = useState('');
+  const [expectedDowntime, setExpectedDowntime] = useState('');
   const [implementationPlan, setImplementationPlan] = useState('');
   const [rollbackPlan, setRollbackPlan] = useState('');
 
@@ -162,6 +168,9 @@ function NewChangeRequestModal({
       description: description.trim() || undefined,
       change_type: changeType,
       service_id: serviceId ? Number(serviceId) : undefined,
+      potential_business_impact: potentialBusinessImpact.trim() || undefined,
+      affected_scope: affectedScope.trim() || undefined,
+      expected_downtime: expectedDowntime.trim() || undefined,
       implementation_plan: implementationPlan.trim() || undefined,
       rollback_plan: rollbackPlan.trim() || undefined,
     });
@@ -257,6 +266,59 @@ function NewChangeRequestModal({
               </div>
             </div>
 
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">Potential Impact</h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="change-business-impact" className="mb-1 block text-sm font-medium text-slate-700">
+                    Business impact
+                  </label>
+                  <textarea
+                    id="change-business-impact"
+                    value={potentialBusinessImpact}
+                    onChange={(event) => setPotentialBusinessImpact(event.target.value)}
+                    placeholder="What business outcomes could be affected? e.g. order processing delays, revenue loss..."
+                    rows={3}
+                    className="input w-full resize-y bg-white"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="change-affected-scope" className="mb-1 block text-sm font-medium text-slate-700">
+                    Affected users / systems
+                  </label>
+                  <input
+                    id="change-affected-scope"
+                    type="text"
+                    value={affectedScope}
+                    onChange={(event) => setAffectedScope(event.target.value)}
+                    placeholder="e.g. EU customers, mobile app users, payment gateway"
+                    className="input w-full bg-white"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="change-expected-downtime" className="mb-1 block text-sm font-medium text-slate-700">
+                    Expected downtime
+                  </label>
+                  <input
+                    id="change-expected-downtime"
+                    type="text"
+                    value={expectedDowntime}
+                    onChange={(event) => setExpectedDowntime(event.target.value)}
+                    placeholder="e.g. None, 5 minutes, up to 30 minutes during migration"
+                    className="input w-full bg-white"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label htmlFor="change-implementation" className="mb-1 block text-sm font-medium text-slate-700">
                 Implementation plan
@@ -292,7 +354,17 @@ function NewChangeRequestModal({
             <button type="button" className="btn-secondary" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary" disabled={isSubmitting || !title.trim()}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={
+                isSubmitting ||
+                !title.trim() ||
+                !potentialBusinessImpact.trim() ||
+                !affectedScope.trim() ||
+                !expectedDowntime.trim()
+              }
+            >
               Submit request
             </button>
           </div>
