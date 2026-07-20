@@ -33,8 +33,8 @@ const AdminDashboardConfigPage = lazy(() =>
 );
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage })));
 const AdminExportPage = lazy(() => import('@/pages/admin/AdminExportPage').then((m) => ({ default: m.AdminExportPage })));
-const AdminAzureIntegrationPage = lazy(() =>
-  import('@/pages/admin/AdminAzureIntegrationPage').then((m) => ({ default: m.AdminAzureIntegrationPage }))
+const AdminWebhookIntegrationPage = lazy(() =>
+  import('@/pages/admin/AdminWebhookIntegrationPage').then((m) => ({ default: m.AdminWebhookIntegrationPage }))
 );
 
 const queryClient = new QueryClient({
@@ -219,11 +219,11 @@ function AppRoutes() {
                     }
                   />
                   <Route
-                    path="azure"
+                    path="webhooks"
                     element={
                       <PermissionGuard permission={PERMISSIONS.INTEGRATIONS_MANAGE}>
                         <Suspense fallback={<LoadingScreen />}>
-                          <AdminAzureIntegrationPage />
+                          <AdminWebhookIntegrationPage />
                         </Suspense>
                       </PermissionGuard>
                     }
