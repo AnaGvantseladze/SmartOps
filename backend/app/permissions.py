@@ -261,6 +261,12 @@ ROLE_ALERT_SCOPE: dict[UserRole, str] = {
     UserRole.CHANGE_MANAGER: "none",
 }
 
+# Roles shown and editable in Admin → Permissions (engineer/manager use fixed defaults)
+PERMISSIONS_UI_ROLES: list[UserRole] = [
+    UserRole.ADMIN,
+    UserRole.CHANGE_MANAGER,
+]
+
 # Human-readable capability groups returned to admin UI
 ADMIN_CAPABILITIES = [
     {"id": "users", "label": "Users & Teams", "description": "Create, edit, delete users and assign roles"},
