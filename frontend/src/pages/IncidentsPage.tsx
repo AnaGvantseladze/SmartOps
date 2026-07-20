@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Users, Video, X, ExternalLink } from 'lucide-react';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
+import { useAuth } from '@/context/AuthContext';
+import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
+import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, incidentColumns, statusLabel, timeAgo } from '@/lib/utils';
-import type { Incident } from '@/types';
+import type { Incident, IncidentSeverity, IncidentStatus } from '@/types';
+
+const INCIDENT_PRIORITIES: IncidentSeverity[] = ['P0', 'P1', 'P2', 'P3', 'P4', 'P5'];
 
 export function IncidentsPage() {
+  const { can } = useAuth();
+  const canManage = can(PERMISSIONS.INCIDENTS_MANAGE);
+  const queryClient = useQueryClient();
+  const toast = useToastContext();
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const { data: incidents = [], isLoading } = useQuery({
@@ -24,6 +33,16 @@ export function IncidentsPage() {
   });
 
   const selected = selectedIncident ?? incidents.find((incident) => incident.id === selectedId);
+
+  const updateIncident = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Incident> }) => api.updateIncident(id, data),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.setQueryData(['incident', updated.id], updated);
+      toast.success('Incident updated');
+    },
+    onError: (error: Error) => toast.error('Failed to update incident', error.message),
+  });
 
   useEffect(() => {
     if (!selectedId) return;
@@ -73,7 +92,13 @@ export function IncidentsPage() {
       </div>
 
       {selected && (
-        <IncidentDetailPanel incident={selected} onClose={() => setSelectedId(null)} />
+        <IncidentDetailPanel
+          incident={selected}
+          canManage={canManage}
+          isUpdating={updateIncident.isPending}
+          onClose={() => setSelectedId(null)}
+          onUpdate={(data) => updateIncident.mutate({ id: selected.id, data })}
+        />
       )}
     </div>
   );
@@ -127,7 +152,31 @@ function IncidentCard({
   );
 }
 
-function IncidentDetailPanel({ incident, onClose }: { incident: Incident; onClose: () => void }) {
+function IncidentDetailPanel({
+  incident,
+  canManage,
+  isUpdating,
+  onClose,
+  onUpdate,
+}: {
+  incident: Incident;
+  canManage: boolean;
+  isUpdating: boolean;
+  onClose: () => void;
+  onUpdate: (data: Partial<Incident>) => void;
+}) {
+  const [description, setDescription] = useState(incident.description ?? '');
+
+  useEffect(() => {
+    setDescription(incident.description ?? '');
+  }, [incident.id, incident.description]);
+
+  function handleDescriptionSave() {
+    const trimmed = description.trim();
+    if (trimmed === (incident.description ?? '').trim()) return;
+    onUpdate({ description: trimmed || undefined });
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
@@ -144,12 +193,79 @@ function IncidentDetailPanel({ incident, onClose }: { incident: Incident; onClos
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <PriorityBadge priority={incident.severity} />
             <StatusBadge status={incident.status} />
           </div>
           <h3 className="text-lg font-semibold text-slate-900">{incident.title}</h3>
-          {incident.description && <p className="mt-2 text-sm text-slate-600">{incident.description}</p>}
+
+          {canManage ? (
+            <div className="card mt-4 space-y-4 p-4">
+              <h4 className="text-sm font-semibold text-slate-900">Update incident</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="incident-priority" className="mb-1 block text-sm font-medium text-slate-700">
+                    Priority
+                  </label>
+                  <select
+                    id="incident-priority"
+                    value={incident.severity}
+                    disabled={isUpdating}
+                    onChange={(event) => onUpdate({ severity: event.target.value as IncidentSeverity })}
+                    className="input"
+                  >
+                    {INCIDENT_PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="incident-status" className="mb-1 block text-sm font-medium text-slate-700">
+                    Status
+                  </label>
+                  <select
+                    id="incident-status"
+                    value={incident.status}
+                    disabled={isUpdating}
+                    onChange={(event) => onUpdate({ status: event.target.value as IncidentStatus })}
+                    className="input"
+                  >
+                    {incidentColumns.map((column) => (
+                      <option key={column.status} value={column.status}>
+                        {column.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="incident-description" className="mb-1 block text-sm font-medium text-slate-700">
+                  Description
+                </label>
+                <textarea
+                  id="incident-description"
+                  value={description}
+                  disabled={isUpdating}
+                  onChange={(event) => setDescription(event.target.value)}
+                  rows={6}
+                  placeholder="Add incident details, impact notes, investigation findings..."
+                  className="input min-h-[140px] resize-y"
+                />
+                <button
+                  type="button"
+                  className="btn-primary mt-2"
+                  disabled={isUpdating || description.trim() === (incident.description ?? '').trim()}
+                  onClick={handleDescriptionSave}
+                >
+                  Save description
+                </button>
+              </div>
+            </div>
+          ) : (
+            incident.description && <p className="mt-2 text-sm text-slate-600">{incident.description}</p>
+          )}
 
           {incident.war_room_url && (
             <a
@@ -170,6 +286,10 @@ function IncidentDetailPanel({ incident, onClose }: { incident: Incident; onClos
               <div>
                 <span className="text-slate-500">Created:</span>{' '}
                 <span className="text-slate-900">{formatDateTime(incident.created_at)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Priority:</span>{' '}
+                <span className="text-slate-900">{incident.severity}</span>
               </div>
               <div>
                 <span className="text-slate-500">Status:</span>{' '}
