@@ -15,6 +15,8 @@ async def migrate_incident_statuses(session: AsyncSession) -> None:
             """
         )
     )
+    await session.commit()
+
     await session.execute(
         text(
             """
