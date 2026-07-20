@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Columns3, GitCommit, StickyNote, X } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2 } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
+import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, timeAgo } from '@/lib/utils';
@@ -64,6 +65,7 @@ export function AlertsPage() {
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const columnPickerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const toast = useToastContext();
 
   useEffect(() => {
     localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));
@@ -104,8 +106,41 @@ export function AlertsPage() {
 
   const acknowledge = useMutation({
     mutationFn: (id: number) => api.acknowledgeAlert(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      toast.success('Alert acknowledged');
+    },
+    onError: () => toast.error('Failed to acknowledge alert'),
   });
+
+  const snooze = useMutation({
+    mutationFn: ({ id, reason, hours }: { id: number; reason: string; hours: number }) =>
+      api.updateAlert(id, {
+        status: 'snoozed',
+        snooze_reason: reason,
+        snoozed_until: new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      toast.success('Alert snoozed');
+    },
+    onError: () => toast.error('Failed to snooze alert'),
+  });
+
+  const resolve = useMutation({
+    mutationFn: (id: number) => api.updateAlert(id, { status: 'resolved' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      toast.success('Alert resolved');
+    },
+    onError: () => toast.error('Failed to resolve alert'),
+  });
+
+  const isUpdating = acknowledge.isPending || snooze.isPending || resolve.isPending;
+
+  function handleSnooze(id: number, reason: string, hours: number) {
+    snooze.mutate({ id, reason, hours });
+  }
 
   const addNote = useMutation({
     mutationFn: ({ id, content }: { id: number; content: string }) => api.addAlertNote(id, content),
@@ -193,6 +228,7 @@ export function AlertsPage() {
                   {column.label}
                 </th>
               ))}
+              {canManage && <th className="min-w-[220px]">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -202,7 +238,12 @@ export function AlertsPage() {
                 alert={alert}
                 selected={selected?.id === alert.id}
                 visibleColumns={columnVisibility}
+                canManage={canManage}
                 onSelect={() => setSelectedId(alert.id)}
+                onAcknowledge={() => acknowledge.mutate(alert.id)}
+                onSnooze={(reason, hours) => handleSnooze(alert.id, reason, hours)}
+                onResolve={() => resolve.mutate(alert.id)}
+                isUpdating={isUpdating}
                 onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
                 isAddingNote={addNote.isPending && addNote.variables?.id === alert.id}
               />
@@ -220,7 +261,9 @@ export function AlertsPage() {
           suggestions={suggestions}
           onClose={() => setSelectedId(null)}
           onAcknowledge={() => acknowledge.mutate(selected.id)}
-          isAcknowledging={acknowledge.isPending}
+          onSnooze={(reason, hours) => handleSnooze(selected.id, reason, hours)}
+          onResolve={() => resolve.mutate(selected.id)}
+          isUpdating={isUpdating}
           canManage={canManage}
         />
       )}
@@ -232,14 +275,24 @@ function AlertTableRow({
   alert,
   selected,
   visibleColumns,
+  canManage,
   onSelect,
+  onAcknowledge,
+  onSnooze,
+  onResolve,
+  isUpdating,
   onAddNote,
   isAddingNote,
 }: {
   alert: Alert;
   selected: boolean;
   visibleColumns: Record<AlertColumnKey, boolean>;
+  canManage: boolean;
   onSelect: () => void;
+  onAcknowledge: () => void;
+  onSnooze: (reason: string, hours: number) => void;
+  onResolve: () => void;
+  isUpdating: boolean;
   onAddNote: (content: string) => void;
   isAddingNote: boolean;
 }) {
@@ -291,7 +344,144 @@ function AlertTableRow({
           />
         </td>
       )}
+      {canManage && (
+        <td onClick={(event) => event.stopPropagation()}>
+          <AlertActions
+            alert={alert}
+            compact
+            disabled={isUpdating}
+            onAcknowledge={onAcknowledge}
+            onSnooze={onSnooze}
+            onResolve={onResolve}
+          />
+        </td>
+      )}
     </tr>
+  );
+}
+
+function AlertActions({
+  alert,
+  compact = false,
+  disabled = false,
+  onAcknowledge,
+  onSnooze,
+  onResolve,
+}: {
+  alert: Alert;
+  compact?: boolean;
+  disabled?: boolean;
+  onAcknowledge: () => void;
+  onSnooze: (reason: string, hours: number) => void;
+  onResolve: () => void;
+}) {
+  const [showSnooze, setShowSnooze] = useState(false);
+  const [snoozeReason, setSnoozeReason] = useState('');
+  const [snoozeHours, setSnoozeHours] = useState('1');
+  const snoozeRef = useRef<HTMLDivElement>(null);
+
+  const canAcknowledge = alert.status === 'triggered';
+  const canSnooze = alert.status === 'triggered' || alert.status === 'acknowledged';
+  const canResolve = alert.status !== 'resolved';
+
+  useEffect(() => {
+    if (!showSnooze) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (snoozeRef.current && !snoozeRef.current.contains(event.target as Node)) {
+        setShowSnooze(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSnooze]);
+
+  function handleSnoozeSubmit() {
+    const reason = snoozeReason.trim();
+    if (!reason) return;
+    onSnooze(reason, Number(snoozeHours));
+    setShowSnooze(false);
+    setSnoozeReason('');
+    setSnoozeHours('1');
+  }
+
+  const buttonClass = compact ? 'btn-secondary px-2 py-1 text-xs' : 'btn-secondary';
+
+  if (!canAcknowledge && !canSnooze && !canResolve) {
+    return <span className="text-xs text-slate-400">No actions</span>;
+  }
+
+  return (
+    <div className={cn('flex flex-wrap items-center gap-1.5', compact ? '' : 'gap-2')}>
+      {canAcknowledge && (
+        <button
+          type="button"
+          className={cn(compact ? 'btn-primary px-2 py-1 text-xs' : 'btn-primary')}
+          onClick={onAcknowledge}
+          disabled={disabled}
+        >
+          <Check className="h-3.5 w-3.5" />
+          Acknowledge
+        </button>
+      )}
+      {canSnooze && (
+        <div className="relative" ref={snoozeRef}>
+          <button
+            type="button"
+            className={buttonClass}
+            onClick={() => setShowSnooze((open) => !open)}
+            disabled={disabled}
+          >
+            <PauseCircle className="h-3.5 w-3.5" />
+            Snooze
+          </button>
+          {showSnooze && (
+            <div className="absolute right-0 z-30 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <p className="mb-2 text-xs font-semibold text-slate-700">Snooze alert</p>
+              <textarea
+                value={snoozeReason}
+                onChange={(event) => setSnoozeReason(event.target.value)}
+                rows={2}
+                placeholder="Reason for snooze..."
+                className="input mb-2 w-full resize-none text-xs"
+              />
+              <select
+                value={snoozeHours}
+                onChange={(event) => setSnoozeHours(event.target.value)}
+                className="select mb-2 w-full text-xs"
+              >
+                <option value="1">1 hour</option>
+                <option value="4">4 hours</option>
+                <option value="8">8 hours</option>
+                <option value="24">24 hours</option>
+              </select>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn-primary flex-1 px-2 py-1 text-xs"
+                  onClick={handleSnoozeSubmit}
+                  disabled={!snoozeReason.trim() || disabled}
+                >
+                  Snooze
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary px-2 py-1 text-xs"
+                  onClick={() => setShowSnooze(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {canResolve && (
+        <button type="button" className={buttonClass} onClick={onResolve} disabled={disabled}>
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Resolve
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -378,14 +568,18 @@ function AlertDetailPanel({
   suggestions,
   onClose,
   onAcknowledge,
-  isAcknowledging,
+  onSnooze,
+  onResolve,
+  isUpdating,
   canManage,
 }: {
   alert: Alert;
   suggestions: AISuggestion[];
   onClose: () => void;
   onAcknowledge: () => void;
-  isAcknowledging: boolean;
+  onSnooze: (reason: string, hours: number) => void;
+  onResolve: () => void;
+  isUpdating: boolean;
   canManage: boolean;
 }) {
   return (
@@ -407,7 +601,9 @@ function AlertDetailPanel({
           <AlertDetail
             alert={alert}
             onAcknowledge={onAcknowledge}
-            isAcknowledging={isAcknowledging}
+            onSnooze={onSnooze}
+            onResolve={onResolve}
+            isUpdating={isUpdating}
             canManage={canManage}
           />
           <div className="border-t border-slate-200 p-4">
@@ -422,12 +618,16 @@ function AlertDetailPanel({
 function AlertDetail({
   alert,
   onAcknowledge,
-  isAcknowledging,
+  onSnooze,
+  onResolve,
+  isUpdating,
   canManage,
 }: {
   alert: Alert;
   onAcknowledge: () => void;
-  isAcknowledging: boolean;
+  onSnooze: (reason: string, hours: number) => void;
+  onResolve: () => void;
+  isUpdating: boolean;
   canManage: boolean;
 }) {
   const latestNote = getLatestNote(alert);
@@ -505,16 +705,15 @@ function AlertDetail({
       )}
 
       {canManage && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {alert.status === 'triggered' && (
-            <button className="btn-primary" onClick={onAcknowledge} disabled={isAcknowledging}>
-              Acknowledge
-            </button>
-          )}
-          <button className="btn-secondary">Snooze</button>
-          <button className="btn-secondary">Escalate</button>
-          <button className="btn-secondary">Create Incident</button>
-          <button className="btn-secondary">Resolve</button>
+        <div className="card mb-4 p-4">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900">Actions</h3>
+          <AlertActions
+            alert={alert}
+            disabled={isUpdating}
+            onAcknowledge={onAcknowledge}
+            onSnooze={onSnooze}
+            onResolve={onResolve}
+          />
         </div>
       )}
 
