@@ -15,7 +15,6 @@ from app.models.audit import AuditLog
 from app.models.entities import Team, User, UserRole
 from app.permissions import (
     Permission,
-    PERMISSIONS_UI_ROLES,
     ROLE_LABELS,
     get_permission_catalog,
     get_permissions,
@@ -439,7 +438,7 @@ async def get_permissions_matrix(
             role_label=ROLE_LABELS.get(role, role.value),
             permissions=sorted(get_permissions(role)),
         )
-        for role in PERMISSIONS_UI_ROLES
+        for role in UserRole
     ]
 
 
@@ -462,9 +461,6 @@ async def update_role_permissions(
         user_role = UserRole(role)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid role") from exc
-
-    if user_role not in PERMISSIONS_UI_ROLES:
-        raise HTTPException(status_code=400, detail="This role cannot be edited from the permissions UI")
 
     try:
         updated = set_role_permissions(user_role, payload.permissions)
@@ -499,9 +495,6 @@ async def reset_role_permissions_endpoint(
         user_role = UserRole(role)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid role") from exc
-
-    if user_role not in PERMISSIONS_UI_ROLES:
-        raise HTTPException(status_code=400, detail="This role cannot be reset from the permissions UI")
 
     updated = reset_role_permissions(user_role)
     await write_audit_log(
