@@ -12,6 +12,7 @@ from app.config import settings
 from app.database import Base, async_session, engine
 from app.migrate_roles import migrate_removed_roles
 from app.migrate_incident_status import migrate_incident_statuses
+from app.migrate_webhooks import migrate_azure_to_webhooks
 from app.seed import ensure_auth_users, seed_demo_data
 from app.seed_audit import seed_audit_logs
 from app.seed_notifications import seed_notifications_and_oncall
