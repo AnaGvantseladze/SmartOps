@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.engineers import ENGINEERS
 from app.models.entities import Team, User
 from app.models.notifications import (
     NotificationChannel,
@@ -119,12 +120,12 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
         )
 
     # --- SRE user policy ---
-    sre = users.get("sre@opscore.com")
-    if sre:
+    ana = users.get(ENGINEERS[1][1])
+    if ana:
         user_policy = NotificationPolicy(
             name="My Notification Preferences",
             level=PolicyLevel.USER,
-            user_id=sre.id,
+            user_id=ana.id,
             description="Personal overrides — P1 after hours gets phone call.",
         )
         session.add(user_policy)
@@ -176,20 +177,20 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     session.add(noc_schedule)
     await session.flush()
 
-    sre_user = users.get("sre@opscore.com")
-    admin_user = users.get("admin@opscore.com")
-    if sre_user and admin_user:
+    saba = users.get(ENGINEERS[0][1])
+    eka = users.get(ENGINEERS[2][1])
+    if saba and eka:
         session.add_all(
             [
                 OnCallShift(
                     schedule_id=noc_schedule.id,
-                    user_id=sre_user.id,
+                    user_id=saba.id,
                     start_time=now - timedelta(days=now.weekday()),
                     end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
                 ),
                 OnCallShift(
                     schedule_id=noc_schedule.id,
-                    user_id=admin_user.id,
+                    user_id=eka.id,
                     start_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
                     end_time=now - timedelta(days=now.weekday()) + timedelta(days=14),
                 ),
@@ -207,17 +208,18 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     session.add(service_owner_schedule)
     await session.flush()
 
-    if sre_user:
+    ana = users.get(ENGINEERS[1][1])
+    if ana:
         session.add(
             OnCallShift(
                 schedule_id=service_owner_schedule.id,
-                user_id=sre_user.id,
+                user_id=ana.id,
                 start_time=now - timedelta(days=3),
                 end_time=now + timedelta(days=4),
             )
         )
 
-    commander = users.get("cto@opscore.com")
+    eka = users.get(ENGINEERS[2][1])
     commander_schedule = OnCallSchedule(
         name="Incident Commander Rotation",
         schedule_type=OnCallScheduleType.INCIDENT_COMMANDER,
@@ -227,17 +229,16 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     session.add(commander_schedule)
     await session.flush()
 
-    if commander:
+    if eka:
         session.add(
             OnCallShift(
                 schedule_id=commander_schedule.id,
-                user_id=commander.id,
+                user_id=eka.id,
                 start_time=now - timedelta(days=now.weekday()),
                 end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
             )
         )
 
-    manager = users.get("cto@opscore.com")
     manager_schedule = OnCallSchedule(
         name="Incident Manager Rotation",
         schedule_type=OnCallScheduleType.INCIDENT_MANAGER,
@@ -247,11 +248,12 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     session.add(manager_schedule)
     await session.flush()
 
-    if manager:
+    saba = users.get(ENGINEERS[0][1])
+    if saba:
         session.add(
             OnCallShift(
                 schedule_id=manager_schedule.id,
-                user_id=manager.id,
+                user_id=saba.id,
                 start_time=now - timedelta(days=now.weekday()),
                 end_time=now - timedelta(days=now.weekday()) + timedelta(days=7),
             )
@@ -302,11 +304,12 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     )
 
     # --- Notification log samples ---
-    if sre_user:
+    ana = users.get(ENGINEERS[1][1])
+    if ana:
         session.add_all(
             [
                 NotificationLog(
-                    user_id=sre_user.id,
+                    user_id=ana.id,
                     channel=NotificationChannel.SMS,
                     event_type="new_alert",
                     subject="P1 | Trading Service — Order timeout",
@@ -314,7 +317,7 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
                     sent_at=now - timedelta(minutes=2),
                 ),
                 NotificationLog(
-                    user_id=sre_user.id,
+                    user_id=ana.id,
                     channel=NotificationChannel.TEAMS,
                     event_type="new_alert",
                     subject="P2 | Payment Gateway — High latency",
@@ -322,7 +325,7 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
                     sent_at=now - timedelta(minutes=12),
                 ),
                 NotificationLog(
-                    user_id=sre_user.id,
+                    user_id=ana.id,
                     channel=NotificationChannel.PHONE,
                     event_type="escalation",
                     subject="P1 escalation — no acknowledgement in 5 min",

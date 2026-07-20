@@ -721,7 +721,7 @@ async def get_ai_suggestions(
             AISuggestion(
                 id="assign-1",
                 type="assignee",
-                title="Suggested assignee: Toma SRE",
+                title="Suggested assignee: Ana Gvantseladze",
                 description="Handled 12 similar incidents on Trading platform",
                 confidence=91,
                 reasoning="See INC-2190, INC-2002 for similar order timeout patterns",

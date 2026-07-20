@@ -91,10 +91,9 @@ Four persona accounts are available for testing:
 
 | Role | Email | Password | Landing page |
 |------|-------|----------|--------------|
-| **Administrator** | `admin@opscore.com` | `admin123` | Settings |
-| **SRE Engineer** | `sre@opscore.com` | `engineer123` | Alert Console |
-| **Manager** | `cto@opscore.com` | `manager123` | Executive Dashboard |
-| **Change Manager** | `change@opscore.com` | `change123` | Changes |
+| **Engineer** | `saba.kekelia@btu.edu.ge` | `engineer123` | Alert Console |
+| **Engineer** | `ana.gvantseladze@btu.edu.ge` | `engineer123` | Alert Console |
+| **Engineer** | `eka.kesanashvili@btu.edu.ge` | `engineer123` | Alert Console |
 
 The login page includes one-click buttons for each role.
 
