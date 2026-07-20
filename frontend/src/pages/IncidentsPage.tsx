@@ -196,7 +196,7 @@ function IncidentDetailPanel({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <PriorityBadge priority={incident.severity} />
             <StatusBadge status={incident.status} />
@@ -299,47 +299,45 @@ function IncidentDetailPanel({
             </div>
           )}
 
-          <div className="mt-4 flex min-h-0 flex-1 flex-col">
-            <label htmlFor="incident-description" className="mb-1 block text-sm font-medium text-slate-700">
-              Description
-            </label>
+          <div className="mt-4">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label htmlFor="incident-description" className="text-sm font-medium text-slate-700">
+                Description
+              </label>
+              {canManage && (
+                <button
+                  type="button"
+                  className="btn-primary px-3 py-1 text-xs"
+                  disabled={isUpdating || description.trim() === (incident.description ?? '').trim()}
+                  onClick={handleDescriptionSave}
+                >
+                  Save
+                </button>
+              )}
+            </div>
             {canManage ? (
-              <>
-                <textarea
-                  id="incident-description"
-                  value={description}
-                  disabled={isUpdating}
-                  onChange={(event) => setDescription(event.target.value)}
-                  placeholder="Add incident details, impact notes, investigation findings..."
-                  className="input min-h-0 w-full flex-1 resize-none"
-                />
-                <div className="mt-2 flex justify-end">
-                  <button
-                    type="button"
-                    className="btn-primary px-3 py-1.5 text-xs"
-                    disabled={isUpdating || description.trim() === (incident.description ?? '').trim()}
-                    onClick={handleDescriptionSave}
-                  >
-                    Save
-                  </button>
-                </div>
-              </>
+              <textarea
+                id="incident-description"
+                value={description}
+                rows={6}
+                disabled={isUpdating}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Add incident details, impact notes, investigation findings..."
+                className="input w-full min-h-[9rem] resize-y"
+              />
             ) : (
-              <div className="input min-h-0 w-full flex-1 overflow-y-auto whitespace-pre-wrap bg-slate-50 text-sm text-slate-700">
+              <div className="input min-h-[9rem] w-full whitespace-pre-wrap bg-slate-50 text-sm text-slate-700">
                 {incident.description || 'No description provided.'}
               </div>
             )}
           </div>
-        </div>
-
-        <div className="max-h-[38%] overflow-y-auto border-t border-slate-200 px-5 py-4">
 
           {incident.war_room_url && (
             <a
               href={incident.war_room_url}
               target="_blank"
               rel="noreferrer"
-              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-900"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-900"
             >
               <Video className="h-4 w-4" />
               Join war room
@@ -347,7 +345,7 @@ function IncidentDetailPanel({
             </a>
           )}
 
-          <div className="card p-4">
+          <div className="card mt-4 p-4">
             <h4 className="mb-3 text-sm font-semibold text-slate-900">Details</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
