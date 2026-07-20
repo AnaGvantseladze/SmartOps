@@ -74,6 +74,7 @@ export interface Alert {
   service?: ServiceBrief;
   assignee?: UserBrief;
   responsible_team?: { id: number; name: string };
+  latest_note?: string;
   timeline: AlertTimelineEntry[];
 }
 

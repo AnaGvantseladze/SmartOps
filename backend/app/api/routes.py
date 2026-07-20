@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import noload, selectinload
 
 from app.api.auth import get_current_user
 from app.database import async_session, get_db
@@ -52,13 +52,35 @@ from app.schemas.schemas import (
 router = APIRouter()
 
 
-def _alert_to_response(alert: Alert) -> AlertResponse:
+def _alert_to_response(
+    alert: Alert, *, latest_note: str | None = None, include_timeline: bool = True
+) -> AlertResponse:
     response = AlertResponse.model_validate(alert)
+    updates: dict = {}
     if alert.service and alert.service.team:
-        response = response.model_copy(
-            update={"responsible_team": TeamBrief.model_validate(alert.service.team)}
-        )
+        updates["responsible_team"] = TeamBrief.model_validate(alert.service.team)
+    if latest_note is not None:
+        updates["latest_note"] = latest_note
+    if not include_timeline:
+        updates["timeline"] = []
+    if updates:
+        response = response.model_copy(update=updates)
     return response
+
+
+async def _latest_notes_by_alert_id(db: AsyncSession, alert_ids: list[int]) -> dict[int, str]:
+    if not alert_ids:
+        return {}
+    result = await db.execute(
+        select(AlertTimelineEntry)
+        .where(AlertTimelineEntry.alert_id.in_(alert_ids), AlertTimelineEntry.entry_type == "note")
+        .order_by(AlertTimelineEntry.created_at.desc())
+    )
+    notes: dict[int, str] = {}
+    for entry in result.scalars().all():
+        if entry.alert_id not in notes:
+            notes[entry.alert_id] = entry.content
+    return notes
 
 
 def _compute_change_risk(service: Optional[Service]) -> tuple[ChangeRisk, int, str]:
@@ -90,26 +112,28 @@ async def get_dashboard_stats(
             Alert.status.in_([AlertStatus.TRIGGERED, AlertStatus.ACKNOWLEDGED, AlertStatus.SNOOZED])
         )
     )
-    alerts_by_priority: dict[str, int] = {}
+
+    priority_rows = await db.execute(
+        select(Alert.priority, func.count())
+        .where(Alert.status != AlertStatus.RESOLVED)
+        .group_by(Alert.priority)
+    )
+    alerts_by_priority = {priority.value: count for priority, count in priority_rows.all()}
     for priority in AlertPriority:
-        count = await db.scalar(
-            select(func.count())
-            .select_from(Alert)
-            .where(Alert.priority == priority, Alert.status != AlertStatus.RESOLVED)
-        )
-        alerts_by_priority[priority.value] = count or 0
+        alerts_by_priority.setdefault(priority.value, 0)
 
     open_incidents = await db.scalar(
         select(func.count()).select_from(Incident).where(Incident.status != IncidentStatus.CLOSED)
     )
-    incidents_by_severity: dict[str, int] = {}
+
+    severity_rows = await db.execute(
+        select(Incident.severity, func.count())
+        .where(Incident.status != IncidentStatus.CLOSED)
+        .group_by(Incident.severity)
+    )
+    incidents_by_severity = {severity.value: count for severity, count in severity_rows.all()}
     for severity in IncidentSeverity:
-        count = await db.scalar(
-            select(func.count())
-            .select_from(Incident)
-            .where(Incident.severity == severity, Incident.status != IncidentStatus.CLOSED)
-        )
-        incidents_by_severity[severity.value] = count or 0
+        incidents_by_severity.setdefault(severity.value, 0)
 
     pending_changes = await db.scalar(
         select(func.count())
@@ -172,23 +196,34 @@ async def list_services(
     query = query.order_by(Service.tier, Service.name)
     result = await db.execute(query)
     services = result.scalars().all()
+    if not services:
+        return []
+
+    service_ids = [svc.id for svc in services]
+
+    alert_count_rows = await db.execute(
+        select(Alert.service_id, func.count())
+        .where(Alert.service_id.in_(service_ids), Alert.status != AlertStatus.RESOLVED)
+        .group_by(Alert.service_id)
+    )
+    alert_counts = {service_id: count for service_id, count in alert_count_rows.all()}
+
+    incident_count_rows = await db.execute(
+        select(IncidentService.service_id, func.count())
+        .join(Incident, Incident.id == IncidentService.incident_id)
+        .where(
+            IncidentService.service_id.in_(service_ids),
+            Incident.status != IncidentStatus.CLOSED,
+        )
+        .group_by(IncidentService.service_id)
+    )
+    incident_counts = {service_id: count for service_id, count in incident_count_rows.all()}
 
     responses = []
     for svc in services:
-        active_alerts = await db.scalar(
-            select(func.count())
-            .select_from(Alert)
-            .where(Alert.service_id == svc.id, Alert.status != AlertStatus.RESOLVED)
-        )
-        open_incidents = await db.scalar(
-            select(func.count())
-            .select_from(Incident)
-            .join(IncidentService)
-            .where(IncidentService.service_id == svc.id, Incident.status != IncidentStatus.CLOSED)
-        )
         data = ServiceResponse.model_validate(svc)
-        data.active_alerts = active_alerts or 0
-        data.open_incidents = open_incidents or 0
+        data.active_alerts = alert_counts.get(svc.id, 0)
+        data.open_incidents = incident_counts.get(svc.id, 0)
         responses.append(data)
     return responses
 
@@ -231,7 +266,7 @@ async def list_alerts(
         .options(
             selectinload(Alert.service).selectinload(Service.team),
             selectinload(Alert.assignee),
-            selectinload(Alert.timeline).selectinload(AlertTimelineEntry.author),
+            noload(Alert.timeline),
         )
         .order_by(Alert.created_at.desc())
     )
@@ -250,7 +285,12 @@ async def list_alerts(
     if service_id:
         query = query.where(Alert.service_id == service_id)
     result = await db.execute(query)
-    return [_alert_to_response(a) for a in result.scalars().all()]
+    alerts = result.scalars().all()
+    latest_notes = await _latest_notes_by_alert_id(db, [alert.id for alert in alerts])
+    return [
+        _alert_to_response(alert, latest_note=latest_notes.get(alert.id), include_timeline=False)
+        for alert in alerts
+    ]
 
 
 @router.get("/alerts/{alert_id}", response_model=AlertResponse)
@@ -453,8 +493,8 @@ async def list_incidents(
             selectinload(Incident.manager),
             selectinload(Incident.commander),
             selectinload(Incident.services),
-            selectinload(Incident.timeline).selectinload(IncidentTimelineEntry.author),
-            selectinload(Incident.action_items).selectinload(ActionItem.owner),
+            noload(Incident.timeline),
+            noload(Incident.action_items),
         )
         .order_by(Incident.created_at.desc())
     )

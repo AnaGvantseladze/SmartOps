@@ -120,6 +120,7 @@ function loadColumnVisibility(): Record<AlertColumnKey, boolean> {
 }
 
 function getLatestNote(alert: Alert): string | undefined {
+  if (alert.latest_note) return alert.latest_note;
   const notes = alert.timeline.filter((entry) => entry.entry_type === 'note');
   if (notes.length === 0) return undefined;
   return [...notes].sort(
@@ -210,10 +211,18 @@ export function AlertsPage() {
         status: statusFilter.length > 0 ? sortedStatusFilter : undefined,
         priority: priorityFilter.length > 0 ? sortedPriorityFilter : undefined,
       }),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 
-  const selected = alerts.find((a) => a.id === selectedId);
+  const { data: selectedAlertDetail } = useQuery({
+    queryKey: ['alert', selectedId],
+    queryFn: () => api.getAlert(selectedId!),
+    enabled: selectedId != null,
+    staleTime: 15000,
+  });
+
+  const selected = selectedAlertDetail ?? alerts.find((a) => a.id === selectedId);
   const filteredAlerts = alerts.filter((alert) => matchesAlertSearch(alert, searchQuery));
   const displayedAlerts = sortAlerts(filteredAlerts, alertSort);
 
@@ -252,6 +261,7 @@ export function AlertsPage() {
     mutationFn: (id: number) => api.acknowledgeAlert(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ['alert', selectedId] });
       toast.success('Alert acknowledged');
     },
     onError: () => toast.error('Failed to acknowledge alert'),
@@ -266,6 +276,7 @@ export function AlertsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ['alert', selectedId] });
       toast.success('Alert snoozed');
     },
     onError: () => toast.error('Failed to snooze alert'),
@@ -275,6 +286,7 @@ export function AlertsPage() {
     mutationFn: (id: number) => api.updateAlert(id, { status: 'resolved' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ['alert', selectedId] });
       toast.success('Alert resolved');
     },
     onError: () => toast.error('Failed to resolve alert'),
@@ -284,6 +296,7 @@ export function AlertsPage() {
     mutationFn: (id: number) => api.createIncidentFromAlert(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ['alert', selectedId] });
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
       toast.success('Incident created', 'The incident is now on the Incident board');
     },
@@ -302,7 +315,10 @@ export function AlertsPage() {
 
   const addNote = useMutation({
     mutationFn: ({ id, content }: { id: number; content: string }) => api.addAlertNote(id, content),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['alert', variables.id] });
+    },
   });
 
   const visibleColumns = ALERT_COLUMNS.filter((column) => columnVisibility[column.key]);

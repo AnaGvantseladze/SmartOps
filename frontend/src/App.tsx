@@ -40,8 +40,9 @@ const AdminWebhookIntegrationPage = lazy(() =>
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5000,
+      staleTime: 30000,
       retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 });

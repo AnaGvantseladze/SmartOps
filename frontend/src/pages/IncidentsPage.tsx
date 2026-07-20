@@ -9,7 +9,8 @@ export function IncidentsPage() {
   const { data: incidents = [], isLoading } = useQuery({
     queryKey: ['incidents'],
     queryFn: () => api.getIncidents(),
-    refetchInterval: 15000,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   });
 
   if (isLoading) return <div className="page-container text-slate-500">Loading incidents...</div>;

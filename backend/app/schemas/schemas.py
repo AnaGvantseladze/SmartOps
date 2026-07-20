@@ -174,6 +174,7 @@ class AlertResponse(BaseModel):
     service: Optional[ServiceBrief] = None
     assignee: Optional[UserBrief] = None
     responsible_team: Optional[TeamBrief] = None
+    latest_note: Optional[str] = None
     timeline: list[AlertTimelineEntryResponse] = Field(default_factory=list)
 
 
