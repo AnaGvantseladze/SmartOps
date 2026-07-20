@@ -1,27 +1,19 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, Wrench, BarChart3, LogIn, GitPullRequest } from 'lucide-react';
+import { LogIn, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface DemoUser {
+  name: string;
   email: string;
   password: string;
-  role: string;
 }
 
 const DEMO_ACCOUNTS: DemoUser[] = [
-  { email: 'admin@opscore.com', password: 'admin123', role: 'Administrator' },
-  { email: 'sre@opscore.com', password: 'engineer123', role: 'SRE Engineer' },
-  { email: 'cto@opscore.com', password: 'manager123', role: 'Manager' },
-  { email: 'change@opscore.com', password: 'change123', role: 'Change Manager' },
+  { name: 'Saba Kekelia', email: 'saba.kekelia@btu.edu.ge', password: 'engineer123' },
+  { name: 'Ana Gvantseladze', email: 'ana.gvantseladze@btu.edu.ge', password: 'engineer123' },
+  { name: 'Eka Kesanashvili', email: 'eka.kesanashvili@btu.edu.ge', password: 'engineer123' },
 ];
-
-const roleIcons: Record<string, React.ElementType> = {
-  Administrator: Shield,
-  'SRE Engineer': Wrench,
-  Manager: BarChart3,
-  'Change Manager': GitPullRequest,
-};
 
 export function LoginPage() {
   const { login, user, isLoading } = useAuth();
@@ -85,7 +77,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder="you@opscore.com"
+                placeholder="you@btu.edu.ge"
                 required
               />
             </div>
@@ -109,24 +101,21 @@ export function LoginPage() {
         </div>
 
         <div className="mt-6">
-          <p className="mb-3 text-center text-sm text-slate-500">Quick login — one account per role</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {DEMO_ACCOUNTS.map((account) => {
-              const Icon = roleIcons[account.role] ?? Shield;
-              return (
-                <button
-                  key={account.email}
-                  onClick={() => handleLogin(account.email, account.password)}
-                  disabled={loading}
-                  className="card p-4 text-left transition-all hover:border-brand-300 hover:shadow-md disabled:opacity-50"
-                >
-                  <Icon className="mb-2 h-5 w-5 text-brand-600" />
-                  <div className="font-medium text-slate-900">{account.role}</div>
-                  <div className="mt-1 text-xs text-slate-500">{account.email}</div>
-                  <div className="mt-2 font-mono text-xs text-slate-400">{account.password}</div>
-                </button>
-              );
-            })}
+          <p className="mb-3 text-center text-sm text-slate-500">Quick login — engineers</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.email}
+                onClick={() => handleLogin(account.email, account.password)}
+                disabled={loading}
+                className="card p-4 text-left transition-all hover:border-brand-300 hover:shadow-md disabled:opacity-50"
+              >
+                <Wrench className="mb-2 h-5 w-5 text-brand-600" />
+                <div className="font-medium text-slate-900">{account.name}</div>
+                <div className="mt-1 text-xs text-slate-500">{account.email}</div>
+                <div className="mt-2 font-mono text-xs text-slate-400">{account.password}</div>
+              </button>
+            ))}
           </div>
         </div>
       </div>

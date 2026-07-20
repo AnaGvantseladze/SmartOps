@@ -15,11 +15,11 @@ from app.schemas.schemas import LoginRequest, LoginResponse, RoleConfigResponse,
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
 
+from app.engineers import DEMO_AUTH_USERS, ENGINEERS
+
 DEMO_USERS = [
-    {"email": "admin@opscore.com", "password": "admin123", "role_label": "Administrator"},
-    {"email": "sre@opscore.com", "password": "engineer123", "role_label": "SRE Engineer"},
-    {"email": "cto@opscore.com", "password": "manager123", "role_label": "Manager"},
-    {"email": "change@opscore.com", "password": "change123", "role_label": "Change Manager"},
+    {"email": email, "password": DEMO_AUTH_USERS[email], "role_label": "Engineer", "name": name}
+    for name, email in ENGINEERS
 ]
 
 
