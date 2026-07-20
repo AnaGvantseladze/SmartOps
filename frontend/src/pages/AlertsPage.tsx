@@ -245,6 +245,17 @@ export function AlertsPage() {
     setPriorityFilter(ALERT_PRIORITIES);
   }
 
+  const allStatusesSelected = statusFilter.length === ALERT_STATUSES.length;
+  const allPrioritiesSelected = priorityFilter.length === ALERT_PRIORITIES.length;
+
+  function toggleAllStatuses() {
+    setStatusFilter(allStatusesSelected ? [] : ALERT_STATUSES);
+  }
+
+  function toggleAllPriorities() {
+    setPriorityFilter(allPrioritiesSelected ? [] : ALERT_PRIORITIES);
+  }
+
   const statusFilterLabel =
     statusFilter.length === 0
       ? 'No statuses selected'
