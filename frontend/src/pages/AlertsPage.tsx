@@ -295,6 +295,18 @@ export function AlertsPage() {
     setPriorityFilter([]);
   }
 
+  function selectCriticalPriorities() {
+    setPriorityFilter(['P1', 'P2']);
+  }
+
+  function filterByPriority(priority: AlertPriority) {
+    setPriorityFilter([priority]);
+    setShowPriorityFilter(false);
+  }
+
+  const isPriorityFiltered =
+    priorityFilter.length > 0 && priorityFilter.length < ALERT_PRIORITIES.length;
+
   const allStatusesSelected =
     statusFilter.length === 0 || statusFilter.length === ALERT_STATUSES.length;
   const allPrioritiesSelected =
@@ -319,10 +331,9 @@ export function AlertsPage() {
           ? 'Active alerts'
           : `${statusFilter.length} statuses`;
 
-  const priorityFilterLabel =
-    priorityFilter.length === 0 || priorityFilter.length === ALERT_PRIORITIES.length
-      ? 'All priorities'
-      : `${priorityFilter.length} priorities`;
+  const priorityFilterLabel = isPriorityFiltered
+    ? `${priorityFilter.length} priorities`
+    : 'All priorities';
 
   if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
@@ -458,9 +469,14 @@ export function AlertsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Filter by priority
                 </p>
-                <button type="button" className="text-xs text-brand-700 hover:underline" onClick={selectAllPriorities}>
-                  All
-                </button>
+                <div className="flex gap-2 text-xs">
+                  <button type="button" className="text-brand-700 hover:underline" onClick={selectCriticalPriorities}>
+                    P1/P2
+                  </button>
+                  <button type="button" className="text-brand-700 hover:underline" onClick={selectAllPriorities}>
+                    All
+                  </button>
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-50">
@@ -519,7 +535,24 @@ export function AlertsPage() {
         <table className="data-table">
           <thead className="sticky top-0 z-10">
             <tr>
-              <th className="w-16">Priority</th>
+              <th className="w-20">
+                <button
+                  type="button"
+                  onClick={() => setShowPriorityFilter((open) => !open)}
+                  className={cn(
+                    'inline-flex items-center gap-1 font-medium hover:text-slate-900',
+                    isPriorityFiltered ? 'text-brand-800' : 'text-slate-500'
+                  )}
+                >
+                  Priority
+                  {isPriorityFiltered && (
+                    <span className="rounded-full bg-brand-100 px-1.5 text-[10px] font-semibold text-brand-800">
+                      {priorityFilter.length}
+                    </span>
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              </th>
               <th>Title</th>
               {visibleColumns.map((column) => (
                 <th key={column.key} className={column.key === 'note' ? 'min-w-[180px]' : undefined}>
@@ -559,6 +592,7 @@ export function AlertsPage() {
                 onResolve={() => resolve.mutate(alert.id)}
                 onCreateIncident={() => createIncident.mutate(alert.id)}
                 onViewIncident={() => navigate('/incidents')}
+                onFilterByPriority={filterByPriority}
                 isUpdating={isUpdating}
                 onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
                 isAddingNote={addNote.isPending && addNote.variables?.id === alert.id}
@@ -604,6 +638,7 @@ function AlertTableRow({
   onResolve,
   onCreateIncident,
   onViewIncident,
+  onFilterByPriority,
   isUpdating,
   onAddNote,
   isAddingNote,
@@ -619,6 +654,7 @@ function AlertTableRow({
   onResolve: () => void;
   onCreateIncident: () => void;
   onViewIncident: () => void;
+  onFilterByPriority: (priority: AlertPriority) => void;
   isUpdating: boolean;
   onAddNote: (content: string) => void;
   isAddingNote: boolean;
@@ -635,8 +671,15 @@ function AlertTableRow({
         isP1 && 'alert-pulse'
       )}
     >
-      <td>
-        <PriorityBadge priority={alert.priority} />
+      <td onClick={(event) => event.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => onFilterByPriority(alert.priority)}
+          className="rounded-md transition-opacity hover:opacity-80"
+          title={`Filter by ${alert.priority}`}
+        >
+          <PriorityBadge priority={alert.priority} />
+        </button>
       </td>
       <td>
         <div className="font-medium text-slate-900">{alert.title}</div>
