@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Siren, GitPullRequest, Clock, Activity, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Siren, GitPullRequest, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn, healthColor } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { PERMISSIONS } from '@/lib/permissions';
 import { PageHeaderSkeleton, StatCardSkeleton } from '@/components/Skeleton';
@@ -59,8 +59,8 @@ export function DashboardPage() {
     return (
       <div className="page-container">
         <PageHeaderSkeleton />
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
         </div>
@@ -102,7 +102,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Active Alerts"
           value={stats.active_alerts}
@@ -128,19 +128,6 @@ export function DashboardPage() {
           value={stats.pending_teams}
           icon={Clock}
           color="text-orange-600"
-        />
-        <StatCard
-          label="Open Action Items"
-          value={stats.action_items_open}
-          icon={CheckCircle2}
-          color="text-yellow-600"
-        />
-        <StatCard
-          label="Tier 1 Health"
-          value={`${stats.tier1_health_avg}%`}
-          icon={Activity}
-          sub={stats.recent_mttr_hours ? `MTTR: ${stats.recent_mttr_hours}h` : undefined}
-          color={healthColor(stats.tier1_health_avg)}
         />
       </div>
 

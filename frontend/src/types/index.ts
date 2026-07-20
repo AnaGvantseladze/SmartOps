@@ -161,9 +161,6 @@ export interface DashboardStats {
   incidents_by_severity: Record<string, number>;
   pending_changes: number;
   pending_teams: number;
-  action_items_open: number;
-  tier1_health_avg: number;
-  recent_mttr_hours?: number;
 }
 
 export interface FreezeBanner {

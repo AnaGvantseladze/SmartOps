@@ -181,17 +181,6 @@ async def get_dashboard_stats(
         .select_from(Incident)
         .where(Incident.status == IncidentStatus.PENDING_TEAMS, Incident.created_at >= start)
     )
-    action_items_open = await db.scalar(
-        select(func.count())
-        .select_from(ActionItem)
-        .where(
-            ActionItem.status.in_([ActionItemStatus.OPEN, ActionItemStatus.IN_PROGRESS]),
-            ActionItem.created_at >= start,
-        )
-    )
-    tier1_avg = await db.scalar(
-        select(func.avg(Service.health_score)).where(Service.tier == ServiceTier.BUSINESS)
-    )
 
     return DashboardStats(
         period=period,
@@ -202,9 +191,6 @@ async def get_dashboard_stats(
         incidents_by_severity=incidents_by_severity,
         pending_changes=pending_changes or 0,
         pending_teams=pending_teams or 0,
-        action_items_open=action_items_open or 0,
-        tier1_health_avg=round(float(tier1_avg or 0), 1),
-        recent_mttr_hours=4.2,
     )
 
 
