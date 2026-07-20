@@ -10,7 +10,6 @@ from app.api.auth import get_current_user
 from app.database import async_session, get_db
 from app.models.entities import (
     ActionItem,
-    ActionItemStatus,
     Alert,
     AlertPriority,
     AlertStatus,
