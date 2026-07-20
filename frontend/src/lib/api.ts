@@ -144,6 +144,14 @@ export const api = {
   getIncident: (id: number) => fetchJson<Incident>(`/incidents/${id}`),
   updateIncident: (id: number, data: Partial<Incident>) =>
     fetchJson<Incident>(`/incidents/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  createIncidentActionItem: (
+    incidentId: number,
+    data: { title: string; description?: string; priority?: string },
+  ) =>
+    fetchJson<Incident>(`/incidents/${incidentId}/action-items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   getChanges: () => fetchJson<Change[]>('/changes'),
   getChange: (id: number) => fetchJson<Change>(`/changes/${id}`),
   getServices: (params?: Record<string, string>) => {

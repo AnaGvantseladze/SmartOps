@@ -212,6 +212,14 @@ class IncidentTimelineEntryResponse(BaseModel):
     author: Optional[UserBrief] = None
 
 
+class ActionItemCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    description: Optional[str] = None
+    priority: AlertPriority = AlertPriority.P3
+    owner_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+
+
 class ActionItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

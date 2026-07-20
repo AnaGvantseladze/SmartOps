@@ -42,6 +42,7 @@ from app.schemas.schemas import (
     DashboardStats,
     EngineerResolvedCount,
     FreezeBanner,
+    ActionItemCreate,
     IncidentCreate,
     IncidentAlertBrief,
     IncidentResponse,
@@ -636,6 +637,38 @@ async def update_incident(
         )
     await db.commit()
     return await _incident_to_response(db, incident)
+
+
+@router.post("/incidents/{incident_id}/action-items", response_model=IncidentResponse, status_code=201)
+async def create_incident_action_item(
+    incident_id: int,
+    payload: ActionItemCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+) -> IncidentResponse:
+    incident = await db.get(Incident, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    action_item = ActionItem(
+        title=payload.title.strip(),
+        description=payload.description,
+        priority=payload.priority,
+        owner_id=payload.owner_id or current_user.id,
+        incident_id=incident_id,
+        due_date=payload.due_date,
+    )
+    db.add(action_item)
+    db.add(
+        IncidentTimelineEntry(
+            incident_id=incident_id,
+            entry_type="note",
+            content=f"Action item added: {payload.title.strip()}",
+            author_id=current_user.id,
+        )
+    )
+    await db.commit()
+    return await get_incident(incident_id, db)
 
 
 @router.get("/changes", response_model=list[ChangeResponse])
