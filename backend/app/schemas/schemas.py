@@ -339,6 +339,8 @@ class DashboardStats(BaseModel):
     incidents_by_severity: dict[str, int]
     pending_changes: int
     pending_teams: int
+    sla_at_risk: int = 0
+    sla_compliance_percent: int = 100
 
 
 class FreezeBanner(BaseModel):

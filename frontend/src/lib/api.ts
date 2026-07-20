@@ -59,6 +59,7 @@ export interface DashboardConfig {
   tv_rotation_seconds: number;
   show_tier1_only: boolean;
   executive_summary_enabled: boolean;
+  shared_with_organization: boolean;
 }
 
 export interface WebhookIntegration {
@@ -115,6 +116,7 @@ export const api = {
   getDashboardStats: (period: DashboardPeriod = 'week') =>
     fetchJson<DashboardStats>(`/dashboard/stats?period=${period}`),
   getFreezeBanner: () => fetchJson<FreezeBanner>('/dashboard/freeze'),
+  getAssignableUsers: () => fetchJson<UserProfile[]>('/users/assignable'),
   getAlerts: (params?: { status?: string[]; priority?: string[]; service_id?: string }) => {
     const search = new URLSearchParams();
     if (params?.status?.length) {

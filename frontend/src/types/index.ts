@@ -173,6 +173,8 @@ export interface DashboardStats {
   incidents_by_severity: Record<string, number>;
   pending_changes: number;
   pending_teams: number;
+  sla_at_risk: number;
+  sla_compliance_percent: number;
 }
 
 export interface FreezeBanner {

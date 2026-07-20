@@ -76,6 +76,7 @@ class DashboardConfigResponse(BaseModel):
     tv_rotation_seconds: int = 15
     show_tier1_only: bool = False
     executive_summary_enabled: bool = True
+    shared_with_organization: bool = False
 
 
 class DashboardConfigUpdate(BaseModel):
@@ -84,6 +85,7 @@ class DashboardConfigUpdate(BaseModel):
     tv_rotation_seconds: Optional[int] = None
     show_tier1_only: Optional[bool] = None
     executive_summary_enabled: Optional[bool] = None
+    shared_with_organization: Optional[bool] = None
 
 
 class ExportRequest(BaseModel):

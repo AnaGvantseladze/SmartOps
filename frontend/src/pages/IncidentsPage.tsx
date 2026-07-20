@@ -202,6 +202,12 @@ function IncidentDetailPanel({
   const [actionItemDescription, setActionItemDescription] = useState('');
   const [actionItemPriority, setActionItemPriority] = useState<AlertPriority>('P3');
   const sourceAlerts = incident.source_alerts ?? [];
+  const { data: assignableUsers = [] } = useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: api.getAssignableUsers,
+    enabled: canManage,
+    staleTime: 60000,
+  });
 
   useEffect(() => {
     setDescription(incident.description ?? '');
@@ -348,6 +354,29 @@ function IncidentDetailPanel({
                   {incidentColumns.map((column) => (
                     <option key={column.status} value={column.status}>
                       {column.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="incident-commander" className="mb-1 block text-sm font-medium text-slate-700">
+                  Assigned engineer
+                </label>
+                <select
+                  id="incident-commander"
+                  value={incident.commander_id ?? ''}
+                  disabled={isUpdating}
+                  onChange={(event) =>
+                    onUpdate({
+                      commander_id: event.target.value ? Number(event.target.value) : undefined,
+                    })
+                  }
+                  className="input w-full"
+                >
+                  <option value="">Unassigned</option>
+                  {assignableUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
                     </option>
                   ))}
                 </select>

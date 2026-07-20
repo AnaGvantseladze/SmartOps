@@ -33,6 +33,7 @@ export function AdminDashboardConfigPage() {
             tv_rotation_seconds: Number(values.tv_rotation_seconds),
             show_tier1_only: Boolean(values.show_tier1_only),
             executive_summary_enabled: Boolean(values.executive_summary_enabled),
+            shared_with_organization: Boolean(values.shared_with_organization),
           });
         }}
       >
@@ -53,6 +54,12 @@ export function AdminDashboardConfigPage() {
             checked={Boolean(values.executive_summary_enabled)}
             onChange={(e) => setForm({ ...form, executive_summary_enabled: e.target.checked })} />
           Enable executive summary section
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            checked={Boolean(values.shared_with_organization)}
+            onChange={(e) => setForm({ ...form, shared_with_organization: e.target.checked })} />
+          Share dashboard configuration with the organization
         </label>
         <button type="submit" className="btn-primary" disabled={save.isPending}>
           {save.isPending ? 'Saving...' : 'Save Configuration'}

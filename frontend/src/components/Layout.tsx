@@ -6,6 +6,7 @@ import {
   Server,
   LogOut,
   Shield,
+  Settings,
   Menu,
   X,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const allNavItems = [
   { key: 'incidents', to: '/incidents', icon: Siren, label: 'Incidents' },
   { key: 'changes', to: '/changes', icon: GitPullRequest, label: 'Changes' },
   { key: 'services', to: '/services', icon: Server, label: 'Services' },
+  { key: 'settings', to: '/settings', icon: Settings, label: 'Settings' },
   { key: 'administration', to: '/settings/admin', icon: Shield, label: 'Administration' },
 ];
 
