@@ -5,7 +5,6 @@ import {
   Siren,
   GitPullRequest,
   Server,
-  Search,
   LogOut,
   Shield,
   Menu,
@@ -138,11 +137,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="hidden items-center gap-2 text-slate-500 sm:flex">
-              <Search className="h-4 w-4" />
-              <span className="text-sm">Search</span>
-              <kbd className="rounded bg-slate-100 px-1.5 text-xs text-slate-500">⌘K</kbd>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
