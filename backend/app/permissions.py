@@ -66,34 +66,35 @@ ADMIN_PERMISSIONS: set[str] = {
     Permission.EXPORT_DATA,
 }
 
+# Engineer baseline used by manager role expansion
+ENGINEER_PERMISSIONS: set[str] = {
+    Permission.DASHBOARD_VIEW,
+    Permission.ALERTS_VIEW,
+    Permission.ALERTS_MANAGE,
+    Permission.INCIDENTS_VIEW,
+    Permission.INCIDENTS_MANAGE,
+    Permission.CHANGES_VIEW,
+    Permission.CHANGES_SUBMIT,
+    Permission.SERVICES_VIEW,
+    Permission.SERVICES_MANAGE,
+    Permission.SETTINGS_VIEW,
+    Permission.SETTINGS_NOTIFICATIONS,
+    Permission.SETTINGS_ON_CALL,
+}
+
+MANAGER_EXTRA_PERMISSIONS: set[str] = {
+    Permission.DASHBOARD_EXECUTIVE,
+    Permission.DASHBOARD_MANAGE,
+    Permission.EXPORT_DATA,
+    Permission.AUDIT_VIEW,
+    Permission.INCIDENTS_COMMAND,
+    Permission.CHANGES_APPROVE,
+}
+
 ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
     UserRole.ADMIN: ADMIN_PERMISSIONS,
-    UserRole.ENGINEER: {
-        Permission.DASHBOARD_VIEW,
-        Permission.ALERTS_VIEW,
-        Permission.ALERTS_MANAGE,
-        Permission.INCIDENTS_VIEW,
-        Permission.INCIDENTS_MANAGE,
-        Permission.CHANGES_VIEW,
-        Permission.CHANGES_SUBMIT,
-        Permission.SERVICES_VIEW,
-        Permission.SERVICES_MANAGE,
-        Permission.SETTINGS_VIEW,
-        Permission.SETTINGS_NOTIFICATIONS,
-        Permission.SETTINGS_ON_CALL,
-    },
-    UserRole.MANAGER: {
-        Permission.DASHBOARD_VIEW,
-        Permission.DASHBOARD_EXECUTIVE,
-        Permission.ALERTS_VIEW,
-        Permission.INCIDENTS_VIEW,
-        Permission.INCIDENTS_COMMAND,
-        Permission.CHANGES_VIEW,
-        Permission.CHANGES_APPROVE,
-        Permission.SERVICES_VIEW,
-        Permission.SETTINGS_VIEW,
-        Permission.SETTINGS_NOTIFICATIONS,
-    },
+    UserRole.ENGINEER: set(ENGINEER_PERMISSIONS),
+    UserRole.MANAGER: set(ENGINEER_PERMISSIONS) | MANAGER_EXTRA_PERMISSIONS,
     UserRole.CHANGE_MANAGER: {
         Permission.DASHBOARD_VIEW,
         Permission.CHANGES_VIEW,
@@ -114,8 +115,8 @@ ROLE_LANDING_PAGES: dict[UserRole, str] = {
 
 ROLE_NAV_ITEMS: dict[UserRole, list[str]] = {
     UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "services", "administration"],
-    UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "services"],
-    UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "services"],
+    UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "services", "settings"],
+    UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "services", "settings"],
     UserRole.CHANGE_MANAGER: ["dashboard", "changes", "services"],
 }
 
@@ -129,7 +130,7 @@ ROLE_LABELS: dict[UserRole, str] = {
 ROLE_ALERT_SCOPE: dict[UserRole, str] = {
     UserRole.ADMIN: "all",
     UserRole.ENGINEER: "my_services",
-    UserRole.MANAGER: "critical_only",
+    UserRole.MANAGER: "all",
     UserRole.CHANGE_MANAGER: "none",
 }
 

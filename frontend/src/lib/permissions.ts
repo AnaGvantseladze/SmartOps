@@ -35,6 +35,7 @@ export const NAV_PERMISSIONS: Record<string, Permission> = {
   changes: PERMISSIONS.CHANGES_VIEW,
   services: PERMISSIONS.SERVICES_VIEW,
   administration: PERMISSIONS.USERS_MANAGE,
+  settings: PERMISSIONS.SETTINGS_VIEW,
 };
 
 export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {

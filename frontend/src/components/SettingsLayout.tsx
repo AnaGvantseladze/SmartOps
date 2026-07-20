@@ -36,6 +36,7 @@ export function SettingsLayout() {
   const { can } = useAuth();
   const visibleGeneral = generalNav.filter((item) => can(item.permission));
   const visibleAdmin = adminNav.filter((item) => can(item.permission));
+  const adminSectionTitle = can(PERMISSIONS.USERS_MANAGE) ? 'Administration' : 'Management';
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
@@ -56,7 +57,7 @@ export function SettingsLayout() {
         {visibleAdmin.length > 0 && (
           <>
             <div className="mb-2 mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Administration
+              {adminSectionTitle}
             </div>
             <nav className="space-y-1">
               {visibleAdmin.map(({ to, icon: Icon, label, end }) => (

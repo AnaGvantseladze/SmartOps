@@ -7,6 +7,27 @@ export function SettingsProfilePage() {
 
   if (!user) return null;
 
+  const managementLinks = [
+    {
+      to: '/settings/dashboard-config',
+      title: 'Dashboard Parameters',
+      description: 'Configure refresh intervals, date ranges, and organization-wide visibility.',
+      permission: PERMISSIONS.DASHBOARD_MANAGE,
+    },
+    {
+      to: '/settings/export',
+      title: 'Export Data',
+      description: 'Generate reports and export alerts, incidents, changes, and audit data.',
+      permission: PERMISSIONS.EXPORT_DATA,
+    },
+    {
+      to: '/settings/audit',
+      title: 'Audit Logs',
+      description: 'Review operational actions and compliance history across the platform.',
+      permission: PERMISSIONS.AUDIT_VIEW,
+    },
+  ].filter((link) => can(link.permission));
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -70,6 +91,16 @@ export function SettingsProfilePage() {
             </p>
           </NavLink>
         )}
+        {managementLinks.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className="card block p-5 transition-all hover:border-brand-300 hover:shadow-md"
+          >
+            <h3 className="font-display font-semibold text-slate-900">{link.title}</h3>
+            <p className="mt-1 text-sm text-slate-500">{link.description}</p>
+          </NavLink>
+        ))}
       </div>
     </div>
   );

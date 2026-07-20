@@ -26,6 +26,7 @@ from app.models.entities import (
     Service,
     ServiceTier,
     User,
+    UserRole,
 )
 from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
 from app.services.audit_service import write_audit_log
@@ -48,6 +49,7 @@ from app.schemas.schemas import (
     IncidentUpdate,
     ServiceCreate,
     ServiceResponse,
+    UserBrief,
 )
 
 router = APIRouter()
@@ -195,6 +197,25 @@ async def get_dashboard_stats(
         .where(Incident.status == IncidentStatus.PENDING_TEAMS, Incident.created_at >= start)
     )
 
+    sla_threshold = datetime.now(timezone.utc) - timedelta(hours=4)
+    sla_at_risk = await db.scalar(
+        select(func.count())
+        .select_from(Incident)
+        .where(
+            Incident.status.in_([IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS]),
+            Incident.created_at < sla_threshold,
+        )
+    )
+    total_active_incidents = await db.scalar(
+        select(func.count())
+        .select_from(Incident)
+        .where(Incident.status.in_([IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS, IncidentStatus.PENDING_TEAMS]))
+    ) or 0
+    at_risk = sla_at_risk or 0
+    sla_compliance_percent = (
+        100 if total_active_incidents == 0 else max(0, round(100 - (at_risk / total_active_incidents * 100)))
+    )
+
     return DashboardStats(
         period=period,
         active_alerts=active_alerts or 0,
@@ -204,7 +225,33 @@ async def get_dashboard_stats(
         incidents_by_severity=incidents_by_severity,
         pending_changes=pending_changes or 0,
         pending_teams=pending_teams or 0,
+        sla_at_risk=at_risk,
+        sla_compliance_percent=sla_compliance_percent,
     )
+
+
+@router.get("/users/assignable", response_model=list[UserBrief])
+async def list_assignable_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[
+        User,
+        Depends(
+            require_any_permission(
+                Permission.INCIDENTS_MANAGE.value,
+                Permission.INCIDENTS_COMMAND.value,
+            )
+        ),
+    ] = None,
+) -> list[UserBrief]:
+    result = await db.execute(
+        select(User)
+        .where(
+            User.is_active == True,  # noqa: E712
+            User.role.in_([UserRole.ENGINEER, UserRole.MANAGER]),
+        )
+        .order_by(User.name)
+    )
+    return [UserBrief.model_validate(user) for user in result.scalars().all()]
 
 
 @router.get("/dashboard/freeze", response_model=FreezeBanner)
@@ -612,7 +659,15 @@ async def update_incident(
     incident_id: int,
     payload: IncidentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+    current_user: Annotated[
+        User,
+        Depends(
+            require_any_permission(
+                Permission.INCIDENTS_MANAGE.value,
+                Permission.INCIDENTS_COMMAND.value,
+            )
+        ),
+    ] = None,
 ) -> IncidentResponse:
     incident = await db.get(Incident, incident_id)
     if not incident:
