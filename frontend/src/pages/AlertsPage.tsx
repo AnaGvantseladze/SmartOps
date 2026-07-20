@@ -134,10 +134,9 @@ export function AlertsPage() {
     queryKey: ['alerts', sortedStatusFilter, sortedPriorityFilter],
     queryFn: () =>
       api.getAlerts({
-        status: sortedStatusFilter,
-        priority: sortedPriorityFilter,
+        status: statusFilter.length > 0 ? sortedStatusFilter : undefined,
+        priority: priorityFilter.length > 0 ? sortedPriorityFilter : undefined,
       }),
-    enabled: statusFilter.length > 0 && priorityFilter.length > 0,
     refetchInterval: 10000,
   });
 
@@ -245,20 +244,22 @@ export function AlertsPage() {
     setPriorityFilter(ALERT_PRIORITIES);
   }
 
-  const allStatusesSelected = statusFilter.length === ALERT_STATUSES.length;
-  const allPrioritiesSelected = priorityFilter.length === ALERT_PRIORITIES.length;
+  const allStatusesSelected =
+    statusFilter.length === 0 || statusFilter.length === ALERT_STATUSES.length;
+  const allPrioritiesSelected =
+    priorityFilter.length === 0 || priorityFilter.length === ALERT_PRIORITIES.length;
 
   function toggleAllStatuses() {
-    setStatusFilter(allStatusesSelected ? [] : ALERT_STATUSES);
+    setStatusFilter([]);
   }
 
   function toggleAllPriorities() {
-    setPriorityFilter(allPrioritiesSelected ? [] : ALERT_PRIORITIES);
+    setPriorityFilter([]);
   }
 
   const statusFilterLabel =
     statusFilter.length === 0
-      ? 'No statuses selected'
+      ? 'All statuses'
       : statusFilter.length === ALERT_STATUSES.length
         ? 'All statuses'
         : statusFilter.length === DEFAULT_STATUS_FILTER.length &&
@@ -268,11 +269,9 @@ export function AlertsPage() {
           : `${statusFilter.length} statuses`;
 
   const priorityFilterLabel =
-    priorityFilter.length === 0
-      ? 'No priorities selected'
-      : priorityFilter.length === ALERT_PRIORITIES.length
-        ? 'All priorities'
-        : `${priorityFilter.length} priorities`;
+    priorityFilter.length === 0 || priorityFilter.length === ALERT_PRIORITIES.length
+      ? 'All priorities'
+      : `${priorityFilter.length} priorities`;
 
   if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
@@ -352,6 +351,22 @@ export function AlertsPage() {
                 </div>
               </div>
               <div className="space-y-1">
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    checked={allStatusesSelected}
+                    ref={(element) => {
+                      if (element) {
+                        element.indeterminate =
+                          statusFilter.length > 0 && statusFilter.length < ALERT_STATUSES.length;
+                      }
+                    }}
+                    onChange={toggleAllStatuses}
+                    className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
+                  />
+                  All statuses
+                </label>
+                <div className="my-1 border-t border-slate-100" />
                 {ALERT_STATUSES.map((status) => (
                   <label
                     key={status}
@@ -390,6 +405,22 @@ export function AlertsPage() {
                 </button>
               </div>
               <div className="space-y-1">
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    checked={allPrioritiesSelected}
+                    ref={(element) => {
+                      if (element) {
+                        element.indeterminate =
+                          priorityFilter.length > 0 && priorityFilter.length < ALERT_PRIORITIES.length;
+                      }
+                    }}
+                    onChange={toggleAllPriorities}
+                    className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
+                  />
+                  All priorities
+                </label>
+                <div className="my-1 border-t border-slate-100" />
                 {ALERT_PRIORITIES.map((priority) => (
                   <label
                     key={priority}
