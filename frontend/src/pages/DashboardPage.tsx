@@ -87,8 +87,8 @@ export function DashboardPage() {
           color="text-blue-600"
         />
         <StatCard
-          label="PIR Pending"
-          value={stats.pir_pending}
+          label="Pending Teams"
+          value={stats.pending_teams}
           icon={Clock}
           color="text-orange-600"
         />

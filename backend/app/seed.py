@@ -212,7 +212,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
             title="Payment Gateway latency spike",
             description="Elevated response times affecting deposit flow",
             severity=IncidentSeverity.P2,
-            status=IncidentStatus.PIR_PENDING,
+            status=IncidentStatus.PENDING_TEAMS,
             category="Infrastructure",
             manager_id=users[2].id,
             team_id=teams[2].id,

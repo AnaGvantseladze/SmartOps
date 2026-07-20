@@ -116,8 +116,8 @@ async def get_dashboard_stats(
         .select_from(Change)
         .where(Change.status.in_([ChangeStatus.SUBMITTED, ChangeStatus.REVIEWING, ChangeStatus.APPROVED]))
     )
-    pir_pending = await db.scalar(
-        select(func.count()).select_from(Incident).where(Incident.status == IncidentStatus.PIR_PENDING)
+    pending_teams = await db.scalar(
+        select(func.count()).select_from(Incident).where(Incident.status == IncidentStatus.PENDING_TEAMS)
     )
     action_items_open = await db.scalar(
         select(func.count())
@@ -134,7 +134,7 @@ async def get_dashboard_stats(
         open_incidents=open_incidents or 0,
         incidents_by_severity=incidents_by_severity,
         pending_changes=pending_changes or 0,
-        pir_pending=pir_pending or 0,
+        pending_teams=pending_teams or 0,
         action_items_open=action_items_open or 0,
         tier1_health_avg=round(float(tier1_avg or 0), 1),
         recent_mttr_hours=4.2,
@@ -537,7 +537,7 @@ async def update_incident(
     for key, value in updates.items():
         setattr(incident, key, value)
 
-    if payload.status == IncidentStatus.PIR_PENDING:
+    if payload.status == IncidentStatus.PENDING_TEAMS:
         incident.resolved_at = datetime.now(timezone.utc)
     if payload.status == IncidentStatus.CLOSED:
         incident.closed_at = datetime.now(timezone.utc)
