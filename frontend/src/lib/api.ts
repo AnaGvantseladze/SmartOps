@@ -117,6 +117,12 @@ export interface RolePermissionMatrix {
   permissions: string[];
 }
 
+export interface PermissionCatalogEntry {
+  value: string;
+  label: string;
+  group: string;
+}
+
 export interface WebhookIntegration {
   id: number;
   name: string;
@@ -286,6 +292,14 @@ export const api = {
   updateAuthConfig: (data: Partial<AuthConfig>) =>
     fetchJson<AuthConfig>('/admin/auth-config', { method: 'PATCH', body: JSON.stringify(data) }),
   getPermissionsMatrix: () => fetchJson<RolePermissionMatrix[]>('/admin/permissions'),
+  getPermissionCatalog: () => fetchJson<PermissionCatalogEntry[]>('/admin/permissions/catalog'),
+  updateRolePermissions: (role: string, permissions: string[]) =>
+    fetchJson<RolePermissionMatrix>(`/admin/permissions/${role}`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    }),
+  resetRolePermissions: (role: string) =>
+    fetchJson<RolePermissionMatrix>(`/admin/permissions/${role}/reset`, { method: 'POST' }),
   backupPlatformConfig: () => fetchJson<{ backed_up_at: string; snapshot: Record<string, unknown> }>('/admin/backup', { method: 'POST' }),
   restorePlatformConfig: (snapshot: Record<string, unknown>) =>
     fetchJson<PlatformConfig>('/admin/restore', { method: 'POST', body: JSON.stringify({ snapshot }) }),
