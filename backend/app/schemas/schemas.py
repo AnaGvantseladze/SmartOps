@@ -311,9 +311,6 @@ class DashboardStats(BaseModel):
     incidents_by_severity: dict[str, int]
     pending_changes: int
     pending_teams: int
-    action_items_open: int
-    tier1_health_avg: float
-    recent_mttr_hours: Optional[float]
 
 
 class AISuggestion(BaseModel):
