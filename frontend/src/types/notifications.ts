@@ -1,6 +1,11 @@
 export type PolicyLevel = 'organization' | 'team' | 'user';
 export type NotificationChannel = 'push' | 'sms' | 'phone' | 'email' | 'teams' | 'in_app';
-export type OnCallScheduleType = 'service_owner' | 'noc' | 'incident_commander' | 'incident_manager';
+export type PrimaryOnCallScheduleType = 'engineer' | 'incident_manager' | 'change_manager';
+export type OnCallScheduleType =
+  | PrimaryOnCallScheduleType
+  | 'service_owner'
+  | 'noc'
+  | 'incident_commander';
 export type RotationFrequency = 'daily' | 'weekly' | 'custom';
 
 export interface NotificationRule {

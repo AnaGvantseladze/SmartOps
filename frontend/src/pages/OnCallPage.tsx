@@ -1,20 +1,47 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Clock, RefreshCw, Shield, User, Users, Plus, X } from 'lucide-react';
+import { Calendar, Clock, RefreshCw, GitPullRequest, Users, Wrench, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToastContext } from '@/context/ToastContext';
 import { cn } from '@/lib/utils';
-import type { CurrentOnCall, OnCallSchedule, OnCallScheduleType } from '@/types/notifications';
+import type { CurrentOnCall, OnCallSchedule, OnCallScheduleType, PrimaryOnCallScheduleType } from '@/types/notifications';
+
+const SCHEDULE_SECTIONS: { type: PrimaryOnCallScheduleType; title: string; description: string }[] = [
+  {
+    type: 'engineer',
+    title: 'Engineer',
+    description: 'Primary responder for alerts and incident triage',
+  },
+  {
+    type: 'incident_manager',
+    title: 'Incident Manager',
+    description: 'Coordinates incident response, communications, and resolution',
+  },
+  {
+    type: 'change_manager',
+    title: 'Change Manager',
+    description: 'Approves and oversees production change windows',
+  },
+];
 
 const scheduleTypeConfig: Record<
-  OnCallScheduleType,
+  PrimaryOnCallScheduleType,
   { label: string; color: string; icon: React.ElementType }
 > = {
-  service_owner: { label: 'Service Owner', color: 'text-blue-600', icon: User },
-  noc: { label: 'NOC Coverage', color: 'text-red-600', icon: Shield },
-  incident_commander: { label: 'Incident Commander', color: 'text-amber-600', icon: Shield },
+  engineer: { label: 'Engineer', color: 'text-sky-600', icon: Wrench },
   incident_manager: { label: 'Incident Manager', color: 'text-purple-600', icon: Users },
+  change_manager: { label: 'Change Manager', color: 'text-amber-600', icon: GitPullRequest },
 };
+
+function normalizeScheduleType(type: OnCallScheduleType): PrimaryOnCallScheduleType {
+  if (type === 'noc' || type === 'service_owner') return 'engineer';
+  if (type === 'incident_commander') return 'change_manager';
+  return type;
+}
+
+function getScheduleTypeConfig(type: OnCallScheduleType) {
+  return scheduleTypeConfig[normalizeScheduleType(type)];
+}
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start);
@@ -60,6 +87,32 @@ export function OnCallPage() {
     onError: (err: Error) => toast.error('Failed to create override', err.message),
   });
 
+  const activeSchedules = useMemo(
+    () => schedules.filter((schedule) => schedule.is_active),
+    [schedules],
+  );
+
+  const schedulesByType = useMemo(() => {
+    const grouped = new Map<PrimaryOnCallScheduleType, OnCallSchedule[]>();
+    for (const section of SCHEDULE_SECTIONS) {
+      grouped.set(section.type, []);
+    }
+    for (const schedule of activeSchedules) {
+      const type = normalizeScheduleType(schedule.schedule_type);
+      grouped.get(type)?.push(schedule);
+    }
+    return grouped;
+  }, [activeSchedules]);
+
+  const currentByType = useMemo(() => {
+    const grouped = new Map<PrimaryOnCallScheduleType, CurrentOnCall>();
+    for (const entry of current) {
+      const type = normalizeScheduleType(entry.schedule_type);
+      if (!grouped.has(type)) grouped.set(type, entry);
+    }
+    return grouped;
+  }, [current]);
+
   if (loadingCurrent || loadingSchedules) {
     return <div className="page-container text-slate-500">Loading on-call schedules...</div>;
   }
@@ -71,28 +124,50 @@ export function OnCallPage() {
         <p className="page-subtitle">Manage rotations, overrides, and escalation policies</p>
       </div>
 
-      {current.length > 0 && (
-        <div className="mb-8">
-          <h2 className="section-title mb-4">Who&apos;s On-Call Now</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {current.map((entry) => (
-              <CurrentOnCallCard key={entry.schedule_id} entry={entry} />
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="mb-8">
-        <h2 className="section-title mb-4">Schedules</h2>
-        <div className="space-y-4">
-          {schedules.map((schedule) => (
-            <ScheduleCard
-              key={schedule.id}
-              schedule={schedule}
-              onManageOverride={() => setOverrideScheduleId(schedule.id)}
-            />
-          ))}
+        <h2 className="section-title mb-4">Who&apos;s On-Call Now</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SCHEDULE_SECTIONS.map((section) => {
+            const entry = currentByType.get(section.type);
+            return entry ? (
+              <CurrentOnCallCard key={section.type} entry={entry} />
+            ) : (
+              <div key={section.type} className="card border-dashed p-4 text-sm text-slate-500">
+                <div className="font-medium text-slate-700">{section.title}</div>
+                <div className="mt-1">No one currently on call</div>
+              </div>
+            );
+          })}
         </div>
+      </div>
+
+      <div className="mb-8 space-y-8">
+        {SCHEDULE_SECTIONS.map((section) => {
+          const sectionSchedules = schedulesByType.get(section.type) ?? [];
+          return (
+            <div key={section.type}>
+              <div className="mb-4">
+                <h2 className="section-title">{section.title}</h2>
+                <p className="text-sm text-slate-500">{section.description}</p>
+              </div>
+              {sectionSchedules.length > 0 ? (
+                <div className="space-y-4">
+                  {sectionSchedules.map((schedule) => (
+                    <ScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onManageOverride={() => setOverrideScheduleId(schedule.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="card border-dashed p-6 text-sm text-slate-500">
+                  No active schedule configured for {section.title.toLowerCase()}.
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {overrideScheduleId != null && (
@@ -140,7 +215,7 @@ export function OnCallPage() {
 }
 
 function CurrentOnCallCard({ entry }: { entry: CurrentOnCall }) {
-  const config = scheduleTypeConfig[entry.schedule_type];
+  const config = getScheduleTypeConfig(entry.schedule_type);
   const Icon = config.icon;
 
   return (
@@ -169,7 +244,7 @@ function ScheduleCard({
   schedule: OnCallSchedule;
   onManageOverride: () => void;
 }) {
-  const config = scheduleTypeConfig[schedule.schedule_type];
+  const config = getScheduleTypeConfig(schedule.schedule_type);
   const Icon = config.icon;
 
   return (

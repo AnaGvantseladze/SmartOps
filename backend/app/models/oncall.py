@@ -9,10 +9,13 @@ from app.database import Base
 
 
 class OnCallScheduleType(str, enum.Enum):
+    ENGINEER = "engineer"
+    INCIDENT_MANAGER = "incident_manager"
+    CHANGE_MANAGER = "change_manager"
+    # Legacy values kept for existing databases until migration runs
     SERVICE_OWNER = "service_owner"
     NOC = "noc"
     INCIDENT_COMMANDER = "incident_commander"
-    INCIDENT_MANAGER = "incident_manager"
 
 
 class RotationFrequency(str, enum.Enum):

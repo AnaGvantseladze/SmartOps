@@ -13,7 +13,7 @@ from app.database import Base, async_session, engine
 from app.migrate_roles import migrate_removed_roles
 from app.migrate_change_impact import migrate_change_impact_fields
 from app.migrate_engineers import migrate_engineers
-from app.migrate_incident_status import migrate_incident_statuses
+from app.migrate_oncall_schedules import ensure_default_oncall_schedules, migrate_oncall_schedules
 from app.migrate_webhooks import migrate_azure_to_webhooks
 from app.seed import ensure_auth_users, seed_demo_data
 from app.seed_audit import seed_audit_logs
@@ -38,6 +38,8 @@ async def lifespan(app: FastAPI):
         await migrate_incident_statuses(session)
         await migrate_engineers(session)
         await migrate_change_impact_fields(session)
+        await migrate_oncall_schedules(session)
+        await ensure_default_oncall_schedules(session)
     if settings.seed_demo_data:
         async with async_session() as session:
             await seed_demo_data(session)
