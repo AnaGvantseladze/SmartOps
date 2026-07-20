@@ -105,6 +105,7 @@ MANAGER_EXTRA_PERMISSIONS: set[str] = {
     Permission.AUDIT_VIEW,
     Permission.INCIDENTS_COMMAND,
     Permission.CHANGES_APPROVE,
+    Permission.SCHEDULES_MANAGE,
 }
 
 ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
@@ -119,6 +120,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
         Permission.SERVICES_VIEW,
         Permission.SETTINGS_VIEW,
         Permission.SETTINGS_NOTIFICATIONS,
+        Permission.SETTINGS_ON_CALL,
     },
 }
 
@@ -148,7 +150,7 @@ PERMISSION_LABELS: dict[str, str] = {
     Permission.SETTINGS_NOTIFICATIONS.value: "Notification settings",
     Permission.SETTINGS_ON_CALL.value: "On-call schedules",
     Permission.SETTINGS_ADMIN.value: "Admin settings",
-    Permission.SCHEDULES_MANAGE.value: "Manage schedules",
+    Permission.SCHEDULES_MANAGE.value: "Create and manage on-call schedules",
     Permission.USERS_MANAGE.value: "Manage users",
     Permission.TEAMS_MANAGE.value: "Manage teams",
     Permission.AUDIT_VIEW.value: "View audit logs",
@@ -244,7 +246,7 @@ ROLE_NAV_ITEMS: dict[UserRole, list[str]] = {
     UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "administration"],
     UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "settings"],
     UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "settings"],
-    UserRole.CHANGE_MANAGER: ["dashboard", "changes", "services"],
+    UserRole.CHANGE_MANAGER: ["dashboard", "changes", "on-call", "services"],
 }
 
 ROLE_LABELS: dict[UserRole, str] = {

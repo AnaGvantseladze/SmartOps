@@ -145,6 +145,21 @@ class OnCallOverrideCreate(BaseModel):
     reason: Optional[str] = None
 
 
+class OnCallShiftCreate(BaseModel):
+    user_id: int
+    start_time: datetime
+    end_time: datetime
+
+
+class OnCallScheduleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    schedule_type: OnCallScheduleType
+    rotation_frequency: RotationFrequency = RotationFrequency.WEEKLY
+    timezone: str = "UTC"
+    team_id: Optional[int] = None
+    shifts: list[OnCallShiftCreate] = Field(default_factory=list)
+
+
 class EscalationLevelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
