@@ -43,6 +43,7 @@ from app.schemas.schemas import (
     EngineerResolvedCount,
     FreezeBanner,
     IncidentCreate,
+    IncidentAlertBrief,
     IncidentResponse,
     IncidentUpdate,
     ServiceCreate,
@@ -93,6 +94,19 @@ async def _latest_notes_by_alert_id(db: AsyncSession, alert_ids: list[int]) -> d
         if entry.alert_id not in notes:
             notes[entry.alert_id] = entry.content
     return notes
+
+
+async def _source_alerts_for_incident(db: AsyncSession, incident_id: int) -> list[IncidentAlertBrief]:
+    result = await db.execute(
+        select(Alert).where(Alert.incident_id == incident_id).order_by(Alert.created_at.asc())
+    )
+    return [IncidentAlertBrief.model_validate(alert) for alert in result.scalars().all()]
+
+
+async def _incident_to_response(db: AsyncSession, incident: Incident) -> IncidentResponse:
+    response = IncidentResponse.model_validate(incident)
+    source_alerts = await _source_alerts_for_incident(db, incident.id)
+    return response.model_copy(update={"source_alerts": source_alerts})
 
 
 def _compute_change_risk(service: Optional[Service]) -> tuple[ChangeRisk, int, str]:
@@ -552,7 +566,7 @@ async def get_incident(incident_id: int, db: AsyncSession = Depends(get_db)) -> 
     )
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
-    return IncidentResponse.model_validate(incident)
+    return await _incident_to_response(db, incident)
 
 
 @router.post("/incidents", response_model=IncidentResponse, status_code=201)
@@ -621,7 +635,7 @@ async def update_incident(
             )
         )
     await db.commit()
-    return await get_incident(incident_id, db)
+    return await _incident_to_response(db, incident)
 
 
 @router.get("/changes", response_model=list[ChangeResponse])

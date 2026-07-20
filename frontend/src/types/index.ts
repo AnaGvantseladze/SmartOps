@@ -98,6 +98,14 @@ export interface ActionItem {
   owner?: UserBrief;
 }
 
+export interface IncidentSourceAlert {
+  id: number;
+  title: string;
+  priority: AlertPriority;
+  status: AlertStatus;
+  created_at: string;
+}
+
 export interface Incident {
   id: number;
   title: string;
@@ -121,6 +129,7 @@ export interface Incident {
   services: ServiceBrief[];
   timeline: IncidentTimelineEntry[];
   action_items: ActionItem[];
+  source_alerts: IncidentSourceAlert[];
 }
 
 export interface Change {

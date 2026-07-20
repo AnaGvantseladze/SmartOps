@@ -226,6 +226,16 @@ class ActionItemResponse(BaseModel):
     owner: Optional[UserBrief] = None
 
 
+class IncidentAlertBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    priority: AlertPriority
+    status: AlertStatus
+    created_at: datetime
+
+
 class IncidentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -251,6 +261,7 @@ class IncidentResponse(BaseModel):
     services: list[ServiceBrief] = Field(default_factory=list)
     timeline: list[IncidentTimelineEntryResponse] = Field(default_factory=list)
     action_items: list[ActionItemResponse] = Field(default_factory=list)
+    source_alerts: list[IncidentAlertBrief] = Field(default_factory=list)
 
 
 class ChangeCreate(BaseModel):
