@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Columns3, GitCommit, StickyNote } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote, X } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, timeAgo } from '@/lib/utils';
-import type { Alert, AlertStatus } from '@/types';
+import type { Alert, AlertStatus, AISuggestion } from '@/types';
 
 const statusFilters: { value: AlertStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -85,13 +85,22 @@ export function AlertsPage() {
     refetchInterval: 10000,
   });
 
-  const selected = alerts.find((a) => a.id === selectedId) ?? alerts[0];
+  const selected = alerts.find((a) => a.id === selectedId);
 
   const { data: suggestions = [] } = useQuery({
     queryKey: ['ai-suggestions', 'alert', selected?.id],
     queryFn: () => api.getAISuggestions('alert', selected?.id),
     enabled: !!selected,
   });
+
+  useEffect(() => {
+    if (!selectedId) return;
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setSelectedId(null);
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [selectedId]);
 
   const acknowledge = useMutation({
     mutationFn: (id: number) => api.acknowledgeAlert(id),
@@ -112,58 +121,56 @@ export function AlertsPage() {
   if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <div className="border-b border-slate-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="page-title">Alert Console</h1>
-            <p className="page-subtitle">Live feed — operations console</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {alertScope === 'critical_only' && (
-              <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
-            )}
-            {alertScope === 'my_services' && (
-              <span className="badge border bg-blue-50 text-blue-700 border-blue-200">My services only</span>
-            )}
-            <div className="relative" ref={columnPickerRef}>
-              <button
-                type="button"
-                onClick={() => setShowColumnPicker((open) => !open)}
-                className="btn-secondary"
-              >
-                <Columns3 className="h-4 w-4" />
-                Columns
-              </button>
-              {showColumnPicker && (
-                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Show fields
-                  </p>
-                  <div className="space-y-1">
-                    {ALERT_COLUMNS.map((column) => (
-                      <label
-                        key={column.key}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={columnVisibility[column.key]}
-                          onChange={() => toggleColumn(column.key)}
-                          className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
-                        />
-                        {column.label}
-                      </label>
-                    ))}
-                  </div>
+    <div className="page-container flex h-[calc(100vh-3.5rem)] flex-col pb-0">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="page-header mb-0">
+          <h1 className="page-title">Alert Console</h1>
+          <p className="page-subtitle">Live feed — operations console</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {alertScope === 'critical_only' && (
+            <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
+          )}
+          {alertScope === 'my_services' && (
+            <span className="badge border bg-blue-50 text-blue-700 border-blue-200">My services only</span>
+          )}
+          <div className="relative" ref={columnPickerRef}>
+            <button
+              type="button"
+              onClick={() => setShowColumnPicker((open) => !open)}
+              className="btn-secondary"
+            >
+              <Columns3 className="h-4 w-4" />
+              Columns
+            </button>
+            {showColumnPicker && (
+              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Show fields
+                </p>
+                <div className="space-y-1">
+                  {ALERT_COLUMNS.map((column) => (
+                    <label
+                      key={column.key}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={columnVisibility[column.key]}
+                        onChange={() => toggleColumn(column.key)}
+                        className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
+                      />
+                      {column.label}
+                    </label>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-6 py-3">
+      <div className="mb-4 flex flex-wrap gap-2">
         {statusFilters.map((f) => (
           <button
             key={f.value}
@@ -175,55 +182,48 @@ export function AlertsPage() {
         ))}
       </div>
 
-      <div className="flex flex-1 overflow-hidden bg-slate-50">
-        <div className="flex w-1/2 flex-col overflow-hidden border-r border-slate-200 bg-white">
-          <div className="flex-1 overflow-auto">
-            <table className="data-table">
-              <thead className="sticky top-0 z-10">
-                <tr>
-                  <th className="w-16">Priority</th>
-                  <th>Title</th>
-                  {visibleColumns.map((column) => (
-                    <th key={column.key} className={column.key === 'note' ? 'min-w-[180px]' : undefined}>
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {alerts.map((alert) => (
-                  <AlertTableRow
-                    key={alert.id}
-                    alert={alert}
-                    selected={selected?.id === alert.id}
-                    visibleColumns={columnVisibility}
-                    onSelect={() => setSelectedId(alert.id)}
-                    onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
-                    isAddingNote={addNote.isPending && addNote.variables?.id === alert.id}
-                  />
-                ))}
-              </tbody>
-            </table>
-            {alerts.length === 0 && (
-              <p className="p-8 text-center text-sm text-slate-500">No alerts match filters</p>
-            )}
-          </div>
-        </div>
-
-        {selected && (
-          <div className="flex w-1/2 flex-col overflow-y-auto">
-            <AlertDetail
-              alert={selected}
-              onAcknowledge={() => acknowledge.mutate(selected.id)}
-              isAcknowledging={acknowledge.isPending}
-              canManage={canManage}
-            />
-            <div className="border-t border-slate-200 p-4">
-              <AISuggestionsPanel suggestions={suggestions} />
-            </div>
-          </div>
+      <div className="table-container min-h-0 flex-1 overflow-auto">
+        <table className="data-table">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th className="w-16">Priority</th>
+              <th>Title</th>
+              {visibleColumns.map((column) => (
+                <th key={column.key} className={column.key === 'note' ? 'min-w-[180px]' : undefined}>
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {alerts.map((alert) => (
+              <AlertTableRow
+                key={alert.id}
+                alert={alert}
+                selected={selected?.id === alert.id}
+                visibleColumns={columnVisibility}
+                onSelect={() => setSelectedId(alert.id)}
+                onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
+                isAddingNote={addNote.isPending && addNote.variables?.id === alert.id}
+              />
+            ))}
+          </tbody>
+        </table>
+        {alerts.length === 0 && (
+          <p className="p-8 text-center text-sm text-slate-500">No alerts match filters</p>
         )}
       </div>
+
+      {selected && (
+        <AlertDetailPanel
+          alert={selected}
+          suggestions={suggestions}
+          onClose={() => setSelectedId(null)}
+          onAcknowledge={() => acknowledge.mutate(selected.id)}
+          isAcknowledging={acknowledge.isPending}
+          canManage={canManage}
+        />
+      )}
     </div>
   );
 }
@@ -370,6 +370,52 @@ function AlertNoteCell({
       <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span className="line-clamp-2">{note ?? 'Add note...'}</span>
     </button>
+  );
+}
+
+function AlertDetailPanel({
+  alert,
+  suggestions,
+  onClose,
+  onAcknowledge,
+  isAcknowledging,
+  canManage,
+}: {
+  alert: Alert;
+  suggestions: AISuggestion[];
+  onClose: () => void;
+  onAcknowledge: () => void;
+  isAcknowledging: boolean;
+  canManage: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <button
+        type="button"
+        className="absolute inset-0 bg-slate-900/30"
+        aria-label="Close alert details"
+        onClick={onClose}
+      />
+      <div className="relative flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <h2 className="text-lg font-semibold text-slate-900">Alert Details</h2>
+          <button type="button" onClick={onClose} className="btn-secondary px-2 py-2" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <AlertDetail
+            alert={alert}
+            onAcknowledge={onAcknowledge}
+            isAcknowledging={isAcknowledging}
+            canManage={canManage}
+          />
+          <div className="border-t border-slate-200 p-4">
+            <AISuggestionsPanel suggestions={suggestions} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
