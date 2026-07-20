@@ -31,7 +31,7 @@ export function CommandPalette() {
   { id: 'admin', label: 'Go to Admin Console', to: '/settings/admin' },
   { id: 'users', label: 'Go to Users & Teams', to: '/settings/users-teams' },
   { id: 'system', label: 'Go to System Configuration', to: '/settings/system' },
-  { id: 'azure', label: 'Go to Azure Integration', to: '/settings/azure' },
+  { id: 'webhooks', label: 'Go to Webhook Integrations', to: '/settings/webhooks' },
   { id: 'audit', label: 'Go to Audit Logs', to: '/settings/audit' },
   { id: 'export', label: 'Go to Export Data', to: '/settings/export' },
     ];

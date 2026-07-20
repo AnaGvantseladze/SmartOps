@@ -52,6 +52,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
   '/settings/on-call': PERMISSIONS.SETTINGS_ON_CALL,
   '/settings/audit': PERMISSIONS.AUDIT_VIEW,
   '/settings/export': PERMISSIONS.EXPORT_DATA,
+  '/settings/webhooks': PERMISSIONS.INTEGRATIONS_MANAGE,
 };
 
 export const ROLE_LABELS: Record<string, string> = {

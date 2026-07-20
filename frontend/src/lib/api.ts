@@ -61,13 +61,11 @@ export interface DashboardConfig {
   executive_summary_enabled: boolean;
 }
 
-export interface AzureIntegration {
+export interface WebhookIntegration {
   id: number;
   name: string;
   description?: string;
-  tenant_id?: string;
-  subscription_id?: string;
-  resource_group?: string;
+  webhook_secret?: string;
   webhook_url: string;
   is_active: boolean;
   created_at: string;
@@ -173,11 +171,12 @@ export const api = {
     if (!res.ok) throw new Error('Export failed');
     return res.blob();
   },
-  getAzureIntegrations: () => fetchJson<AzureIntegration[]>('/azure/integrations'),
-  createAzureIntegration: (data: { name: string; description?: string; tenant_id?: string; subscription_id?: string; resource_group?: string }) =>
-    fetchJson<AzureIntegration>('/azure/integrations', { method: 'POST', body: JSON.stringify(data) }),
-  updateAzureIntegration: (id: number, data: Partial<AzureIntegration>) =>
-    fetchJson<AzureIntegration>(`/azure/integrations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteAzureIntegration: (id: number) => fetchJson<void>(`/azure/integrations/${id}`, { method: 'DELETE' }),
-  testAzureWebhook: () => fetchJson<{ status: string; alert_id: number; integration_id: number }>('/azure/webhooks/test', { method: 'POST' }),
+  getWebhookIntegrations: () => fetchJson<WebhookIntegration[]>('/integrations/webhooks'),
+  createWebhookIntegration: (data: { name: string; description?: string; webhook_secret?: string }) =>
+    fetchJson<WebhookIntegration>('/integrations/webhooks', { method: 'POST', body: JSON.stringify(data) }),
+  updateWebhookIntegration: (id: number, data: Partial<WebhookIntegration>) =>
+    fetchJson<WebhookIntegration>(`/integrations/webhooks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteWebhookIntegration: (id: number) => fetchJson<void>(`/integrations/webhooks/${id}`, { method: 'DELETE' }),
+  testWebhookIntegration: (id: number) =>
+    fetchJson<{ status: string; alert_id: number; integration_id: number }>(`/integrations/webhooks/${id}/test`, { method: 'POST' }),
 };

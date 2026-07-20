@@ -5,12 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin_routes import router as admin_router
 from app.api.auth import router as auth_router
-from app.api.azure_routes import router as azure_router
+from app.api.webhook_routes import admin_router as webhook_admin_router, public_router as webhook_public_router
 from app.api.notification_routes import router as notification_router
 from app.api.routes import router
 from app.config import settings
 from app.database import Base, async_session, engine
 from app.migrate_roles import migrate_removed_roles
+from app.migrate_webhooks import migrate_azure_to_webhooks
 from app.seed import ensure_auth_users, seed_demo_data
 from app.seed_audit import seed_audit_logs
 from app.seed_notifications import seed_notifications_and_oncall
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     await ensure_auth_schema(engine)
     async with async_session() as session:
         await migrate_removed_roles(session)
+        await migrate_azure_to_webhooks(session)
     if settings.seed_demo_data:
         async with async_session() as session:
             await seed_demo_data(session)
@@ -58,11 +60,11 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(notification_router, prefix="/api/v1")
-app.include_router(azure_router, prefix="/api/v1")
+app.include_router(webhook_admin_router, prefix="/api/v1")
 app.include_router(router, prefix="/api/v1")
 
-# Public Azure webhook endpoint (no auth — called by Azure Monitor)
-app.include_router(azure_router, prefix="/api/v1/webhooks")
+# Public webhook endpoint (no auth — called by Postman or external systems)
+app.include_router(webhook_public_router, prefix="/api/v1/webhooks")
 
 
 @app.get("/health")

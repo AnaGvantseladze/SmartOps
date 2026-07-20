@@ -318,15 +318,13 @@ class DeploymentFreeze(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-class AzureIntegration(Base):
-    __tablename__ = "azure_integrations"
+class WebhookIntegration(Base):
+    __tablename__ = "webhook_integrations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    tenant_id: Mapped[Optional[str]] = mapped_column(String(255))
-    subscription_id: Mapped[Optional[str]] = mapped_column(String(255))
-    resource_group: Mapped[Optional[str]] = mapped_column(String(255))
+    webhook_secret: Mapped[Optional[str]] = mapped_column(String(255))
     webhook_url: Mapped[str] = mapped_column(String(500), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
