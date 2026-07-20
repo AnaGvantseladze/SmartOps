@@ -20,8 +20,11 @@ const DEFAULT_PRIORITY_FILTER: AlertPriority[] = ALERT_PRIORITIES;
 const STATUS_STORAGE_KEY = 'alerts-status-filter';
 const PRIORITY_STORAGE_KEY = 'alerts-priority-filter';
 const CREATED_SORT_STORAGE_KEY = 'alerts-created-sort';
+const SORT_STORAGE_KEY = 'alerts-sort';
 
 type CreatedSort = 'desc' | 'asc';
+type SortField = 'created' | 'priority';
+type AlertSort = { field: SortField; direction: CreatedSort };
 
 function loadStatusFilter(): AlertStatus[] {
   try {
@@ -54,10 +57,35 @@ function loadCreatedSort(): CreatedSort {
   }
 }
 
-function sortAlertsByCreated(alerts: Alert[], sort: CreatedSort): Alert[] {
+function loadAlertSort(): AlertSort {
+  try {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as AlertSort;
+    return { field: 'created', direction: loadCreatedSort() };
+  } catch {
+    return { field: 'created', direction: 'desc' };
+  }
+}
+
+function priorityRank(priority: AlertPriority) {
+  return Number(priority.slice(1));
+}
+
+function sortAlerts(alerts: Alert[], sort: AlertSort): Alert[] {
   return [...alerts].sort((a, b) => {
-    const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-    return sort === 'desc' ? -diff : diff;
+    let diff = 0;
+    if (sort.field === 'priority') {
+      const rankDiff = priorityRank(a.priority) - priorityRank(b.priority);
+      diff = sort.direction === 'desc' ? rankDiff : -rankDiff;
+    } else {
+      const createdDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      diff = sort.direction === 'desc' ? -createdDiff : createdDiff;
+    }
+    if (diff !== 0) return diff;
+    if (sort.field === 'priority') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    return priorityRank(a.priority) - priorityRank(b.priority);
   });
 }
 
@@ -132,7 +160,7 @@ export function AlertsPage() {
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const [showPriorityFilter, setShowPriorityFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [createdSort, setCreatedSort] = useState<CreatedSort>(loadCreatedSort);
+  const [alertSort, setAlertSort] = useState<AlertSort>(loadAlertSort);
   const columnPickerRef = useRef<HTMLDivElement>(null);
   const statusFilterRef = useRef<HTMLDivElement>(null);
   const priorityFilterRef = useRef<HTMLDivElement>(null);
@@ -152,8 +180,8 @@ export function AlertsPage() {
   }, [priorityFilter]);
 
   useEffect(() => {
-    localStorage.setItem(CREATED_SORT_STORAGE_KEY, createdSort);
-  }, [createdSort]);
+    localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(alertSort));
+  }, [alertSort]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -187,10 +215,22 @@ export function AlertsPage() {
 
   const selected = alerts.find((a) => a.id === selectedId);
   const filteredAlerts = alerts.filter((alert) => matchesAlertSearch(alert, searchQuery));
-  const displayedAlerts = sortAlertsByCreated(filteredAlerts, createdSort);
+  const displayedAlerts = sortAlerts(filteredAlerts, alertSort);
 
   function toggleCreatedSort() {
-    setCreatedSort((current) => (current === 'desc' ? 'asc' : 'desc'));
+    setAlertSort((current) =>
+      current.field === 'created'
+        ? { field: 'created', direction: current.direction === 'desc' ? 'asc' : 'desc' }
+        : { field: 'created', direction: 'desc' }
+    );
+  }
+
+  function togglePrioritySort() {
+    setAlertSort((current) =>
+      current.field === 'priority'
+        ? { field: 'priority', direction: current.direction === 'desc' ? 'asc' : 'desc' }
+        : { field: 'priority', direction: 'desc' }
+    );
   }
 
   const { data: suggestions = [] } = useQuery({
@@ -293,15 +333,6 @@ export function AlertsPage() {
 
   function selectAllPriorities() {
     setPriorityFilter([]);
-  }
-
-  function selectCriticalPriorities() {
-    setPriorityFilter(['P1', 'P2']);
-  }
-
-  function filterByPriority(priority: AlertPriority) {
-    setPriorityFilter([priority]);
-    setShowPriorityFilter(false);
   }
 
   const isPriorityFiltered =
@@ -470,9 +501,6 @@ export function AlertsPage() {
                   Filter by priority
                 </p>
                 <div className="flex gap-2 text-xs">
-                  <button type="button" className="text-brand-700 hover:underline" onClick={selectCriticalPriorities}>
-                    P1/P2
-                  </button>
                   <button type="button" className="text-brand-700 hover:underline" onClick={selectAllPriorities}>
                     All
                   </button>
@@ -516,7 +544,7 @@ export function AlertsPage() {
         {!columnVisibility.created && (
           <button type="button" className="btn-secondary" onClick={toggleCreatedSort}>
             Created
-            {createdSort === 'desc' ? (
+            {alertSort.field === 'created' && alertSort.direction === 'desc' ? (
               <>
                 <ArrowDown className="h-4 w-4" />
                 Newest
@@ -538,19 +566,19 @@ export function AlertsPage() {
               <th className="w-20">
                 <button
                   type="button"
-                  onClick={() => setShowPriorityFilter((open) => !open)}
+                  onClick={togglePrioritySort}
                   className={cn(
                     'inline-flex items-center gap-1 font-medium hover:text-slate-900',
-                    isPriorityFiltered ? 'text-brand-800' : 'text-slate-500'
+                    alertSort.field === 'priority' ? 'text-brand-800' : 'text-slate-500'
                   )}
                 >
                   Priority
-                  {isPriorityFiltered && (
-                    <span className="rounded-full bg-brand-100 px-1.5 text-[10px] font-semibold text-brand-800">
-                      {priorityFilter.length}
-                    </span>
-                  )}
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  {alertSort.field === 'priority' &&
+                    (alertSort.direction === 'desc' ? (
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    ))}
                 </button>
               </th>
               <th>Title</th>
@@ -560,14 +588,18 @@ export function AlertsPage() {
                     <button
                       type="button"
                       onClick={toggleCreatedSort}
-                      className="inline-flex items-center gap-1 font-medium text-slate-500 hover:text-slate-900"
+                      className={cn(
+                        'inline-flex items-center gap-1 font-medium hover:text-slate-900',
+                        alertSort.field === 'created' ? 'text-brand-800' : 'text-slate-500'
+                      )}
                     >
                       {column.label}
-                      {createdSort === 'desc' ? (
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      ) : (
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      )}
+                      {alertSort.field === 'created' &&
+                        (alertSort.direction === 'desc' ? (
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        ))}
                     </button>
                   ) : (
                     column.label
@@ -592,7 +624,6 @@ export function AlertsPage() {
                 onResolve={() => resolve.mutate(alert.id)}
                 onCreateIncident={() => createIncident.mutate(alert.id)}
                 onViewIncident={() => navigate('/incidents')}
-                onFilterByPriority={filterByPriority}
                 isUpdating={isUpdating}
                 onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
                 isAddingNote={addNote.isPending && addNote.variables?.id === alert.id}
@@ -638,7 +669,6 @@ function AlertTableRow({
   onResolve,
   onCreateIncident,
   onViewIncident,
-  onFilterByPriority,
   isUpdating,
   onAddNote,
   isAddingNote,
@@ -654,7 +684,6 @@ function AlertTableRow({
   onResolve: () => void;
   onCreateIncident: () => void;
   onViewIncident: () => void;
-  onFilterByPriority: (priority: AlertPriority) => void;
   isUpdating: boolean;
   onAddNote: (content: string) => void;
   isAddingNote: boolean;
@@ -671,15 +700,8 @@ function AlertTableRow({
         isP1 && 'alert-pulse'
       )}
     >
-      <td onClick={(event) => event.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onFilterByPriority(alert.priority)}
-          className="rounded-md transition-opacity hover:opacity-80"
-          title={`Filter by ${alert.priority}`}
-        >
-          <PriorityBadge priority={alert.priority} />
-        </button>
+      <td>
+        <PriorityBadge priority={alert.priority} />
       </td>
       <td>
         <div className="font-medium text-slate-900">{alert.title}</div>
