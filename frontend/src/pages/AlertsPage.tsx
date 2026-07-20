@@ -231,7 +231,7 @@ export function AlertsPage() {
   }
 
   function selectAllStatuses() {
-    setStatusFilter(ALERT_STATUSES);
+    setStatusFilter([]);
   }
 
   function togglePriority(priority: AlertPriority) {
@@ -241,7 +241,7 @@ export function AlertsPage() {
   }
 
   function selectAllPriorities() {
-    setPriorityFilter(ALERT_PRIORITIES);
+    setPriorityFilter([]);
   }
 
   const allStatusesSelected =
@@ -285,9 +285,6 @@ export function AlertsPage() {
         <div className="flex items-center gap-2">
           {alertScope === 'critical_only' && (
             <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
-          )}
-          {alertScope === 'my_services' && (
-            <span className="badge border bg-blue-50 text-blue-700 border-blue-200">My services only</span>
           )}
           <div className="relative" ref={columnPickerRef}>
             <button
@@ -478,11 +475,7 @@ export function AlertsPage() {
           </tbody>
         </table>
         {alerts.length === 0 && (
-          <p className="p-8 text-center text-sm text-slate-500">
-            {statusFilter.length === 0 || priorityFilter.length === 0
-              ? 'Select at least one status and priority to show alerts'
-              : 'No alerts match the selected filters'}
-          </p>
+          <p className="p-8 text-center text-sm text-slate-500">No alerts match the selected filters</p>
         )}
       </div>
 
