@@ -26,11 +26,11 @@ from app.models.entities import (
     Service,
     ServiceTier,
     User,
+    UserRole,
 )
 from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
 from app.services.audit_service import write_audit_log
 from app.schemas.schemas import (
-    AISuggestion,
     AlertCreate,
     AlertNoteCreate,
     AlertResponse,
@@ -42,11 +42,15 @@ from app.schemas.schemas import (
     DashboardStats,
     EngineerResolvedCount,
     FreezeBanner,
+    ActionItemCreate,
+    ActionItemUpdate,
     IncidentCreate,
+    IncidentAlertBrief,
     IncidentResponse,
     IncidentUpdate,
     ServiceCreate,
     ServiceResponse,
+    UserBrief,
 )
 
 router = APIRouter()
@@ -93,6 +97,19 @@ async def _latest_notes_by_alert_id(db: AsyncSession, alert_ids: list[int]) -> d
         if entry.alert_id not in notes:
             notes[entry.alert_id] = entry.content
     return notes
+
+
+async def _source_alerts_for_incident(db: AsyncSession, incident_id: int) -> list[IncidentAlertBrief]:
+    result = await db.execute(
+        select(Alert).where(Alert.incident_id == incident_id).order_by(Alert.created_at.asc())
+    )
+    return [IncidentAlertBrief.model_validate(alert) for alert in result.scalars().all()]
+
+
+async def _incident_to_response(db: AsyncSession, incident: Incident) -> IncidentResponse:
+    response = IncidentResponse.model_validate(incident)
+    source_alerts = await _source_alerts_for_incident(db, incident.id)
+    return response.model_copy(update={"source_alerts": source_alerts})
 
 
 def _compute_change_risk(service: Optional[Service]) -> tuple[ChangeRisk, int, str]:
@@ -181,6 +198,25 @@ async def get_dashboard_stats(
         .where(Incident.status == IncidentStatus.PENDING_TEAMS, Incident.created_at >= start)
     )
 
+    sla_threshold = datetime.now(timezone.utc) - timedelta(hours=4)
+    sla_at_risk = await db.scalar(
+        select(func.count())
+        .select_from(Incident)
+        .where(
+            Incident.status.in_([IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS]),
+            Incident.created_at < sla_threshold,
+        )
+    )
+    total_active_incidents = await db.scalar(
+        select(func.count())
+        .select_from(Incident)
+        .where(Incident.status.in_([IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS, IncidentStatus.PENDING_TEAMS]))
+    ) or 0
+    at_risk = sla_at_risk or 0
+    sla_compliance_percent = (
+        100 if total_active_incidents == 0 else max(0, round(100 - (at_risk / total_active_incidents * 100)))
+    )
+
     return DashboardStats(
         period=period,
         active_alerts=active_alerts or 0,
@@ -190,7 +226,33 @@ async def get_dashboard_stats(
         incidents_by_severity=incidents_by_severity,
         pending_changes=pending_changes or 0,
         pending_teams=pending_teams or 0,
+        sla_at_risk=at_risk,
+        sla_compliance_percent=sla_compliance_percent,
     )
+
+
+@router.get("/users/assignable", response_model=list[UserBrief])
+async def list_assignable_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[
+        User,
+        Depends(
+            require_any_permission(
+                Permission.INCIDENTS_MANAGE.value,
+                Permission.INCIDENTS_COMMAND.value,
+            )
+        ),
+    ] = None,
+) -> list[UserBrief]:
+    result = await db.execute(
+        select(User)
+        .where(
+            User.is_active == True,  # noqa: E712
+            User.role.in_([UserRole.ENGINEER, UserRole.MANAGER]),
+        )
+        .order_by(User.name)
+    )
+    return [UserBrief.model_validate(user) for user in result.scalars().all()]
 
 
 @router.get("/dashboard/freeze", response_model=FreezeBanner)
@@ -552,7 +614,7 @@ async def get_incident(incident_id: int, db: AsyncSession = Depends(get_db)) -> 
     )
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
-    return IncidentResponse.model_validate(incident)
+    return await _incident_to_response(db, incident)
 
 
 @router.post("/incidents", response_model=IncidentResponse, status_code=201)
@@ -598,7 +660,15 @@ async def update_incident(
     incident_id: int,
     payload: IncidentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+    current_user: Annotated[
+        User,
+        Depends(
+            require_any_permission(
+                Permission.INCIDENTS_MANAGE.value,
+                Permission.INCIDENTS_COMMAND.value,
+            )
+        ),
+    ] = None,
 ) -> IncidentResponse:
     incident = await db.get(Incident, incident_id)
     if not incident:
@@ -620,6 +690,77 @@ async def update_incident(
                 content=f"Status changed to {payload.status.value}",
             )
         )
+    await db.commit()
+    return await _incident_to_response(db, incident)
+
+
+@router.post("/incidents/{incident_id}/action-items", response_model=IncidentResponse, status_code=201)
+async def create_incident_action_item(
+    incident_id: int,
+    payload: ActionItemCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+) -> IncidentResponse:
+    incident = await db.get(Incident, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    action_item = ActionItem(
+        title=payload.title.strip(),
+        description=payload.description,
+        priority=payload.priority,
+        owner_id=payload.owner_id or current_user.id,
+        incident_id=incident_id,
+        due_date=payload.due_date,
+    )
+    db.add(action_item)
+    db.add(
+        IncidentTimelineEntry(
+            incident_id=incident_id,
+            entry_type="note",
+            content=f"Action item added: {payload.title.strip()}",
+            author_id=current_user.id,
+        )
+    )
+    await db.commit()
+    return await get_incident(incident_id, db)
+
+
+@router.patch("/incidents/{incident_id}/action-items/{action_item_id}", response_model=IncidentResponse)
+async def update_incident_action_item(
+    incident_id: int,
+    action_item_id: int,
+    payload: ActionItemUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+) -> IncidentResponse:
+    incident = await db.get(Incident, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    action_item = await db.scalar(
+        select(ActionItem).where(
+            ActionItem.id == action_item_id,
+            ActionItem.incident_id == incident_id,
+        )
+    )
+    if not action_item:
+        raise HTTPException(status_code=404, detail="Action item not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for key, value in updates.items():
+        setattr(action_item, key, value)
+
+    if "status" in updates:
+        db.add(
+            IncidentTimelineEntry(
+                incident_id=incident_id,
+                entry_type="note",
+                content=f"Action item \"{action_item.title}\" marked {updates['status'].value}",
+                author_id=current_user.id,
+            )
+        )
+
     await db.commit()
     return await get_incident(incident_id, db)
 
@@ -658,7 +799,9 @@ async def get_change(change_id: int, db: AsyncSession = Depends(get_db)) -> Chan
 async def create_change(
     payload: ChangeCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_permission(Permission.CHANGES_SUBMIT.value))] = None,
+    current_user: Annotated[User, Depends(require_any_permission(
+        Permission.CHANGES_SUBMIT.value, Permission.CHANGES_MANAGE.value
+    ))] = None,
 ) -> ChangeResponse:
     service = await db.get(Service, payload.service_id) if payload.service_id else None
     risk, score, reasoning = _compute_change_risk(service)
@@ -690,69 +833,6 @@ async def update_change(
         setattr(change, key, value)
     await db.commit()
     return await get_change(change_id, db)
-
-
-@router.get("/ai/suggestions", response_model=list[AISuggestion])
-async def get_ai_suggestions(
-    context_type: str = Query(default="alert"),
-    context_id: Optional[int] = None,
-) -> list[AISuggestion]:
-    if context_type == "alert":
-        return [
-            AISuggestion(
-                id="route-1",
-                type="routing",
-                title="Suggested priority: P2",
-                description="Based on similar alerts on Payment Gateway",
-                confidence=84,
-                reasoning="Similar to alerts #1234, #1567 — both resolved as transient latency",
-            ),
-            AISuggestion(
-                id="resolve-1",
-                type="resolution",
-                title="Suggested resolution: Scale pods",
-                description="12 of 15 similar alerts resolved by scaling replicas",
-                confidence=76,
-                reasoning="Historical pattern on Payment Gateway during traffic spikes",
-            ),
-        ]
-    if context_type == "incident":
-        return [
-            AISuggestion(
-                id="assign-1",
-                type="assignee",
-                title="Suggested assignee: Ana Gvantseladze",
-                description="Handled 12 similar incidents on Trading platform",
-                confidence=91,
-                reasoning="See INC-2190, INC-2002 for similar order timeout patterns",
-            ),
-            AISuggestion(
-                id="rca-1",
-                type="root-cause",
-                title="Probable root cause: Recent deployment",
-                description="Deployment CHG-499 at 14:32 UTC correlates with alert onset",
-                confidence=87,
-                reasoning="Timeline overlay: change deployed 8 min before first alert",
-            ),
-        ]
-    return [
-        AISuggestion(
-            id="risk-1",
-            type="risk",
-            title="Risk score: HIGH (78%)",
-            description="This service had 2 incidents after similar changes in the last 90 days",
-            confidence=78,
-            reasoning="Tier 2 service with elevated incident frequency",
-        ),
-        AISuggestion(
-            id="window-1",
-            type="window",
-            title="Suggested window: Tue 02:00-04:00 UTC",
-            description="Lowest traffic period based on historical patterns",
-            confidence=82,
-            reasoning="Minimal incident history during this window",
-        ),
-    ]
 
 
 class ConnectionManager:

@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, type AdminUser } from '@/lib/api';
 import { ROLE_LABELS } from '@/lib/permissions';
 import { useToastContext } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 import { CardSkeleton, PageHeaderSkeleton, TableRowSkeleton } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
 
 export function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToastContext();
   const [showForm, setShowForm] = useState(false);
+  const [showTeamForm, setShowTeamForm] = useState(false);
+  const [teamForm, setTeamForm] = useState({ name: '', description: '' });
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'engineer', team_id: '' });
   const [error, setError] = useState('');
 
@@ -27,12 +32,42 @@ export function AdminUsersPage() {
       setShowForm(false);
       setForm({ name: '', email: '', password: '', role: 'engineer', team_id: '' });
       setError('');
-      toast.success('User created', `User ${form.email} has been added.`);
+      toast.success('User created');
     },
     onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to create user');
       toast.error('Failed to create user', err instanceof Error ? err.message : undefined);
     },
+  });
+
+  const updateUser = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof api.updateAdminUser>[1] }) => api.updateAdminUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setEditingUser(null);
+      toast.success('User updated');
+    },
+    onError: (err) => toast.error('Failed to update user', err instanceof Error ? err.message : undefined),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: api.deleteAdminUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User deleted');
+    },
+    onError: (err) => toast.error('Failed to delete user', err instanceof Error ? err.message : undefined),
+  });
+
+  const createTeam = useMutation({
+    mutationFn: api.createAdminTeam,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
+      setShowTeamForm(false);
+      setTeamForm({ name: '', description: '' });
+      toast.success('Team created');
+    },
+    onError: (err) => toast.error('Failed to create team', err instanceof Error ? err.message : undefined),
   });
 
   if (isLoading) {
@@ -42,10 +77,10 @@ export function AdminUsersPage() {
         <div className="table-container">
           <table className="data-table">
             <thead>
-              <tr><th>Name</th><th>Email</th><th>Role</th><th>Team</th><th>Status</th></tr>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Team</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} columns={5} />)}
+              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} columns={6} />)}
             </tbody>
           </table>
         </div>
@@ -62,9 +97,11 @@ export function AdminUsersPage() {
       <div className="mb-6 flex items-center justify-between">
         <div className="page-header mb-0">
           <h1 className="page-title">Users & Teams</h1>
-          <p className="page-subtitle">Add and manage users, teams, and their roles</p>
+          <p className="page-subtitle">Create, edit, delete users and assign roles</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>+ Add User</button>
+        <button type="button" className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingUser(null); }}>
+          + Add User
+        </button>
       </div>
 
       {isError && (
@@ -106,11 +143,59 @@ export function AdminUsersPage() {
         </form>
       )}
 
+      {editingUser && (
+        <form
+          className="card mb-6 grid gap-4 p-4 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            updateUser.mutate({
+              id: editingUser.id,
+              data: {
+                name: editingUser.name,
+                role: editingUser.role,
+                team_id: editingUser.team_id,
+                is_active: editingUser.is_active,
+              },
+            });
+          }}
+        >
+          <input className="input" value={editingUser.name} onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })} />
+          <div className="input bg-slate-50 text-slate-500">{editingUser.email}</div>
+          <select className="input" value={editingUser.role} onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}>
+            {Object.entries(ROLE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          <select
+            className="input"
+            value={editingUser.team_id ?? ''}
+            onChange={(e) => setEditingUser({ ...editingUser, team_id: e.target.value ? Number(e.target.value) : undefined })}
+          >
+            <option value="">No team</option>
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={editingUser.is_active}
+              onChange={(e) => setEditingUser({ ...editingUser, is_active: e.target.checked })}
+            />
+            Active account
+          </label>
+          <div className="flex gap-2 sm:col-span-2">
+            <button type="submit" className="btn-primary" disabled={updateUser.isPending}>Save changes</button>
+            <button type="button" className="btn-secondary" onClick={() => setEditingUser(null)}>Cancel</button>
+          </div>
+        </form>
+      )}
+
       {users.length === 0 ? (
         <EmptyState
           title="No users"
           message="There are no users in the system yet. Add one to get started."
-          action={<button className="btn-primary" onClick={() => setShowForm(true)}>+ Add User</button>}
+          action={<button type="button" className="btn-primary" onClick={() => setShowForm(true)}>+ Add User</button>}
         />
       ) : (
         <div className="table-container">
@@ -122,6 +207,7 @@ export function AdminUsersPage() {
                 <th>Role</th>
                 <th>Team</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -138,6 +224,23 @@ export function AdminUsersPage() {
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td>
+                    <div className="flex gap-2">
+                      <button type="button" className="btn-secondary px-2 py-1 text-xs" onClick={() => { setEditingUser(u); setShowForm(false); }}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary px-2 py-1 text-xs text-red-600"
+                        disabled={u.id === currentUser?.id || deleteUser.isPending}
+                        onClick={() => {
+                          if (window.confirm(`Delete ${u.name}?`)) deleteUser.mutate(u.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -146,6 +249,42 @@ export function AdminUsersPage() {
       )}
 
       <h2 className="section-title mb-4 mt-8">Teams</h2>
+      <div className="mb-4">
+        <button type="button" className="btn-secondary" onClick={() => setShowTeamForm(!showTeamForm)}>
+          + Add Team
+        </button>
+      </div>
+
+      {showTeamForm && (
+        <form
+          className="card mb-6 grid gap-4 p-4 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            createTeam.mutate({
+              name: teamForm.name.trim(),
+              description: teamForm.description.trim() || undefined,
+            });
+          }}
+        >
+          <input
+            className="input"
+            placeholder="Team name"
+            value={teamForm.name}
+            onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+            required
+          />
+          <input
+            className="input"
+            placeholder="Description (optional)"
+            value={teamForm.description}
+            onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
+          />
+          <button type="submit" className="btn-primary sm:col-span-2" disabled={createTeam.isPending || !teamForm.name.trim()}>
+            {createTeam.isPending ? 'Creating...' : 'Create Team'}
+          </button>
+        </form>
+      )}
+
       {teams.length === 0 ? (
         <EmptyState title="No teams" message="No teams have been created yet." />
       ) : (

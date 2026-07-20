@@ -1,28 +1,30 @@
 from app.auth import hash_password
 from app.models.entities import User, UserRole
 
-ENGINEER_PASSWORD = "engineer123"
+DEMO_PASSWORD = "engineer123"
 
-ENGINEERS: list[tuple[str, str]] = [
-    ("Saba Kekelia", "saba.kekelia@btu.edu.ge"),
-    ("Ana Gvantseladze", "ana.gvantseladze@btu.edu.ge"),
-    ("Eka Kesanashvili", "eka.kesanashvili@btu.edu.ge"),
+DEMO_USERS: list[tuple[str, str, UserRole]] = [
+    ("Saba Kekelia", "saba.kekelia@btu.edu.ge", UserRole.ADMIN),
+    ("Ana Gvantseladze", "ana.gvantseladze@btu.edu.ge", UserRole.MANAGER),
+    ("Eka Kesanashvili", "eka.kesanashvili@btu.edu.ge", UserRole.ENGINEER),
 ]
 
-ENGINEER_EMAILS = {email for _, email in ENGINEERS}
+ENGINEERS = [(name, email) for name, email, _ in DEMO_USERS]
+
+DEMO_AUTH_USERS = {email: DEMO_PASSWORD for _, email, _ in DEMO_USERS}
 
 
-def build_engineer_users(team_id: int | None = None) -> list[User]:
+def build_demo_users(team_id: int | None = None) -> list[User]:
     return [
         User(
             name=name,
             email=email,
-            role=UserRole.ENGINEER,
+            role=role,
             team_id=team_id,
-            password_hash=hash_password(ENGINEER_PASSWORD),
+            password_hash=hash_password(DEMO_PASSWORD),
         )
-        for name, email in ENGINEERS
+        for name, email, role in DEMO_USERS
     ]
 
 
-DEMO_AUTH_USERS = {email: ENGINEER_PASSWORD for _, email in ENGINEERS}
+build_engineer_users = build_demo_users

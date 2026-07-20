@@ -98,6 +98,14 @@ export interface ActionItem {
   owner?: UserBrief;
 }
 
+export interface IncidentSourceAlert {
+  id: number;
+  title: string;
+  priority: AlertPriority;
+  status: AlertStatus;
+  created_at: string;
+}
+
 export interface Incident {
   id: number;
   title: string;
@@ -121,6 +129,7 @@ export interface Incident {
   services: ServiceBrief[];
   timeline: IncidentTimelineEntry[];
   action_items: ActionItem[];
+  source_alerts: IncidentSourceAlert[];
 }
 
 export interface Change {
@@ -136,6 +145,9 @@ export interface Change {
   submitter_id?: number;
   implementation_plan?: string;
   rollback_plan?: string;
+  potential_business_impact?: string;
+  affected_scope?: string;
+  expected_downtime?: string;
   scheduled_start?: string;
   scheduled_end?: string;
   created_at: string;
@@ -161,6 +173,8 @@ export interface DashboardStats {
   incidents_by_severity: Record<string, number>;
   pending_changes: number;
   pending_teams: number;
+  sla_at_risk: number;
+  sla_compliance_percent: number;
 }
 
 export interface FreezeBanner {
@@ -168,13 +182,4 @@ export interface FreezeBanner {
   title?: string;
   reason?: string;
   end_time?: string;
-}
-
-export interface AISuggestion {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  confidence: number;
-  reasoning: string;
 }

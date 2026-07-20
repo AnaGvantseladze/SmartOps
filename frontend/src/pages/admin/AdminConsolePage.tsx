@@ -3,10 +3,13 @@ import { NavLink } from 'react-router-dom';
 import {
   Bell,
   Download,
+  KeyRound,
   LayoutDashboard,
   ScrollText,
   Shield,
+  SlidersHorizontal,
   Users,
+  Webhook,
   Wrench,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -14,11 +17,13 @@ import { PERMISSIONS } from '@/lib/permissions';
 import { useAuth } from '@/context/AuthContext';
 
 const adminLinks = [
-  { to: '/settings/users-teams', icon: Users, label: 'Users & Teams', perm: PERMISSIONS.USERS_MANAGE, desc: 'Add and manage users, teams, and their roles' },
-  { to: '/settings/system', icon: Wrench, label: 'System Configuration', perm: PERMISSIONS.SYSTEM_CONFIG, desc: 'Add services, integrations, and system parameters' },
-  { to: '/alerts', icon: Bell, label: 'Alerts & Incidents', perm: PERMISSIONS.ALERTS_MANAGE, desc: 'View, edit, and change status of alerts and incidents' },
-  { to: '/settings/notifications', icon: Bell, label: 'Schedules & Policies', perm: PERMISSIONS.SCHEDULES_MANAGE, desc: 'Manage notification policies and on-call schedules' },
-  { to: '/settings/dashboard-config', icon: LayoutDashboard, label: 'Dashboard Parameters', perm: PERMISSIONS.DASHBOARD_MANAGE, desc: 'Configure refresh intervals, date ranges, and display options' },
+  { to: '/settings/users-teams', icon: Users, label: 'Users & Teams', perm: PERMISSIONS.USERS_MANAGE, desc: 'Create, edit, delete users and assign roles' },
+  { to: '/settings/system', icon: Wrench, label: 'Integrations', perm: PERMISSIONS.INTEGRATIONS_MANAGE, desc: 'Azure Monitor, Application Insights, APIs, and servers' },
+  { to: '/settings/platform', icon: SlidersHorizontal, label: 'Platform Configuration', perm: PERMISSIONS.SYSTEM_CONFIG, desc: 'Alert rules, severity levels, categories, and notification channels' },
+  { to: '/settings/permissions', icon: KeyRound, label: 'Permissions', perm: PERMISSIONS.PERMISSIONS_MANAGE, desc: 'Review role permission assignments' },
+  { to: '/settings/webhooks', icon: Webhook, label: 'Webhook Integrations', perm: PERMISSIONS.INTEGRATIONS_MANAGE, desc: 'Inbound alert webhooks and API endpoints' },
+  { to: '/settings/notifications', icon: Bell, label: 'Notification Policies', perm: PERMISSIONS.SETTINGS_NOTIFICATIONS, desc: 'Escalation policies and on-call schedules' },
+  { to: '/settings/dashboard-config', icon: LayoutDashboard, label: 'Dashboard Parameters', perm: PERMISSIONS.DASHBOARD_MANAGE, desc: 'Configure refresh intervals, visibility, and display options' },
   { to: '/settings/audit', icon: ScrollText, label: 'Audit Logs', perm: PERMISSIONS.AUDIT_VIEW, desc: 'View audit trail of all platform actions' },
   { to: '/settings/export', icon: Download, label: 'Export Data', perm: PERMISSIONS.EXPORT_DATA, desc: 'Export alerts, incidents, changes, and audit data' },
 ];
@@ -37,7 +42,7 @@ export function AdminConsolePage() {
         <Shield className="h-8 w-8 text-brand-700" />
         <div>
           <h1 className="page-title">Administration Console</h1>
-          <p className="page-subtitle">Platform configuration, governance, and audit</p>
+          <p className="page-subtitle">Users, integrations, platform configuration, governance, and audit</p>
         </div>
       </div>
 

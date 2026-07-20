@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useToastContext } from '@/context/ToastContext';
 
 export function AdminDashboardConfigPage() {
   const queryClient = useQueryClient();
+  const toast = useToastContext();
   const { data: config, isLoading } = useQuery({ queryKey: ['dashboard-config'], queryFn: api.getDashboardConfig });
   const [form, setForm] = useState<Record<string, string | number | boolean>>({});
 
   const save = useMutation({
     mutationFn: api.updateDashboardConfig,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard-config'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-config'] });
+      toast.success('Dashboard configuration saved');
+    },
+    onError: (err: Error) => toast.error('Failed to save configuration', err.message),
   });
 
   if (isLoading || !config) return <div className="page-container text-slate-500">Loading...</div>;
@@ -33,6 +39,7 @@ export function AdminDashboardConfigPage() {
             tv_rotation_seconds: Number(values.tv_rotation_seconds),
             show_tier1_only: Boolean(values.show_tier1_only),
             executive_summary_enabled: Boolean(values.executive_summary_enabled),
+            shared_with_organization: Boolean(values.shared_with_organization),
           });
         }}
       >
@@ -53,6 +60,12 @@ export function AdminDashboardConfigPage() {
             checked={Boolean(values.executive_summary_enabled)}
             onChange={(e) => setForm({ ...form, executive_summary_enabled: e.target.checked })} />
           Enable executive summary section
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            checked={Boolean(values.shared_with_organization)}
+            onChange={(e) => setForm({ ...form, shared_with_organization: e.target.checked })} />
+          Share dashboard configuration with the organization
         </label>
         <button type="submit" className="btn-primary" disabled={save.isPending}>
           {save.isPending ? 'Saving...' : 'Save Configuration'}

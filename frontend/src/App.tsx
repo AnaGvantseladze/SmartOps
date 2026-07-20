@@ -33,6 +33,8 @@ const AdminDashboardConfigPage = lazy(() =>
 );
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage })));
 const AdminExportPage = lazy(() => import('@/pages/admin/AdminExportPage').then((m) => ({ default: m.AdminExportPage })));
+const AdminPlatformPage = lazy(() => import('@/pages/admin/AdminPlatformPage').then((m) => ({ default: m.AdminPlatformPage })));
+const AdminPermissionsPage = lazy(() => import('@/pages/admin/AdminPermissionsPage').then((m) => ({ default: m.AdminPermissionsPage })));
 const AdminWebhookIntegrationPage = lazy(() =>
   import('@/pages/admin/AdminWebhookIntegrationPage').then((m) => ({ default: m.AdminWebhookIntegrationPage }))
 );
@@ -113,6 +115,16 @@ function AppRoutes() {
                   }
                 />
                 <Route
+                  path="/on-call"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <OnCallPage />
+                      </Suspense>
+                    </PermissionGuard>
+                  }
+                />
+                <Route
                   path="/services"
                   element={
                     <PermissionGuard permission={PERMISSIONS.SERVICES_VIEW}>
@@ -122,7 +134,7 @@ function AppRoutes() {
                     </PermissionGuard>
                   }
                 />
-                <Route path="/on-call" element={<Navigate to="/settings/on-call" replace />} />
+                <Route path="/settings/on-call" element={<Navigate to="/on-call" replace />} />
                 <Route
                   path="/settings"
                   element={
@@ -145,16 +157,6 @@ function AppRoutes() {
                       <PermissionGuard permission={PERMISSIONS.SETTINGS_NOTIFICATIONS}>
                         <Suspense fallback={<LoadingScreen />}>
                           <NotificationSettingsPage />
-                        </Suspense>
-                      </PermissionGuard>
-                    }
-                  />
-                  <Route
-                    path="on-call"
-                    element={
-                      <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
-                        <Suspense fallback={<LoadingScreen />}>
-                          <OnCallPage />
                         </Suspense>
                       </PermissionGuard>
                     }
@@ -215,6 +217,26 @@ function AppRoutes() {
                       <PermissionGuard permission={PERMISSIONS.EXPORT_DATA}>
                         <Suspense fallback={<LoadingScreen />}>
                           <AdminExportPage />
+                        </Suspense>
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="platform"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.SYSTEM_CONFIG}>
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminPlatformPage />
+                        </Suspense>
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="permissions"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.PERMISSIONS_MANAGE}>
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminPermissionsPage />
                         </Suspense>
                       </PermissionGuard>
                     }

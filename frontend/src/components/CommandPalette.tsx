@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -17,6 +17,21 @@ export function CommandPalette() {
   const [selected, setSelected] = useState(0);
   const navigate = useNavigate();
   const { can, canNav } = useAuth();
+  const pendingShortcut = useRef<string | null>(null);
+  const shortcutTimer = useRef<number | null>(null);
+
+  const shortcutMap = useMemo<Record<string, string>>(
+    () => ({
+      d: '/',
+      a: '/alerts',
+      i: '/incidents',
+      c: '/changes',
+      o: '/on-call',
+      s: '/services',
+      p: '/settings',
+    }),
+    [],
+  );
 
   const commands = useMemo<Command[]>(() => {
     const all: Command[] = [
@@ -27,7 +42,7 @@ export function CommandPalette() {
       { id: 'services', label: 'Go to Services', to: '/services', shortcut: 'G S' },
       { id: 'settings', label: 'Go to Settings', to: '/settings', shortcut: 'G P' },
       { id: 'notifications', label: 'Go to Notification Settings', to: '/settings/notifications' },
-      { id: 'on-call', label: 'Go to On-Call Schedules', to: '/settings/on-call' },
+      { id: 'on-call', label: 'Go to On-Call Schedules', to: '/on-call', shortcut: 'G O' },
   { id: 'admin', label: 'Go to Admin Console', to: '/settings/admin' },
   { id: 'users', label: 'Go to Users & Teams', to: '/settings/users-teams' },
   { id: 'system', label: 'Go to System Configuration', to: '/settings/system' },
@@ -37,10 +52,11 @@ export function CommandPalette() {
     ];
     return all.filter((cmd) => {
       if (cmd.to.startsWith('/settings')) {
-        if (cmd.to === '/settings') return true;
+        if (cmd.to === '/settings') return canNav('settings');
         if (cmd.to === '/settings/admin' || cmd.to === '/settings/users-teams') return canNav('administration');
+        return canNav('settings');
       }
-      return canNav(cmd.id.split('-')[0]);
+      return canNav(cmd.id);
     });
   }, [can, canNav]);
 
@@ -58,14 +74,44 @@ export function CommandPalette() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setOpen((o) => !o);
+        return;
       }
       if (e.key === 'Escape') {
         setOpen(false);
+        pendingShortcut.current = null;
+        return;
+      }
+
+      if (open || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (pendingShortcut.current === 'g') {
+        e.preventDefault();
+        pendingShortcut.current = null;
+        if (shortcutTimer.current) window.clearTimeout(shortcutTimer.current);
+        const destination = shortcutMap[key];
+        if (destination) {
+          const allowed = commands.some((cmd) => cmd.to === destination);
+          if (allowed) navigate(destination);
+        }
+        return;
+      }
+
+      if (key === 'g') {
+        e.preventDefault();
+        pendingShortcut.current = 'g';
+        if (shortcutTimer.current) window.clearTimeout(shortcutTimer.current);
+        shortcutTimer.current = window.setTimeout(() => {
+          pendingShortcut.current = null;
+        }, 1000);
       }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [open, commands, navigate, shortcutMap]);
 
   useEffect(() => {
     if (!open) return;

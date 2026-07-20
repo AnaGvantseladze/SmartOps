@@ -3,9 +3,11 @@ import {
   AlertTriangle,
   Siren,
   GitPullRequest,
+  CalendarClock,
   Server,
   LogOut,
   Shield,
+  Settings,
   Menu,
   X,
 } from 'lucide-react';
@@ -20,7 +22,9 @@ const allNavItems = [
   { key: 'alerts', to: '/alerts', icon: AlertTriangle, label: 'Alerts' },
   { key: 'incidents', to: '/incidents', icon: Siren, label: 'Incidents' },
   { key: 'changes', to: '/changes', icon: GitPullRequest, label: 'Changes' },
+  { key: 'on-call', to: '/on-call', icon: CalendarClock, label: 'On-Call Schedules' },
   { key: 'services', to: '/services', icon: Server, label: 'Services' },
+  { key: 'settings', to: '/settings', icon: Settings, label: 'Settings' },
   { key: 'administration', to: '/settings/admin', icon: Shield, label: 'Administration' },
 ];
 
@@ -60,7 +64,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <span className="font-display text-lg font-semibold text-slate-900">SmartOps</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {visibleNav.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -82,7 +86,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="border-t border-slate-200 p-4">
+      <div className="shrink-0 border-t border-slate-200 p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white">
             {user ? initials(user.name) : '??'}
@@ -106,7 +110,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white">
+      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white">
         <SidebarContent />
       </aside>
 

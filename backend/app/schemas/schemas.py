@@ -212,6 +212,23 @@ class IncidentTimelineEntryResponse(BaseModel):
     author: Optional[UserBrief] = None
 
 
+class ActionItemCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    description: Optional[str] = None
+    priority: AlertPriority = AlertPriority.P3
+    owner_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+
+
+class ActionItemUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    description: Optional[str] = None
+    status: Optional[ActionItemStatus] = None
+    priority: Optional[AlertPriority] = None
+    owner_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+
+
 class ActionItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -224,6 +241,16 @@ class ActionItemResponse(BaseModel):
     due_date: Optional[datetime]
     created_at: datetime
     owner: Optional[UserBrief] = None
+
+
+class IncidentAlertBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    priority: AlertPriority
+    status: AlertStatus
+    created_at: datetime
 
 
 class IncidentResponse(BaseModel):
@@ -251,6 +278,7 @@ class IncidentResponse(BaseModel):
     services: list[ServiceBrief] = Field(default_factory=list)
     timeline: list[IncidentTimelineEntryResponse] = Field(default_factory=list)
     action_items: list[ActionItemResponse] = Field(default_factory=list)
+    source_alerts: list[IncidentAlertBrief] = Field(default_factory=list)
 
 
 class ChangeCreate(BaseModel):
@@ -260,6 +288,9 @@ class ChangeCreate(BaseModel):
     service_id: Optional[int] = None
     implementation_plan: Optional[str] = None
     rollback_plan: Optional[str] = None
+    potential_business_impact: Optional[str] = None
+    affected_scope: Optional[str] = None
+    expected_downtime: Optional[str] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
 
@@ -269,6 +300,9 @@ class ChangeUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[ChangeStatus] = None
     risk: Optional[ChangeRisk] = None
+    potential_business_impact: Optional[str] = None
+    affected_scope: Optional[str] = None
+    expected_downtime: Optional[str] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
 
@@ -288,6 +322,9 @@ class ChangeResponse(BaseModel):
     submitter_id: Optional[int]
     implementation_plan: Optional[str]
     rollback_plan: Optional[str]
+    potential_business_impact: Optional[str]
+    affected_scope: Optional[str]
+    expected_downtime: Optional[str]
     scheduled_start: Optional[datetime]
     scheduled_end: Optional[datetime]
     created_at: datetime
@@ -311,15 +348,8 @@ class DashboardStats(BaseModel):
     incidents_by_severity: dict[str, int]
     pending_changes: int
     pending_teams: int
-
-
-class AISuggestion(BaseModel):
-    id: str
-    type: str
-    title: str
-    description: str
-    confidence: int
-    reasoning: str
+    sla_at_risk: int = 0
+    sla_compliance_percent: int = 100
 
 
 class FreezeBanner(BaseModel):

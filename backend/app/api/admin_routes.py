@@ -13,18 +13,53 @@ from app.auth import hash_password
 from app.database import get_db
 from app.models.audit import AuditLog
 from app.models.entities import Team, User, UserRole
-from app.permissions import Permission, require_permission
+from app.permissions import (
+    Permission,
+    ROLE_LABELS,
+    get_permission_catalog,
+    get_permissions,
+    reset_role_permissions,
+    require_permission,
+    set_role_permissions,
+)
 from app.schemas.admin_schemas import (
+    AlertRuleConfig,
+    AlertRulesUpdate,
     AuditLogResponse,
+    AuthConfigResponse,
+    AuthConfigUpdate,
+    BackupResponse,
+    CategoriesUpdate,
+    CategoryConfig,
     DashboardConfigResponse,
     DashboardConfigUpdate,
     ExportRequest,
     IntegrationResponse,
+    IntegrationUpdate,
+    NotificationChannelConfig,
+    NotificationChannelsUpdate,
+    PlatformConfigResponse,
+    RestoreRequest,
+    RolePermissionMatrix,
+    RolePermissionsUpdate,
+    PermissionCatalogEntry,
+    SeverityLevelConfig,
+    SeverityLevelsUpdate,
     TeamCreateRequest,
     TeamResponse,
     UserAdminResponse,
     UserCreateRequest,
     UserUpdateRequest,
+)
+from app.system_config import (
+    create_backup_snapshot,
+    get_platform_config,
+    restore_backup_snapshot,
+    set_alert_rules,
+    set_auth_config,
+    set_categories,
+    set_notification_channels,
+    set_severity_levels,
 )
 from app.services.audit_service import write_audit_log
 
@@ -34,12 +69,16 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 _dashboard_config = DashboardConfigResponse()
 
 INTEGRATIONS = [
+    IntegrationResponse(id="azure_monitor", name="Azure Monitor", type="monitoring", status="connected", description="Metrics and platform alerts from Azure"),
+    IntegrationResponse(id="app_insights", name="Application Insights", type="apm", status="connected", description="Application performance and exception telemetry"),
     IntegrationResponse(id="splunk", name="Splunk", type="monitoring", status="connected", description="Alert ingestion via webhook"),
     IntegrationResponse(id="grafana", name="Grafana", type="monitoring", status="connected", description="Alert ingestion and dashboard deep links"),
     IntegrationResponse(id="github", name="GitHub", type="scm", status="connected", description="Alert enrichment — commits, PRs, deploys"),
     IntegrationResponse(id="teams", name="Microsoft Teams", type="collaboration", status="connected", description="War rooms and notifications"),
+    IntegrationResponse(id="slack", name="Slack", type="collaboration", status="pending", description="Notification channel integration"),
     IntegrationResponse(id="jira", name="Jira", type="project_mgmt", status="pending", description="Incidents and action items sync"),
     IntegrationResponse(id="azure_ad", name="Azure AD", type="identity", status="connected", description="SSO and SCIM provisioning"),
+    IntegrationResponse(id="ldap", name="LDAP / Active Directory", type="identity", status="pending", description="Directory authentication and group sync"),
 ]
 
 
@@ -118,6 +157,32 @@ async def update_user(
     return UserAdminResponse.model_validate(user)
 
 
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.USERS_MANAGE.value))] = None,
+) -> None:
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account")
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    email = user.email
+    await db.delete(user)
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="user.deleted",
+        resource_type="user",
+        resource_id=str(user_id),
+        details=f"Deleted user {email}",
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+
+
 @router.get("/teams", response_model=list[TeamResponse])
 async def list_teams(
     db: AsyncSession = Depends(get_db),
@@ -176,6 +241,35 @@ async def list_integrations(
     current_user: Annotated[User, Depends(require_permission(Permission.INTEGRATIONS_MANAGE.value))] = None,
 ) -> list[IntegrationResponse]:
     return INTEGRATIONS
+
+
+@router.patch("/integrations/{integration_id}", response_model=IntegrationResponse)
+async def update_integration(
+    integration_id: str,
+    payload: IntegrationUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INTEGRATIONS_MANAGE.value))] = None,
+) -> IntegrationResponse:
+    integration = next((i for i in INTEGRATIONS if i.id == integration_id), None)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for key, value in updates.items():
+        setattr(integration, key, value)
+
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="integration.updated",
+        resource_type="integration",
+        resource_id=integration_id,
+        details=json.dumps(updates),
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+    return integration
 
 
 @router.get("/dashboard-config", response_model=DashboardConfigResponse)
@@ -248,3 +342,198 @@ async def export_data(
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _platform_config_response() -> PlatformConfigResponse:
+    config = get_platform_config()
+    return PlatformConfigResponse(
+        alert_rules=[AlertRuleConfig(**rule) for rule in config["alert_rules"]],
+        severity_levels=[SeverityLevelConfig(**level) for level in config["severity_levels"]],
+        categories=[CategoryConfig(**category) for category in config["categories"]],
+        notification_channels=[NotificationChannelConfig(**channel) for channel in config["notification_channels"]],
+        auth_config=AuthConfigResponse(**config["auth_config"]),
+        last_backup_at=config["last_backup_at"],
+    )
+
+
+@router.get("/platform-config", response_model=PlatformConfigResponse)
+async def get_admin_platform_config(
+    current_user: Annotated[User, Depends(require_permission(Permission.SYSTEM_CONFIG.value))] = None,
+) -> PlatformConfigResponse:
+    return _platform_config_response()
+
+
+@router.put("/alert-rules", response_model=PlatformConfigResponse)
+async def update_alert_rules(
+    payload: AlertRulesUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.ALERT_RULES_MANAGE.value))] = None,
+) -> PlatformConfigResponse:
+    set_alert_rules([rule.model_dump() for rule in payload.rules])
+    await write_audit_log(db, user_id=current_user.id, action="alert_rules.updated", resource_type="system", details=f"{len(payload.rules)} rules")
+    await db.commit()
+    return _platform_config_response()
+
+
+@router.put("/severity-levels", response_model=PlatformConfigResponse)
+async def update_severity_levels(
+    payload: SeverityLevelsUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SEVERITY_MANAGE.value))] = None,
+) -> PlatformConfigResponse:
+    set_severity_levels([level.model_dump() for level in payload.levels])
+    await write_audit_log(db, user_id=current_user.id, action="severity_levels.updated", resource_type="system", details=f"{len(payload.levels)} levels")
+    await db.commit()
+    return _platform_config_response()
+
+
+@router.put("/categories", response_model=PlatformConfigResponse)
+async def update_categories(
+    payload: CategoriesUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.CATEGORIES_MANAGE.value))] = None,
+) -> PlatformConfigResponse:
+    set_categories([category.model_dump() for category in payload.categories])
+    await write_audit_log(db, user_id=current_user.id, action="categories.updated", resource_type="system", details=f"{len(payload.categories)} categories")
+    await db.commit()
+    return _platform_config_response()
+
+
+@router.put("/notification-channels", response_model=PlatformConfigResponse)
+async def update_notification_channels(
+    payload: NotificationChannelsUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.NOTIFICATION_CHANNELS_MANAGE.value))] = None,
+) -> PlatformConfigResponse:
+    set_notification_channels([channel.model_dump() for channel in payload.channels])
+    await write_audit_log(db, user_id=current_user.id, action="notification_channels.updated", resource_type="system", details=f"{len(payload.channels)} channels")
+    await db.commit()
+    return _platform_config_response()
+
+
+@router.patch("/auth-config", response_model=AuthConfigResponse)
+async def update_auth_config(
+    payload: AuthConfigUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.AUTH_CONFIG.value))] = None,
+) -> AuthConfigResponse:
+    set_auth_config(payload.model_dump(exclude_unset=True))
+    await write_audit_log(db, user_id=current_user.id, action="auth_config.updated", resource_type="system", details=json.dumps(payload.model_dump(exclude_unset=True)))
+    await db.commit()
+    return AuthConfigResponse(**get_platform_config()["auth_config"])
+
+
+@router.get("/permissions", response_model=list[RolePermissionMatrix])
+async def get_permissions_matrix(
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> list[RolePermissionMatrix]:
+    return [
+        RolePermissionMatrix(
+            role=role.value,
+            role_label=ROLE_LABELS.get(role, role.value),
+            permissions=sorted(get_permissions(role)),
+        )
+        for role in UserRole
+    ]
+
+
+@router.get("/permissions/catalog", response_model=list[PermissionCatalogEntry])
+async def get_permissions_catalog(
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> list[PermissionCatalogEntry]:
+    return [PermissionCatalogEntry(**entry) for entry in get_permission_catalog()]
+
+
+@router.put("/permissions/{role}", response_model=RolePermissionMatrix)
+async def update_role_permissions(
+    role: str,
+    payload: RolePermissionsUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> RolePermissionMatrix:
+    try:
+        user_role = UserRole(role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid role") from exc
+
+    try:
+        updated = set_role_permissions(user_role, payload.permissions)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="permissions.updated",
+        resource_type="role",
+        resource_id=role,
+        details=json.dumps({"permissions": sorted(updated)}),
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+    return RolePermissionMatrix(
+        role=user_role.value,
+        role_label=ROLE_LABELS.get(user_role, user_role.value),
+        permissions=sorted(updated),
+    )
+
+
+@router.post("/permissions/{role}/reset", response_model=RolePermissionMatrix)
+async def reset_role_permissions_endpoint(
+    role: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> RolePermissionMatrix:
+    try:
+        user_role = UserRole(role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid role") from exc
+
+    updated = reset_role_permissions(user_role)
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="permissions.reset",
+        resource_type="role",
+        resource_id=role,
+        details="Reset role permissions to defaults",
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+    return RolePermissionMatrix(
+        role=user_role.value,
+        role_label=ROLE_LABELS.get(user_role, user_role.value),
+        permissions=sorted(updated),
+    )
+
+
+@router.post("/backup", response_model=BackupResponse)
+async def backup_configuration(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.BACKUP_RESTORE.value))] = None,
+) -> BackupResponse:
+    snapshot = create_backup_snapshot()
+    await write_audit_log(db, user_id=current_user.id, action="config.backup", resource_type="system", details="Platform configuration backup created")
+    await db.commit()
+    return BackupResponse(backed_up_at=snapshot["backed_up_at"], snapshot=snapshot)
+
+
+@router.post("/restore", response_model=PlatformConfigResponse)
+async def restore_configuration(
+    payload: RestoreRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.BACKUP_RESTORE.value))] = None,
+) -> PlatformConfigResponse:
+    restore_backup_snapshot(payload.snapshot)
+    await write_audit_log(db, user_id=current_user.id, action="config.restore", resource_type="system", details="Platform configuration restored from backup")
+    await db.commit()
+    return _platform_config_response()
