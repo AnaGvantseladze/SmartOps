@@ -304,7 +304,7 @@ export function AlertsPage() {
           <h1 className="page-title">Alert Console</h1>
           <p className="page-subtitle">Live feed — operations console</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-2">
           {alertScope === 'critical_only' && (
             <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
           )}
@@ -338,21 +338,18 @@ export function AlertsPage() {
                     </label>
                   ))}
                 </div>
-                <div className="mt-3 border-t border-slate-100 pt-3">
-                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <Search className="h-3 w-3" />
-                    Search
-                  </label>
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search alerts..."
-                    className="input w-full px-2 py-1.5 text-xs"
-                  />
-                </div>
               </div>
             )}
+          </div>
+          <div className="relative w-44 sm:w-52">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search alerts..."
+              className="input w-full py-1.5 pl-8 pr-2 text-xs"
+            />
           </div>
         </div>
       </div>
