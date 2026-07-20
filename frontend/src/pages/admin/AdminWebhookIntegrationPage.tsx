@@ -140,10 +140,10 @@ export function AdminWebhookIntegrationPage() {
         </div>
 
         <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          <strong>Postman:</strong> set method to <code className="rounded bg-blue-100 px-1">POST</code>, add header{' '}
-          <code className="rounded bg-blue-100 px-1">Content-Type: application/json</code>, paste the payload above.
-          If you set a webhook secret, also send header{' '}
-          <code className="rounded bg-blue-100 px-1">X-Webhook-Secret</code>.
+          <strong>Postman:</strong> use URL <code className="rounded bg-blue-100 px-1">http://localhost:8000/api/v1/webhooks/&#123;id&#125;</code> (port <strong>8000</strong>, not 5173).
+          Set method to <code className="rounded bg-blue-100 px-1">POST</code>, header{' '}
+          <code className="rounded bg-blue-100 px-1">Content-Type: application/json</code>.
+          Verify the API is running: <code className="rounded bg-blue-100 px-1">GET http://localhost:8000/api/v1/webhooks/ping</code>
         </div>
       </div>
 
