@@ -13,7 +13,15 @@ from app.auth import hash_password
 from app.database import get_db
 from app.models.audit import AuditLog
 from app.models.entities import Team, User, UserRole
-from app.permissions import Permission, ROLE_LABELS, get_permissions, require_permission
+from app.permissions import (
+    Permission,
+    ROLE_LABELS,
+    get_permission_catalog,
+    get_permissions,
+    reset_role_permissions,
+    require_permission,
+    set_role_permissions,
+)
 from app.schemas.admin_schemas import (
     AlertRuleConfig,
     AlertRulesUpdate,
@@ -33,6 +41,8 @@ from app.schemas.admin_schemas import (
     PlatformConfigResponse,
     RestoreRequest,
     RolePermissionMatrix,
+    RolePermissionsUpdate,
+    PermissionCatalogEntry,
     SeverityLevelConfig,
     SeverityLevelsUpdate,
     TeamCreateRequest,
@@ -430,6 +440,78 @@ async def get_permissions_matrix(
         )
         for role in UserRole
     ]
+
+
+@router.get("/permissions/catalog", response_model=list[PermissionCatalogEntry])
+async def get_permissions_catalog(
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> list[PermissionCatalogEntry]:
+    return [PermissionCatalogEntry(**entry) for entry in get_permission_catalog()]
+
+
+@router.put("/permissions/{role}", response_model=RolePermissionMatrix)
+async def update_role_permissions(
+    role: str,
+    payload: RolePermissionsUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> RolePermissionMatrix:
+    try:
+        user_role = UserRole(role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid role") from exc
+
+    try:
+        updated = set_role_permissions(user_role, payload.permissions)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="permissions.updated",
+        resource_type="role",
+        resource_id=role,
+        details=json.dumps({"permissions": sorted(updated)}),
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+    return RolePermissionMatrix(
+        role=user_role.value,
+        role_label=ROLE_LABELS.get(user_role, user_role.value),
+        permissions=sorted(updated),
+    )
+
+
+@router.post("/permissions/{role}/reset", response_model=RolePermissionMatrix)
+async def reset_role_permissions_endpoint(
+    role: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.PERMISSIONS_MANAGE.value))] = None,
+) -> RolePermissionMatrix:
+    try:
+        user_role = UserRole(role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid role") from exc
+
+    updated = reset_role_permissions(user_role)
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="permissions.reset",
+        resource_type="role",
+        resource_id=role,
+        details="Reset role permissions to defaults",
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+    return RolePermissionMatrix(
+        role=user_role.value,
+        role_label=ROLE_LABELS.get(user_role, user_role.value),
+        permissions=sorted(updated),
+    )
 
 
 @router.post("/backup", response_model=BackupResponse)

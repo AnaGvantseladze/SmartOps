@@ -179,6 +179,16 @@ class RolePermissionMatrix(BaseModel):
     permissions: list[str]
 
 
+class RolePermissionsUpdate(BaseModel):
+    permissions: list[str]
+
+
+class PermissionCatalogEntry(BaseModel):
+    value: str
+    label: str
+    group: str
+
+
 class BackupResponse(BaseModel):
     backed_up_at: str
     snapshot: dict
