@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Users, Video, X, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Users, Video, X, ExternalLink, AlertTriangle, Plus } from 'lucide-react';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, incidentColumns, statusLabel, timeAgo } from '@/lib/utils';
-import type { Incident, IncidentSeverity, IncidentStatus } from '@/types';
+import type { AlertPriority, Incident, IncidentSeverity, IncidentStatus } from '@/types';
 
 const INCIDENT_PRIORITIES: IncidentSeverity[] = ['P0', 'P1', 'P2', 'P3', 'P4', 'P5'];
+const ACTION_ITEM_PRIORITIES: AlertPriority[] = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 export function IncidentsPage() {
   const { can } = useAuth();
@@ -43,6 +44,22 @@ export function IncidentsPage() {
       toast.success('Incident updated');
     },
     onError: (error: Error) => toast.error('Failed to update incident', error.message),
+  });
+
+  const addActionItem = useMutation({
+    mutationFn: ({
+      incidentId,
+      data,
+    }: {
+      incidentId: number;
+      data: { title: string; description?: string; priority?: string };
+    }) => api.createIncidentActionItem(incidentId, data),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.setQueryData(['incident', updated.id], updated);
+      toast.success('Action item added');
+    },
+    onError: (error: Error) => toast.error('Failed to add action item', error.message),
   });
 
   useEffect(() => {
@@ -97,8 +114,12 @@ export function IncidentsPage() {
           incident={selected}
           canManage={canManage}
           isUpdating={updateIncident.isPending}
+          isAddingActionItem={addActionItem.isPending}
           onClose={() => setSelectedId(null)}
           onUpdate={(data) => updateIncident.mutate({ id: selected.id, data })}
+          onAddActionItem={(data) =>
+            addActionItem.mutateAsync({ incidentId: selected.id, data })
+          }
         />
       )}
     </div>
@@ -157,27 +178,62 @@ function IncidentDetailPanel({
   incident,
   canManage,
   isUpdating,
+  isAddingActionItem,
   onClose,
   onUpdate,
+  onAddActionItem,
 }: {
   incident: Incident;
   canManage: boolean;
   isUpdating: boolean;
+  isAddingActionItem: boolean;
   onClose: () => void;
   onUpdate: (data: Partial<Incident>) => void;
+  onAddActionItem: (data: {
+    title: string;
+    description?: string;
+    priority?: string;
+  }) => Promise<void>;
 }) {
   const navigate = useNavigate();
   const [description, setDescription] = useState(incident.description ?? '');
+  const [showActionItemForm, setShowActionItemForm] = useState(false);
+  const [actionItemTitle, setActionItemTitle] = useState('');
+  const [actionItemDescription, setActionItemDescription] = useState('');
+  const [actionItemPriority, setActionItemPriority] = useState<AlertPriority>('P3');
   const sourceAlerts = incident.source_alerts ?? [];
 
   useEffect(() => {
     setDescription(incident.description ?? '');
   }, [incident.id, incident.description]);
 
+  useEffect(() => {
+    setShowActionItemForm(false);
+    setActionItemTitle('');
+    setActionItemDescription('');
+    setActionItemPriority('P3');
+  }, [incident.id]);
+
   function handleDescriptionSave() {
     const trimmed = description.trim();
     if (trimmed === (incident.description ?? '').trim()) return;
     onUpdate({ description: trimmed || undefined });
+  }
+
+  function handleActionItemSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const title = actionItemTitle.trim();
+    if (!title) return;
+    void onAddActionItem({
+      title,
+      description: actionItemDescription.trim() || undefined,
+      priority: actionItemPriority,
+    }).then(() => {
+      setShowActionItemForm(false);
+      setActionItemTitle('');
+      setActionItemDescription('');
+      setActionItemPriority('P3');
+    });
   }
 
   return (
@@ -411,24 +467,115 @@ function IncidentDetailPanel({
             </div>
           )}
 
-          {incident.action_items.length > 0 && (
-            <div className="card mt-4 p-4">
-              <h4 className="mb-3 text-sm font-semibold text-slate-900">Action Items</h4>
+          <div className="card mt-4 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h4 className="text-sm font-semibold text-slate-900">Action Items</h4>
+              {canManage && (
+                <button
+                  type="button"
+                  className="btn-secondary px-2.5 py-1 text-xs"
+                  disabled={isAddingActionItem}
+                  onClick={() => setShowActionItemForm((open) => !open)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              )}
+            </div>
+
+            {showActionItemForm && canManage && (
+              <form onSubmit={handleActionItemSubmit} className="mb-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div>
+                  <label htmlFor="action-item-title" className="mb-1 block text-xs font-medium text-slate-700">
+                    Title
+                  </label>
+                  <input
+                    id="action-item-title"
+                    type="text"
+                    value={actionItemTitle}
+                    onChange={(event) => setActionItemTitle(event.target.value)}
+                    placeholder="What needs to be done?"
+                    className="input w-full"
+                    required
+                    disabled={isAddingActionItem}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="action-item-description" className="mb-1 block text-xs font-medium text-slate-700">
+                    Description
+                  </label>
+                  <textarea
+                    id="action-item-description"
+                    value={actionItemDescription}
+                    onChange={(event) => setActionItemDescription(event.target.value)}
+                    placeholder="Optional details..."
+                    rows={2}
+                    className="input w-full resize-y"
+                    disabled={isAddingActionItem}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="action-item-priority" className="mb-1 block text-xs font-medium text-slate-700">
+                    Priority
+                  </label>
+                  <select
+                    id="action-item-priority"
+                    value={actionItemPriority}
+                    onChange={(event) => setActionItemPriority(event.target.value as AlertPriority)}
+                    className="input w-full"
+                    disabled={isAddingActionItem}
+                  >
+                    {ACTION_ITEM_PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary px-3 py-1 text-xs"
+                    disabled={isAddingActionItem}
+                    onClick={() => setShowActionItemForm(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary px-3 py-1 text-xs"
+                    disabled={isAddingActionItem || !actionItemTitle.trim()}
+                  >
+                    Add action item
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {incident.action_items.length > 0 ? (
               <div className="space-y-2">
                 {incident.action_items.map((item) => (
                   <div key={item.id} className="rounded-lg border border-slate-200 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium text-slate-900">{item.title}</span>
-                      <StatusBadge status={item.status} />
+                      <div className="flex items-center gap-2">
+                        <PriorityBadge priority={item.priority} />
+                        <StatusBadge status={item.status} />
+                      </div>
                     </div>
+                    {item.description && (
+                      <p className="mt-1 text-sm text-slate-600">{item.description}</p>
+                    )}
                     {item.owner && (
                       <p className="mt-1 text-xs text-slate-500">Owner: {item.owner.name}</p>
                     )}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-slate-500">No action items yet.</p>
+            )}
+          </div>
 
           {incident.timeline.length > 0 && (
             <div className="card mt-4 p-4">
