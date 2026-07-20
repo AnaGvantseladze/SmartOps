@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import hash_password
-from app.engineers import DEMO_AUTH_USERS, ENGINEERS, build_engineer_users
+from app.engineers import DEMO_AUTH_USERS, DEMO_USERS, build_demo_users
 
 from app.models.entities import (
     ActionItem,
@@ -47,7 +47,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     session.add_all(teams)
     await session.flush()
 
-    users = build_engineer_users(team_id=teams[3].id)
+    users = build_demo_users(team_id=teams[3].id)
     session.add_all(users)
     await session.flush()
 
@@ -372,15 +372,15 @@ async def seed_demo_data(session: AsyncSession) -> None:
 
 
 async def ensure_auth_users(session: AsyncSession) -> None:
-    """Set passwords and normalize emails for the engineer accounts."""
-    for name, email in ENGINEERS:
+    """Set passwords and roles for the demo accounts."""
+    for name, email, role in DEMO_USERS:
         user = await session.scalar(select(User).where(User.email == email))
         if not user:
             user = await session.scalar(select(User).where(User.name == name))
         if user:
             user.name = name
             user.email = email
-            user.role = UserRole.ENGINEER
+            user.role = role
             user.password_hash = hash_password(DEMO_AUTH_USERS[email])
     await session.commit()
 
