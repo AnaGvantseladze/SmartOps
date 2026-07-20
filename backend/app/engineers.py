@@ -7,6 +7,7 @@ DEMO_USERS: list[tuple[str, str, UserRole]] = [
     ("Saba Kekelia", "saba.kekelia@btu.edu.ge", UserRole.ADMIN),
     ("Ana Gvantseladze", "ana.gvantseladze@btu.edu.ge", UserRole.MANAGER),
     ("Eka Kesanashvili", "eka.kesanashvili@btu.edu.ge", UserRole.ENGINEER),
+    ("Giorgi Tabatadze", "giorgi.tabatadze@btu.edu.ge", UserRole.CHANGE_MANAGER),
 ]
 
 ENGINEERS = [(name, email) for name, email, _ in DEMO_USERS]
