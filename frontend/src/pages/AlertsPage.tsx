@@ -313,15 +313,6 @@ export function AlertsPage() {
             </div>
           )}
         </div>
-        {statusFilter.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {statusFilter.map((status) => (
-              <span key={status} className="badge border bg-slate-50 text-slate-600 border-slate-200">
-                {statusLabel(status)}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="table-container min-h-0 flex-1 overflow-auto">
