@@ -221,7 +221,7 @@ async def create_service(
 @router.get("/alerts", response_model=list[AlertResponse])
 async def list_alerts(
     status: Optional[list[AlertStatus]] = Query(None),
-    priority: Optional[AlertPriority] = None,
+    priority: Optional[list[AlertPriority]] = Query(None),
     service_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: Annotated[User, Depends(require_permission(Permission.ALERTS_VIEW.value))] = None,
@@ -246,7 +246,7 @@ async def list_alerts(
     if status:
         query = query.where(Alert.status.in_(status))
     if priority:
-        query = query.where(Alert.priority == priority)
+        query = query.where(Alert.priority.in_(priority))
     if service_id:
         query = query.where(Alert.service_id == service_id)
     result = await db.execute(query)

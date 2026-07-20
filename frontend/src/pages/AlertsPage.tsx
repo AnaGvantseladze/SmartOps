@@ -9,13 +9,16 @@ import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 import { cn, formatDateTime, statusLabel, timeAgo } from '@/lib/utils';
-import type { Alert, AlertStatus, AISuggestion } from '@/types';
+import type { Alert, AlertPriority, AlertStatus, AISuggestion } from '@/types';
 
 const ALERT_STATUSES: AlertStatus[] = ['triggered', 'acknowledged', 'snoozed', 'resolved'];
+const ALERT_PRIORITIES: AlertPriority[] = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 const DEFAULT_STATUS_FILTER: AlertStatus[] = ['triggered', 'acknowledged', 'snoozed'];
+const DEFAULT_PRIORITY_FILTER: AlertPriority[] = ALERT_PRIORITIES;
 
 const STATUS_STORAGE_KEY = 'alerts-status-filter';
+const PRIORITY_STORAGE_KEY = 'alerts-priority-filter';
 
 function loadStatusFilter(): AlertStatus[] {
   try {
@@ -25,6 +28,17 @@ function loadStatusFilter(): AlertStatus[] {
     return parsed.filter((status) => ALERT_STATUSES.includes(status));
   } catch {
     return DEFAULT_STATUS_FILTER;
+  }
+}
+
+function loadPriorityFilter(): AlertPriority[] {
+  try {
+    const stored = localStorage.getItem(PRIORITY_STORAGE_KEY);
+    if (!stored) return DEFAULT_PRIORITY_FILTER;
+    const parsed = JSON.parse(stored) as AlertPriority[];
+    return parsed.filter((priority) => ALERT_PRIORITIES.includes(priority));
+  } catch {
+    return DEFAULT_PRIORITY_FILTER;
   }
 }
 
@@ -73,11 +87,14 @@ export function AlertsPage() {
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<AlertStatus[]>(loadStatusFilter);
+  const [priorityFilter, setPriorityFilter] = useState<AlertPriority[]>(loadPriorityFilter);
   const [columnVisibility, setColumnVisibility] = useState(loadColumnVisibility);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [showPriorityFilter, setShowPriorityFilter] = useState(false);
   const columnPickerRef = useRef<HTMLDivElement>(null);
   const statusFilterRef = useRef<HTMLDivElement>(null);
+  const priorityFilterRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToastContext();
 
@@ -90,6 +107,10 @@ export function AlertsPage() {
   }, [statusFilter]);
 
   useEffect(() => {
+    localStorage.setItem(PRIORITY_STORAGE_KEY, JSON.stringify(priorityFilter));
+  }, [priorityFilter]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
       if (columnPickerRef.current && !columnPickerRef.current.contains(target)) {
@@ -98,17 +119,25 @@ export function AlertsPage() {
       if (statusFilterRef.current && !statusFilterRef.current.contains(target)) {
         setShowStatusFilter(false);
       }
+      if (priorityFilterRef.current && !priorityFilterRef.current.contains(target)) {
+        setShowPriorityFilter(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const sortedStatusFilter = [...statusFilter].sort();
+  const sortedPriorityFilter = [...priorityFilter].sort();
 
   const { data: alerts = [], isLoading } = useQuery({
-    queryKey: ['alerts', sortedStatusFilter],
-    queryFn: () => api.getAlerts({ status: sortedStatusFilter }),
-    enabled: statusFilter.length > 0,
+    queryKey: ['alerts', sortedStatusFilter, sortedPriorityFilter],
+    queryFn: () =>
+      api.getAlerts({
+        status: sortedStatusFilter,
+        priority: sortedPriorityFilter,
+      }),
+    enabled: statusFilter.length > 0 && priorityFilter.length > 0,
     refetchInterval: 10000,
   });
 
@@ -206,6 +235,16 @@ export function AlertsPage() {
     setStatusFilter(ALERT_STATUSES);
   }
 
+  function togglePriority(priority: AlertPriority) {
+    setPriorityFilter((current) =>
+      current.includes(priority) ? current.filter((value) => value !== priority) : [...current, priority]
+    );
+  }
+
+  function selectAllPriorities() {
+    setPriorityFilter(ALERT_PRIORITIES);
+  }
+
   const statusFilterLabel =
     statusFilter.length === 0
       ? 'No statuses selected'
@@ -216,6 +255,13 @@ export function AlertsPage() {
             statusFilter.every((status) => DEFAULT_STATUS_FILTER.includes(status))
           ? 'Active alerts'
           : `${statusFilter.length} statuses`;
+
+  const priorityFilterLabel =
+    priorityFilter.length === 0
+      ? 'No priorities selected'
+      : priorityFilter.length === ALERT_PRIORITIES.length
+        ? 'All priorities'
+        : `${priorityFilter.length} priorities`;
 
   if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
@@ -313,6 +359,44 @@ export function AlertsPage() {
             </div>
           )}
         </div>
+        <div className="relative" ref={priorityFilterRef}>
+          <button
+            type="button"
+            onClick={() => setShowPriorityFilter((open) => !open)}
+            className="btn-secondary"
+          >
+            Priority: {priorityFilterLabel}
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          {showPriorityFilter && (
+            <div className="absolute left-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Filter by priority
+                </p>
+                <button type="button" className="text-xs text-brand-700 hover:underline" onClick={selectAllPriorities}>
+                  All
+                </button>
+              </div>
+              <div className="space-y-1">
+                {ALERT_PRIORITIES.map((priority) => (
+                  <label
+                    key={priority}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={priorityFilter.includes(priority)}
+                      onChange={() => togglePriority(priority)}
+                      className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
+                    />
+                    {priority}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="table-container min-h-0 flex-1 overflow-auto">
@@ -353,9 +437,9 @@ export function AlertsPage() {
         </table>
         {alerts.length === 0 && (
           <p className="p-8 text-center text-sm text-slate-500">
-            {statusFilter.length === 0
-              ? 'Select at least one status to show alerts'
-              : 'No alerts match the selected statuses'}
+            {statusFilter.length === 0 || priorityFilter.length === 0
+              ? 'Select at least one status and priority to show alerts'
+              : 'No alerts match the selected filters'}
           </p>
         )}
       </div>
