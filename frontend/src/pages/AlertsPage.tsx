@@ -1,23 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { useToastContext } from '@/context/ToastContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
-import { cn, formatDateTime, timeAgo } from '@/lib/utils';
+import { cn, formatDateTime, statusLabel, timeAgo } from '@/lib/utils';
 import type { Alert, AlertStatus, AISuggestion } from '@/types';
 
-const statusFilters: { value: AlertStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'triggered', label: 'Triggered' },
-  { value: 'acknowledged', label: 'Acknowledged' },
-  { value: 'snoozed', label: 'Snoozed' },
-  { value: 'resolved', label: 'Resolved' },
-];
+const ALERT_STATUSES: AlertStatus[] = ['triggered', 'acknowledged', 'snoozed', 'resolved'];
+
+const DEFAULT_STATUS_FILTER: AlertStatus[] = ['triggered', 'acknowledged', 'snoozed'];
+
+const STATUS_STORAGE_KEY = 'alerts-status-filter';
+
+function loadStatusFilter(): AlertStatus[] {
+  try {
+    const stored = localStorage.getItem(STATUS_STORAGE_KEY);
+    if (!stored) return DEFAULT_STATUS_FILTER;
+    const parsed = JSON.parse(stored) as AlertStatus[];
+    return parsed.filter((status) => ALERT_STATUSES.includes(status));
+  } catch {
+    return DEFAULT_STATUS_FILTER;
+  }
+}
 
 type AlertColumnKey = 'status' | 'created' | 'assignee' | 'responsible_team' | 'note';
 
@@ -63,10 +72,12 @@ export function AlertsPage() {
   const canManageIncidents = can(PERMISSIONS.INCIDENTS_MANAGE);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState<AlertStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<AlertStatus[]>(loadStatusFilter);
   const [columnVisibility, setColumnVisibility] = useState(loadColumnVisibility);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [showStatusFilter, setShowStatusFilter] = useState(false);
   const columnPickerRef = useRef<HTMLDivElement>(null);
+  const statusFilterRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToastContext();
 
@@ -75,18 +86,29 @@ export function AlertsPage() {
   }, [columnVisibility]);
 
   useEffect(() => {
+    localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(statusFilter));
+  }, [statusFilter]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (columnPickerRef.current && !columnPickerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (columnPickerRef.current && !columnPickerRef.current.contains(target)) {
         setShowColumnPicker(false);
+      }
+      if (statusFilterRef.current && !statusFilterRef.current.contains(target)) {
+        setShowStatusFilter(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const sortedStatusFilter = [...statusFilter].sort();
+
   const { data: alerts = [], isLoading } = useQuery({
-    queryKey: ['alerts', statusFilter],
-    queryFn: () => api.getAlerts(statusFilter !== 'all' ? { status: statusFilter } : undefined),
+    queryKey: ['alerts', sortedStatusFilter],
+    queryFn: () => api.getAlerts({ status: sortedStatusFilter }),
+    enabled: statusFilter.length > 0,
     refetchInterval: 10000,
   });
 
@@ -170,6 +192,31 @@ export function AlertsPage() {
     setColumnVisibility((current) => ({ ...current, [key]: !current[key] }));
   }
 
+  function toggleStatus(status: AlertStatus) {
+    setStatusFilter((current) =>
+      current.includes(status) ? current.filter((value) => value !== status) : [...current, status]
+    );
+  }
+
+  function selectActiveStatuses() {
+    setStatusFilter(DEFAULT_STATUS_FILTER);
+  }
+
+  function selectAllStatuses() {
+    setStatusFilter(ALERT_STATUSES);
+  }
+
+  const statusFilterLabel =
+    statusFilter.length === 0
+      ? 'No statuses selected'
+      : statusFilter.length === ALERT_STATUSES.length
+        ? 'All statuses'
+        : statusFilter.length === DEFAULT_STATUS_FILTER.length &&
+            DEFAULT_STATUS_FILTER.every((status) => statusFilter.includes(status)) &&
+            statusFilter.every((status) => DEFAULT_STATUS_FILTER.includes(status))
+          ? 'Active alerts'
+          : `${statusFilter.length} statuses`;
+
   if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
   return (
@@ -222,16 +269,59 @@ export function AlertsPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {statusFilters.map((f) => (
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative" ref={statusFilterRef}>
           <button
-            key={f.value}
-            onClick={() => setStatusFilter(f.value)}
-            className={statusFilter === f.value ? 'filter-chip-active' : 'filter-chip-inactive'}
+            type="button"
+            onClick={() => setShowStatusFilter((open) => !open)}
+            className="btn-secondary"
           >
-            {f.label}
+            Status: {statusFilterLabel}
+            <ChevronDown className="h-4 w-4" />
           </button>
-        ))}
+          {showStatusFilter && (
+            <div className="absolute left-0 z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Filter by status
+                </p>
+                <div className="flex gap-2 text-xs">
+                  <button type="button" className="text-brand-700 hover:underline" onClick={selectActiveStatuses}>
+                    Active
+                  </button>
+                  <button type="button" className="text-brand-700 hover:underline" onClick={selectAllStatuses}>
+                    All
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                {ALERT_STATUSES.map((status) => (
+                  <label
+                    key={status}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={statusFilter.includes(status)}
+                      onChange={() => toggleStatus(status)}
+                      className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
+                    />
+                    {statusLabel(status)}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {statusFilter.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {statusFilter.map((status) => (
+              <span key={status} className="badge border bg-slate-50 text-slate-600 border-slate-200">
+                {statusLabel(status)}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="table-container min-h-0 flex-1 overflow-auto">
@@ -271,7 +361,11 @@ export function AlertsPage() {
           </tbody>
         </table>
         {alerts.length === 0 && (
-          <p className="p-8 text-center text-sm text-slate-500">No alerts match filters</p>
+          <p className="p-8 text-center text-sm text-slate-500">
+            {statusFilter.length === 0
+              ? 'Select at least one status to show alerts'
+              : 'No alerts match the selected statuses'}
+          </p>
         )}
       </div>
 
