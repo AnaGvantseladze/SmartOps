@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, GitPullRequest, Lock, Mail, Shield, UserCog, Wrench } from 'lucide-react';
+import { ArrowRight, Lock, Mail, Shield, UserCog, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -41,15 +41,6 @@ const DEMO_ACCOUNTS: DemoUser[] = [
     icon: Wrench,
     accent: 'border-sky-200 hover:border-sky-300 hover:bg-sky-50/60',
     iconBg: 'bg-sky-100 text-sky-700',
-  },
-  {
-    name: 'Giorgi Tabatadze',
-    email: 'giorgi.tabatadze@btu.edu.ge',
-    password: 'engineer123',
-    role: 'Change Manager',
-    icon: GitPullRequest,
-    accent: 'border-violet-200 hover:border-violet-300 hover:bg-violet-50/60',
-    iconBg: 'bg-violet-100 text-violet-700',
   },
 ];
 
@@ -211,7 +202,7 @@ export function LoginPage() {
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3">
               {DEMO_ACCOUNTS.map((account) => {
                 const Icon = account.icon;
                 return (

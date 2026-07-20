@@ -51,7 +51,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     session.add_all(users)
     await session.flush()
 
-    saba, ana, eka, _change_manager = users
+    saba, ana, eka = users
 
     services = [
         Service(

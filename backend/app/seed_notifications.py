@@ -169,7 +169,7 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
     # --- On-call schedules ---
     eka = users.get(ENGINEERS[2][1])
     ana = users.get(ENGINEERS[1][1])
-    change_manager = users.get(ENGINEERS[3][1])
+    saba = users.get(ENGINEERS[0][1])
     week_start = now - timedelta(days=now.weekday())
 
     engineer_schedule = OnCallSchedule(
@@ -219,11 +219,11 @@ async def seed_notifications_and_oncall(session: AsyncSession) -> None:
                 end_time=week_start + timedelta(days=7),
             )
         )
-    if change_manager:
+    if saba:
         session.add(
             OnCallShift(
                 schedule_id=change_manager_schedule.id,
-                user_id=change_manager.id,
+                user_id=saba.id,
                 start_time=week_start,
                 end_time=week_start + timedelta(days=7),
             )

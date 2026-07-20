@@ -145,7 +145,7 @@ async def ensure_default_oncall_schedules(session: AsyncSession) -> None:
     defaults = [
         (OnCallScheduleType.ENGINEER, "Engineer On-Call", DEMO_USERS[2][1]),
         (OnCallScheduleType.INCIDENT_MANAGER, "Incident Manager On-Call", DEMO_USERS[1][1]),
-        (OnCallScheduleType.CHANGE_MANAGER, "Change Manager On-Call", DEMO_USERS[3][1]),
+        (OnCallScheduleType.CHANGE_MANAGER, "Change Manager On-Call", DEMO_USERS[0][1]),
     ]
 
     for schedule_type, name, email in defaults:
