@@ -178,12 +178,3 @@ export interface FreezeBanner {
   reason?: string;
   end_time?: string;
 }
-
-export interface AISuggestion {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  confidence: number;
-  reasoning: string;
-}

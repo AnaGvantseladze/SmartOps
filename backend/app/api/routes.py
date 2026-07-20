@@ -30,7 +30,6 @@ from app.models.entities import (
 from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
 from app.services.audit_service import write_audit_log
 from app.schemas.schemas import (
-    AISuggestion,
     AlertCreate,
     AlertNoteCreate,
     AlertResponse,
@@ -737,69 +736,6 @@ async def update_change(
         setattr(change, key, value)
     await db.commit()
     return await get_change(change_id, db)
-
-
-@router.get("/ai/suggestions", response_model=list[AISuggestion])
-async def get_ai_suggestions(
-    context_type: str = Query(default="alert"),
-    context_id: Optional[int] = None,
-) -> list[AISuggestion]:
-    if context_type == "alert":
-        return [
-            AISuggestion(
-                id="route-1",
-                type="routing",
-                title="Suggested priority: P2",
-                description="Based on similar alerts on Payment Gateway",
-                confidence=84,
-                reasoning="Similar to alerts #1234, #1567 — both resolved as transient latency",
-            ),
-            AISuggestion(
-                id="resolve-1",
-                type="resolution",
-                title="Suggested resolution: Scale pods",
-                description="12 of 15 similar alerts resolved by scaling replicas",
-                confidence=76,
-                reasoning="Historical pattern on Payment Gateway during traffic spikes",
-            ),
-        ]
-    if context_type == "incident":
-        return [
-            AISuggestion(
-                id="assign-1",
-                type="assignee",
-                title="Suggested assignee: Ana Gvantseladze",
-                description="Handled 12 similar incidents on Trading platform",
-                confidence=91,
-                reasoning="See INC-2190, INC-2002 for similar order timeout patterns",
-            ),
-            AISuggestion(
-                id="rca-1",
-                type="root-cause",
-                title="Probable root cause: Recent deployment",
-                description="Deployment CHG-499 at 14:32 UTC correlates with alert onset",
-                confidence=87,
-                reasoning="Timeline overlay: change deployed 8 min before first alert",
-            ),
-        ]
-    return [
-        AISuggestion(
-            id="risk-1",
-            type="risk",
-            title="Risk score: HIGH (78%)",
-            description="This service had 2 incidents after similar changes in the last 90 days",
-            confidence=78,
-            reasoning="Tier 2 service with elevated incident frequency",
-        ),
-        AISuggestion(
-            id="window-1",
-            type="window",
-            title="Suggested window: Tue 02:00-04:00 UTC",
-            description="Lowest traffic period based on historical patterns",
-            confidence=82,
-            reasoning="Minimal incident history during this window",
-        ),
-    ]
 
 
 class ConnectionManager:
