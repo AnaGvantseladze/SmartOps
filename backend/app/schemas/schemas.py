@@ -220,6 +220,15 @@ class ActionItemCreate(BaseModel):
     due_date: Optional[datetime] = None
 
 
+class ActionItemUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    description: Optional[str] = None
+    status: Optional[ActionItemStatus] = None
+    priority: Optional[AlertPriority] = None
+    owner_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+
+
 class ActionItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

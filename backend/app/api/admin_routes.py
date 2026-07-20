@@ -27,6 +27,7 @@ from app.schemas.admin_schemas import (
     DashboardConfigUpdate,
     ExportRequest,
     IntegrationResponse,
+    IntegrationUpdate,
     NotificationChannelConfig,
     NotificationChannelsUpdate,
     PlatformConfigResponse,
@@ -230,6 +231,35 @@ async def list_integrations(
     current_user: Annotated[User, Depends(require_permission(Permission.INTEGRATIONS_MANAGE.value))] = None,
 ) -> list[IntegrationResponse]:
     return INTEGRATIONS
+
+
+@router.patch("/integrations/{integration_id}", response_model=IntegrationResponse)
+async def update_integration(
+    integration_id: str,
+    payload: IntegrationUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INTEGRATIONS_MANAGE.value))] = None,
+) -> IntegrationResponse:
+    integration = next((i for i in INTEGRATIONS if i.id == integration_id), None)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for key, value in updates.items():
+        setattr(integration, key, value)
+
+    await write_audit_log(
+        db,
+        user_id=current_user.id,
+        action="integration.updated",
+        resource_type="integration",
+        resource_id=integration_id,
+        details=json.dumps(updates),
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
+    return integration
 
 
 @router.get("/dashboard-config", response_model=DashboardConfigResponse)

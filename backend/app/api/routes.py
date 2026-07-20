@@ -43,6 +43,7 @@ from app.schemas.schemas import (
     EngineerResolvedCount,
     FreezeBanner,
     ActionItemCreate,
+    ActionItemUpdate,
     IncidentCreate,
     IncidentAlertBrief,
     IncidentResponse,
@@ -721,6 +722,45 @@ async def create_incident_action_item(
             author_id=current_user.id,
         )
     )
+    await db.commit()
+    return await get_incident(incident_id, db)
+
+
+@router.patch("/incidents/{incident_id}/action-items/{action_item_id}", response_model=IncidentResponse)
+async def update_incident_action_item(
+    incident_id: int,
+    action_item_id: int,
+    payload: ActionItemUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.INCIDENTS_MANAGE.value))] = None,
+) -> IncidentResponse:
+    incident = await db.get(Incident, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    action_item = await db.scalar(
+        select(ActionItem).where(
+            ActionItem.id == action_item_id,
+            ActionItem.incident_id == incident_id,
+        )
+    )
+    if not action_item:
+        raise HTTPException(status_code=404, detail="Action item not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for key, value in updates.items():
+        setattr(action_item, key, value)
+
+    if "status" in updates:
+        db.add(
+            IncidentTimelineEntry(
+                incident_id=incident_id,
+                entry_type="note",
+                content=f"Action item \"{action_item.title}\" marked {updates['status'].value}",
+                author_id=current_user.id,
+            )
+        )
+
     await db.commit()
     return await get_incident(incident_id, db)
 

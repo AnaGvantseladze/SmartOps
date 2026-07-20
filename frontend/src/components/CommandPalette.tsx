@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -17,6 +17,20 @@ export function CommandPalette() {
   const [selected, setSelected] = useState(0);
   const navigate = useNavigate();
   const { can, canNav } = useAuth();
+  const pendingShortcut = useRef<string | null>(null);
+  const shortcutTimer = useRef<number | null>(null);
+
+  const shortcutMap = useMemo<Record<string, string>>(
+    () => ({
+      d: '/',
+      a: '/alerts',
+      i: '/incidents',
+      c: '/changes',
+      s: '/services',
+      p: '/settings',
+    }),
+    [],
+  );
 
   const commands = useMemo<Command[]>(() => {
     const all: Command[] = [
@@ -58,14 +72,44 @@ export function CommandPalette() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setOpen((o) => !o);
+        return;
       }
       if (e.key === 'Escape') {
         setOpen(false);
+        pendingShortcut.current = null;
+        return;
+      }
+
+      if (open || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (pendingShortcut.current === 'g') {
+        e.preventDefault();
+        pendingShortcut.current = null;
+        if (shortcutTimer.current) window.clearTimeout(shortcutTimer.current);
+        const destination = shortcutMap[key];
+        if (destination) {
+          const allowed = commands.some((cmd) => cmd.to === destination);
+          if (allowed) navigate(destination);
+        }
+        return;
+      }
+
+      if (key === 'g') {
+        e.preventDefault();
+        pendingShortcut.current = 'g';
+        if (shortcutTimer.current) window.clearTimeout(shortcutTimer.current);
+        shortcutTimer.current = window.setTimeout(() => {
+          pendingShortcut.current = null;
+        }, 1000);
       }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [open, commands, navigate, shortcutMap]);
 
   useEffect(() => {
     if (!open) return;

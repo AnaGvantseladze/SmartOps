@@ -62,6 +62,26 @@ export function IncidentsPage() {
     onError: (error: Error) => toast.error('Failed to add action item', error.message),
   });
 
+  const updateActionItem = useMutation({
+    mutationFn: ({
+      incidentId,
+      actionItemId,
+      data,
+    }: {
+      incidentId: number;
+      actionItemId: number;
+      data: { status?: string };
+    }) => api.updateIncidentActionItem(incidentId, actionItemId, data),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.setQueryData(['incident', updated.id], updated);
+      toast.success('Action item updated');
+    },
+    onError: (error: Error) => toast.error('Failed to update action item', error.message),
+  });
+
+  const [draggingIncidentId, setDraggingIncidentId] = useState<number | null>(null);
+
   useEffect(() => {
     if (!selectedId) return;
     function handleEscape(event: KeyboardEvent) {
@@ -84,7 +104,32 @@ export function IncidentsPage() {
         {incidentColumns.map((col) => {
           const columnIncidents = incidents.filter((i) => i.status === col.status);
           return (
-            <div key={col.status} className="w-72 shrink-0">
+            <div
+              key={col.status}
+              className={cn(
+                'w-72 shrink-0 rounded-lg transition-colors',
+                draggingIncidentId != null && 'ring-1 ring-transparent',
+              )}
+              onDragOver={(event) => {
+                if (!canManage) return;
+                event.preventDefault();
+                event.currentTarget.classList.add('bg-brand-50/50', 'ring-brand-200');
+              }}
+              onDragLeave={(event) => {
+                event.currentTarget.classList.remove('bg-brand-50/50', 'ring-brand-200');
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                event.currentTarget.classList.remove('bg-brand-50/50', 'ring-brand-200');
+                const incidentId = Number(event.dataTransfer.getData('text/incident-id'));
+                if (!incidentId || !canManage) return;
+                const incident = incidents.find((item) => item.id === incidentId);
+                if (incident && incident.status !== col.status) {
+                  updateIncident.mutate({ id: incidentId, data: { status: col.status } });
+                }
+                setDraggingIncidentId(null);
+              }}
+            >
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-semibold text-slate-900">{col.label}</h2>
                 <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
@@ -97,6 +142,9 @@ export function IncidentsPage() {
                     key={incident.id}
                     incident={incident}
                     selected={selectedId === incident.id}
+                    draggable={canManage}
+                    onDragStart={() => setDraggingIncidentId(incident.id)}
+                    onDragEnd={() => setDraggingIncidentId(null)}
                     onSelect={() => setSelectedId(incident.id)}
                   />
                 ))}
@@ -115,10 +163,14 @@ export function IncidentsPage() {
           canManage={canManage}
           isUpdating={updateIncident.isPending}
           isAddingActionItem={addActionItem.isPending}
+          isUpdatingActionItem={updateActionItem.isPending}
           onClose={() => setSelectedId(null)}
           onUpdate={(data) => updateIncident.mutate({ id: selected.id, data })}
           onAddActionItem={(data) =>
-            addActionItem.mutateAsync({ incidentId: selected.id, data })
+            addActionItem.mutateAsync({ incidentId: selected.id, data }).then(() => undefined)
+          }
+          onUpdateActionItem={(actionItemId, data) =>
+            updateActionItem.mutate({ incidentId: selected.id, actionItemId, data })
           }
         />
       )}
@@ -129,15 +181,27 @@ export function IncidentsPage() {
 function IncidentCard({
   incident,
   selected,
+  draggable,
+  onDragStart,
+  onDragEnd,
   onSelect,
 }: {
   incident: Incident;
   selected: boolean;
+  draggable?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
+      draggable={draggable}
+      onDragStart={(event) => {
+        event.dataTransfer.setData('text/incident-id', String(incident.id));
+        onDragStart?.();
+      }}
+      onDragEnd={onDragEnd}
       onClick={onSelect}
       className={cn(
         'card w-full p-4 text-left transition-all hover:border-brand-300 hover:shadow-md',
@@ -179,14 +243,17 @@ function IncidentDetailPanel({
   canManage,
   isUpdating,
   isAddingActionItem,
+  isUpdatingActionItem,
   onClose,
   onUpdate,
   onAddActionItem,
+  onUpdateActionItem,
 }: {
   incident: Incident;
   canManage: boolean;
   isUpdating: boolean;
   isAddingActionItem: boolean;
+  isUpdatingActionItem: boolean;
   onClose: () => void;
   onUpdate: (data: Partial<Incident>) => void;
   onAddActionItem: (data: {
@@ -194,6 +261,7 @@ function IncidentDetailPanel({
     description?: string;
     priority?: string;
   }) => Promise<void>;
+  onUpdateActionItem: (actionItemId: number, data: { status?: string }) => void;
 }) {
   const navigate = useNavigate();
   const [description, setDescription] = useState(incident.description ?? '');
@@ -589,7 +657,21 @@ function IncidentDetailPanel({
                       <span className="text-sm font-medium text-slate-900">{item.title}</span>
                       <div className="flex items-center gap-2">
                         <PriorityBadge priority={item.priority} />
-                        <StatusBadge status={item.status} />
+                        {canManage ? (
+                          <select
+                            className="input py-1 text-xs"
+                            value={item.status}
+                            disabled={isUpdatingActionItem}
+                            onChange={(event) => onUpdateActionItem(item.id, { status: event.target.value })}
+                          >
+                            <option value="open">Open</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="verified">Verified</option>
+                          </select>
+                        ) : (
+                          <StatusBadge status={item.status} />
+                        )}
                       </div>
                     </div>
                     {item.description && (

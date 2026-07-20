@@ -23,6 +23,7 @@ from app.schemas.notification_schemas import (
     NotificationLogResponse,
     NotificationPolicyCreate,
     NotificationPolicyResponse,
+    NotificationRuleUpdate,
     OnCallOverrideCreate,
     OnCallOverrideResponse,
     OnCallScheduleResponse,
@@ -144,6 +145,41 @@ async def create_notification_policy(
         )
         .where(NotificationPolicy.id == policy.id)
     )
+    return policy_to_response(policy)
+
+
+@router.patch("/notification-policies/rules/{rule_id}", response_model=NotificationPolicyResponse)
+async def update_notification_rule(
+    rule_id: int,
+    payload: NotificationRuleUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SETTINGS_NOTIFICATIONS.value))] = None,
+) -> NotificationPolicyResponse:
+    import json
+
+    rule = await db.get(NotificationRule, rule_id)
+    if not rule:
+        raise HTTPException(status_code=404, detail="Notification rule not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    if "channels" in updates:
+        rule.channels = json.dumps(updates["channels"])
+    if "suppress" in updates:
+        rule.suppress = updates["suppress"]
+
+    await db.commit()
+
+    policy = await db.scalar(
+        select(NotificationPolicy)
+        .options(
+            selectinload(NotificationPolicy.rules),
+            selectinload(NotificationPolicy.team),
+            selectinload(NotificationPolicy.user),
+        )
+        .where(NotificationPolicy.id == rule.policy_id)
+    )
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
     return policy_to_response(policy)
 
 
