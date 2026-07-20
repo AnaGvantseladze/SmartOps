@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown, Search } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote, X, Check, PauseCircle, CheckCircle2, Siren, ChevronDown, Search, ArrowDown, ArrowUp } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +19,9 @@ const DEFAULT_PRIORITY_FILTER: AlertPriority[] = ALERT_PRIORITIES;
 
 const STATUS_STORAGE_KEY = 'alerts-status-filter';
 const PRIORITY_STORAGE_KEY = 'alerts-priority-filter';
+const CREATED_SORT_STORAGE_KEY = 'alerts-created-sort';
+
+type CreatedSort = 'desc' | 'asc';
 
 function loadStatusFilter(): AlertStatus[] {
   try {
@@ -40,6 +43,22 @@ function loadPriorityFilter(): AlertPriority[] {
   } catch {
     return DEFAULT_PRIORITY_FILTER;
   }
+}
+
+function loadCreatedSort(): CreatedSort {
+  try {
+    const stored = localStorage.getItem(CREATED_SORT_STORAGE_KEY);
+    return stored === 'asc' ? 'asc' : 'desc';
+  } catch {
+    return 'desc';
+  }
+}
+
+function sortAlertsByCreated(alerts: Alert[], sort: CreatedSort): Alert[] {
+  return [...alerts].sort((a, b) => {
+    const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return sort === 'desc' ? -diff : diff;
+  });
 }
 
 type AlertColumnKey = 'status' | 'created' | 'assignee' | 'responsible_team' | 'note';
@@ -113,6 +132,7 @@ export function AlertsPage() {
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const [showPriorityFilter, setShowPriorityFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [createdSort, setCreatedSort] = useState<CreatedSort>(loadCreatedSort);
   const columnPickerRef = useRef<HTMLDivElement>(null);
   const statusFilterRef = useRef<HTMLDivElement>(null);
   const priorityFilterRef = useRef<HTMLDivElement>(null);
@@ -130,6 +150,10 @@ export function AlertsPage() {
   useEffect(() => {
     localStorage.setItem(PRIORITY_STORAGE_KEY, JSON.stringify(priorityFilter));
   }, [priorityFilter]);
+
+  useEffect(() => {
+    localStorage.setItem(CREATED_SORT_STORAGE_KEY, createdSort);
+  }, [createdSort]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -163,6 +187,11 @@ export function AlertsPage() {
 
   const selected = alerts.find((a) => a.id === selectedId);
   const filteredAlerts = alerts.filter((alert) => matchesAlertSearch(alert, searchQuery));
+  const displayedAlerts = sortAlertsByCreated(filteredAlerts, createdSort);
+
+  function toggleCreatedSort() {
+    setCreatedSort((current) => (current === 'desc' ? 'asc' : 'desc'));
+  }
 
   const { data: suggestions = [] } = useQuery({
     queryKey: ['ai-suggestions', 'alert', selected?.id],
@@ -468,6 +497,22 @@ export function AlertsPage() {
             </div>
           )}
         </div>
+        {!columnVisibility.created && (
+          <button type="button" className="btn-secondary" onClick={toggleCreatedSort}>
+            Created
+            {createdSort === 'desc' ? (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Newest
+              </>
+            ) : (
+              <>
+                <ArrowUp className="h-4 w-4" />
+                Oldest
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="table-container min-h-0 flex-1 overflow-auto">
@@ -478,14 +523,29 @@ export function AlertsPage() {
               <th>Title</th>
               {visibleColumns.map((column) => (
                 <th key={column.key} className={column.key === 'note' ? 'min-w-[180px]' : undefined}>
-                  {column.label}
+                  {column.key === 'created' ? (
+                    <button
+                      type="button"
+                      onClick={toggleCreatedSort}
+                      className="inline-flex items-center gap-1 font-medium text-slate-500 hover:text-slate-900"
+                    >
+                      {column.label}
+                      {createdSort === 'desc' ? (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  ) : (
+                    column.label
+                  )}
                 </th>
               ))}
               {(canManage || canManageIncidents) && <th className="min-w-[280px]">Actions</th>}
             </tr>
           </thead>
           <tbody>
-            {filteredAlerts.map((alert) => (
+            {displayedAlerts.map((alert) => (
               <AlertTableRow
                 key={alert.id}
                 alert={alert}
@@ -506,7 +566,7 @@ export function AlertsPage() {
             ))}
           </tbody>
         </table>
-        {filteredAlerts.length === 0 && (
+        {displayedAlerts.length === 0 && (
           <p className="p-8 text-center text-sm text-slate-500">
             {alerts.length === 0 ? 'No alerts match the selected filters' : 'No alerts match your search'}
           </p>
