@@ -296,9 +296,17 @@ class ChangeResponse(BaseModel):
     submitter: Optional[UserBrief] = None
 
 
+class EngineerResolvedCount(BaseModel):
+    engineer_id: int
+    engineer_name: str
+    count: int
+
+
 class DashboardStats(BaseModel):
+    period: str
     active_alerts: int
     alerts_by_priority: dict[str, int]
+    alerts_resolved_by_engineer: list[EngineerResolvedCount] = Field(default_factory=list)
     open_incidents: int
     incidents_by_severity: dict[str, int]
     pending_changes: int

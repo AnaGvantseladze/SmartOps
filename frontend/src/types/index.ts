@@ -144,9 +144,19 @@ export interface Change {
   submitter?: UserBrief;
 }
 
+export type DashboardPeriod = 'day' | 'week' | 'month' | 'year';
+
+export interface EngineerResolvedCount {
+  engineer_id: number;
+  engineer_name: string;
+  count: number;
+}
+
 export interface DashboardStats {
+  period: DashboardPeriod;
   active_alerts: number;
   alerts_by_priority: Record<string, number>;
+  alerts_resolved_by_engineer: EngineerResolvedCount[];
   open_incidents: number;
   incidents_by_severity: Record<string, number>;
   pending_changes: number;
@@ -154,9 +164,6 @@ export interface DashboardStats {
   action_items_open: number;
   tier1_health_avg: number;
   recent_mttr_hours?: number;
-  changes_by_status?: Record<string, number>;
-  top_risk_services?: ServiceBrief[];
-  open_pirs?: { id: number; title: string; pir_due_at: string }[];
 }
 
 export interface FreezeBanner {

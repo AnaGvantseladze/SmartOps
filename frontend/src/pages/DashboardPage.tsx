@@ -1,11 +1,22 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Siren, GitPullRequest, Clock, Activity, CheckCircle2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn, healthBadge, healthColor } from '@/lib/utils';
+import { cn, healthColor } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { PERMISSIONS } from '@/lib/permissions';
 import { PageHeaderSkeleton, StatCardSkeleton } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
+import type { DashboardPeriod } from '@/types';
+
+const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
+  { value: 'day', label: 'Last day' },
+  { value: 'week', label: 'Last week' },
+  { value: 'month', label: 'Last month' },
+  { value: 'year', label: 'Last year' },
+];
+
+const PRIORITY_ORDER = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 function StatCard({
   label,
@@ -35,9 +46,11 @@ function StatCard({
 export function DashboardPage() {
   const { can } = useAuth();
   const isExecutive = can(PERMISSIONS.DASHBOARD_EXECUTIVE);
+  const [period, setPeriod] = useState<DashboardPeriod>('week');
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: api.getDashboardStats,
+    queryKey: ['dashboard-stats', period],
+    queryFn: () => api.getDashboardStats(period),
     refetchInterval: 60000,
     refetchIntervalInBackground: false,
   });
@@ -56,14 +69,37 @@ export function DashboardPage() {
   }
 
   const p1p2 = (stats.alerts_by_priority.P1 ?? 0) + (stats.alerts_by_priority.P2 ?? 0);
+  const totalAlertsInPeriod = Object.values(stats.alerts_by_priority).reduce((sum, count) => sum + count, 0);
+  const maxResolved = Math.max(...stats.alerts_resolved_by_engineer.map((row) => row.count), 1);
 
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">{isExecutive ? 'Executive Dashboard' : 'Operations Dashboard'}</h1>
-        <p className="page-subtitle">
-          {isExecutive ? 'Organizational health and KPI overview' : 'Operational health overview — real-time'}
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="page-title">{isExecutive ? 'Executive Dashboard' : 'Operations Dashboard'}</h1>
+            <p className="page-subtitle">
+              {isExecutive ? 'Organizational health and KPI overview' : 'Operational health overview — real-time'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPeriod(option.value)}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                  period === option.value
+                    ? 'bg-brand-900 text-white'
+                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -112,30 +148,58 @@ export function DashboardPage() {
         <div className="card p-5">
           <h2 className="section-title mb-4">Alerts by Priority</h2>
           <div className="space-y-3">
-            {Object.keys(stats.alerts_by_priority).length === 0 ? (
-              <EmptyState title="No alerts" message="No alert data available for this dashboard." />
+            {totalAlertsInPeriod === 0 ? (
+              <EmptyState title="No alerts" message="No alerts were created in this time range." />
             ) : (
-              Object.entries(stats.alerts_by_priority).map(([priority, count]) => (
-                <div key={priority} className="flex items-center gap-3">
-                  <span className="w-8 text-sm font-semibold text-slate-700">{priority}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full ${
-                        priority === 'P1' ? 'bg-red-600' : priority === 'P2' ? 'bg-amber-500' : 'bg-slate-400'
-                      }`}
-                      style={{ width: `${Math.min(100, (count / Math.max(stats.active_alerts, 1)) * 100)}%` }}
-                    />
+              PRIORITY_ORDER.map((priority) => {
+                const count = stats.alerts_by_priority[priority] ?? 0;
+                return (
+                  <div key={priority} className="flex items-center gap-3">
+                    <span className="w-8 text-sm font-semibold text-slate-700">{priority}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={cn(
+                          'h-full rounded-full',
+                          priority === 'P1' ? 'bg-red-600' : priority === 'P2' ? 'bg-amber-500' : 'bg-slate-400'
+                        )}
+                        style={{ width: `${Math.min(100, (count / totalAlertsInPeriod) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-6 text-right text-sm font-medium text-slate-700">{count}</span>
                   </div>
-                  <span className="w-6 text-right text-sm font-medium text-slate-700">{count}</span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
 
         <div className="card p-5">
+          <h2 className="section-title mb-4">Alerts Resolved by Engineer</h2>
+          <div className="space-y-3">
+            {stats.alerts_resolved_by_engineer.length === 0 ? (
+              <EmptyState title="No resolved alerts" message="No alerts were resolved in this time range." />
+            ) : (
+              stats.alerts_resolved_by_engineer.map((row) => (
+                <div key={row.engineer_id} className="flex items-center gap-3">
+                  <span className="w-28 truncate text-sm font-medium text-slate-700">{row.engineer_name}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-brand-600"
+                      style={{ width: `${Math.min(100, (row.count / maxResolved) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-6 text-right text-sm font-semibold text-slate-900">{row.count}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <div className="card p-5">
           <h2 className="section-title mb-4">Incidents by Severity</h2>
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(stats.incidents_by_severity)
               .filter(([, count]) => count > 0)
               .map(([severity, count]) => (
@@ -145,63 +209,11 @@ export function DashboardPage() {
                 </div>
               ))}
             {Object.values(stats.incidents_by_severity).every((c) => c === 0) && (
-              <p className="text-sm text-slate-500">No open incidents</p>
+              <p className="text-sm text-slate-500">No open incidents in this time range</p>
             )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="card p-5">
-          <h2 className="section-title mb-3">Changes by Status</h2>
-          <div className="space-y-2">
-            {Object.entries(stats.changes_by_status ?? {}).filter(([,c]) => c > 0).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                <span className="text-sm capitalize text-slate-700">{status.replace(/_/g, ' ')}</span>
-                <span className="text-sm font-semibold text-slate-900">{count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <h2 className="section-title mb-3">Top At-Risk Services</h2>
-          {(stats.top_risk_services ?? []).length === 0 && (
-            <p className="text-sm text-slate-500">No at-risk services</p>
-          )}
-          <div className="space-y-3">
-            {(stats.top_risk_services ?? []).map((s) => (
-              <div key={s.id} className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-slate-900">{s.name}</div>
-                  <div className="text-xs text-slate-500">Tier {s.tier}</div>
-                </div>
-                <span className={cn('badge border', healthBadge(s.health_score))}>{s.health_score}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <h2 className="section-title mb-3">Open PIRs</h2>
-          {(stats.open_pirs ?? []).length === 0 && (
-            <p className="text-sm text-slate-500">No open post-incident reviews</p>
-          )}
-          <div className="space-y-3">
-            {(stats.open_pirs ?? []).map((pir) => (
-              <div key={pir.id} className="rounded-lg border-l-4 border-orange-500 bg-slate-50 p-3">
-                <div className="text-sm font-medium text-slate-900">{pir.title}</div>
-                <div className="mt-1 text-xs text-slate-500">Due {timeAgo(pir.pir_due_at)}</div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function timeAgo(date?: string) {
-  if (!date) return '—';
-  return new Date(date).toLocaleDateString();
 }

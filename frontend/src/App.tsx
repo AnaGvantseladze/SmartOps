@@ -248,8 +248,8 @@ function AppShell() {
     if (!token) return;
     // Prefetch dashboard stats so the landing page renders instantly
     queryClient.prefetchQuery({
-      queryKey: ['dashboard-stats'],
-      queryFn: api.getDashboardStats,
+      queryKey: ['dashboard-stats', 'week'],
+      queryFn: () => api.getDashboardStats('week'),
       staleTime: 30000,
     });
     // Prefetch common landing-page data based on role
