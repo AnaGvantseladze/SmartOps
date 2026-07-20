@@ -1,7 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   Bell,
-  CalendarClock,
   Webhook,
   Download,
   LayoutDashboard,
@@ -21,7 +20,6 @@ import { cn } from '@/lib/utils';
 const generalNav = [
   { to: '/settings', icon: User, label: 'Profile', end: true, permission: PERMISSIONS.SETTINGS_VIEW },
   { to: '/settings/notifications', icon: Bell, label: 'Notification Policies', permission: PERMISSIONS.SETTINGS_NOTIFICATIONS },
-  { to: '/settings/on-call', icon: CalendarClock, label: 'On-Call Schedules', permission: PERMISSIONS.SETTINGS_ON_CALL },
 ];
 
 const adminNav = [

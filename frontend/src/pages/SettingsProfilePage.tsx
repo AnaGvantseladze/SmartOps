@@ -82,7 +82,7 @@ export function SettingsProfilePage() {
         )}
         {can(PERMISSIONS.SETTINGS_ON_CALL) && (
           <NavLink
-            to="/settings/on-call"
+            to="/on-call"
             className="card block p-5 transition-all hover:border-brand-300 hover:shadow-md"
           >
             <h3 className="font-display font-semibold text-slate-900">On-Call Schedules</h3>
