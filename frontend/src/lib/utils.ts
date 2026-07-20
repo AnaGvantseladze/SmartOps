@@ -85,8 +85,7 @@ export function riskBadge(risk: ChangeRisk) {
 export const incidentColumns: { status: IncidentStatus; label: string }[] = [
   { status: 'open', label: 'Open' },
   { status: 'in_progress', label: 'In Progress' },
-  { status: 'pir_pending', label: 'PIR Pending' },
-  { status: 'action_items_pending', label: 'Action Items Pending' },
+  { status: 'pending_teams', label: 'Pending Teams' },
   { status: 'closed', label: 'Closed' },
 ];
 
@@ -119,8 +118,7 @@ export function statusBadge(status: string) {
     resolved: 'bg-green-50 text-green-700 border-green-200',
     open: 'bg-red-50 text-red-700 border-red-200',
     in_progress: 'bg-amber-50 text-amber-700 border-amber-200',
-    pir_pending: 'bg-orange-50 text-orange-700 border-orange-200',
-    action_items_pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    pending_teams: 'bg-orange-50 text-orange-700 border-orange-200',
     closed: 'bg-slate-50 text-slate-600 border-slate-200',
     connected: 'bg-green-50 text-green-700 border-green-200',
     pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',

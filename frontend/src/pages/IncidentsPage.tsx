@@ -76,16 +76,7 @@ function IncidentCard({ incident }: { incident: Incident }) {
       )}
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>{timeAgo(incident.created_at)}</span>
-        {incident.pir_due_at && incident.status === 'pir_pending' && (
-          <span className="text-orange-600">PIR due {timeAgo(incident.pir_due_at)}</span>
-        )}
       </div>
-      {incident.action_items.length > 0 && (
-        <div className="mt-2 text-xs text-slate-500">
-          Action items: {incident.action_items.filter((a) => a.status === 'completed' || a.status === 'verified').length}/
-          {incident.action_items.length} done
-        </div>
-      )}
     </div>
   );
 }

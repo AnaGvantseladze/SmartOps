@@ -1,7 +1,7 @@
 export type AlertPriority = 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
 export type AlertStatus = 'triggered' | 'acknowledged' | 'snoozed' | 'resolved';
 export type IncidentSeverity = 'P0' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
-export type IncidentStatus = 'open' | 'in_progress' | 'pir_pending' | 'action_items_pending' | 'closed';
+export type IncidentStatus = 'open' | 'in_progress' | 'pending_teams' | 'closed';
 export type ChangeType = 'standard' | 'normal' | 'emergency' | 'custom';
 export type ChangeStatus = 'submitted' | 'reviewing' | 'approved' | 'scheduled' | 'in_progress' | 'completed' | 'rolled_back' | 'failed' | 'rejected';
 export type ChangeRisk = 'low' | 'medium' | 'high' | 'critical';
@@ -149,7 +149,7 @@ export interface DashboardStats {
   open_incidents: number;
   incidents_by_severity: Record<string, number>;
   pending_changes: number;
-  pir_pending: number;
+  pending_teams: number;
   action_items_open: number;
   tier1_health_avg: number;
   recent_mttr_hours?: number;

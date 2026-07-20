@@ -57,8 +57,7 @@ class IncidentSeverity(str, enum.Enum):
 class IncidentStatus(str, enum.Enum):
     OPEN = "open"
     IN_PROGRESS = "in_progress"
-    PIR_PENDING = "pir_pending"
-    ACTION_ITEMS_PENDING = "action_items_pending"
+    PENDING_TEAMS = "pending_teams"
     CLOSED = "closed"
 
 

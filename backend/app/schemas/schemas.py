@@ -301,7 +301,7 @@ class DashboardStats(BaseModel):
     open_incidents: int
     incidents_by_severity: dict[str, int]
     pending_changes: int
-    pir_pending: int
+    pending_teams: int
     action_items_open: int
     tier1_health_avg: float
     recent_mttr_hours: Optional[float]
