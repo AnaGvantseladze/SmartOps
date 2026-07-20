@@ -1,18 +1,38 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LogIn, Wrench } from 'lucide-react';
+import { LogIn, Shield, UserCog, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface DemoUser {
   name: string;
   email: string;
   password: string;
+  role: string;
+  icon: typeof Shield;
 }
 
 const DEMO_ACCOUNTS: DemoUser[] = [
-  { name: 'Saba Kekelia', email: 'saba.kekelia@btu.edu.ge', password: 'engineer123' },
-  { name: 'Ana Gvantseladze', email: 'ana.gvantseladze@btu.edu.ge', password: 'engineer123' },
-  { name: 'Eka Kesanashvili', email: 'eka.kesanashvili@btu.edu.ge', password: 'engineer123' },
+  {
+    name: 'Saba Kekelia',
+    email: 'saba.kekelia@btu.edu.ge',
+    password: 'engineer123',
+    role: 'Administrator',
+    icon: Shield,
+  },
+  {
+    name: 'Ana Gvantseladze',
+    email: 'ana.gvantseladze@btu.edu.ge',
+    password: 'engineer123',
+    role: 'Manager',
+    icon: UserCog,
+  },
+  {
+    name: 'Eka Kesanashvili',
+    email: 'eka.kesanashvili@btu.edu.ge',
+    password: 'engineer123',
+    role: 'SRE Engineer',
+    icon: Wrench,
+  },
 ];
 
 export function LoginPage() {
@@ -101,21 +121,25 @@ export function LoginPage() {
         </div>
 
         <div className="mt-6">
-          <p className="mb-3 text-center text-sm text-slate-500">Quick login — engineers</p>
+          <p className="mb-3 text-center text-sm text-slate-500">Quick login — demo accounts</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            {DEMO_ACCOUNTS.map((account) => (
-              <button
-                key={account.email}
-                onClick={() => handleLogin(account.email, account.password)}
-                disabled={loading}
-                className="card p-4 text-left transition-all hover:border-brand-300 hover:shadow-md disabled:opacity-50"
-              >
-                <Wrench className="mb-2 h-5 w-5 text-brand-600" />
-                <div className="font-medium text-slate-900">{account.name}</div>
-                <div className="mt-1 text-xs text-slate-500">{account.email}</div>
-                <div className="mt-2 font-mono text-xs text-slate-400">{account.password}</div>
-              </button>
-            ))}
+            {DEMO_ACCOUNTS.map((account) => {
+              const Icon = account.icon;
+              return (
+                <button
+                  key={account.email}
+                  onClick={() => handleLogin(account.email, account.password)}
+                  disabled={loading}
+                  className="card p-4 text-left transition-all hover:border-brand-300 hover:shadow-md disabled:opacity-50"
+                >
+                  <Icon className="mb-2 h-5 w-5 text-brand-600" />
+                  <div className="font-medium text-slate-900">{account.name}</div>
+                  <div className="mt-1 text-xs font-medium text-brand-700">{account.role}</div>
+                  <div className="mt-1 text-xs text-slate-500">{account.email}</div>
+                  <div className="mt-2 font-mono text-xs text-slate-400">{account.password}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
