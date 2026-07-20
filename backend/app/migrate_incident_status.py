@@ -3,12 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def migrate_incident_statuses(session: AsyncSession) -> None:
-    """Add pending_teams status and migrate legacy PIR/action-item columns."""
+    """Add PENDING_TEAMS status and migrate legacy PIR/action-item columns."""
     await session.execute(
         text(
             """
             DO $$ BEGIN
-                ALTER TYPE incidentstatus ADD VALUE 'pending_teams';
+                ALTER TYPE incidentstatus ADD VALUE 'PENDING_TEAMS';
             EXCEPTION
                 WHEN duplicate_object THEN NULL;
             END $$;
@@ -21,8 +21,8 @@ async def migrate_incident_statuses(session: AsyncSession) -> None:
         text(
             """
             UPDATE incidents
-            SET status = 'pending_teams'
-            WHERE status::text IN ('pir_pending', 'action_items_pending')
+            SET status = 'PENDING_TEAMS'
+            WHERE status::text IN ('PIR_PENDING', 'ACTION_ITEMS_PENDING', 'pir_pending', 'action_items_pending')
             """
         )
     )
