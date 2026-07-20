@@ -208,6 +208,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  updateIncidentActionItem: (
+    incidentId: number,
+    actionItemId: number,
+    data: { title?: string; description?: string; status?: string; priority?: string },
+  ) =>
+    fetchJson<Incident>(`/incidents/${incidentId}/action-items/${actionItemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   getChanges: () => fetchJson<Change[]>('/changes'),
   getChange: (id: number) => fetchJson<Change>(`/changes/${id}`),
   createChange: (data: {
@@ -221,6 +230,8 @@ export const api = {
     affected_scope?: string;
     expected_downtime?: string;
   }) => fetchJson<Change>('/changes', { method: 'POST', body: JSON.stringify(data) }),
+  updateChange: (id: number, data: Partial<Change>) =>
+    fetchJson<Change>(`/changes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   getServices: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
     return fetchJson<Service[]>(`/services${qs}`);
@@ -230,8 +241,25 @@ export const api = {
   getEffectiveNotificationPolicies: () => fetchJson<NotificationPolicy[]>('/notification-policies/effective'),
   getNotificationLog: () => fetchJson<NotificationLog[]>('/notification-log'),
   testNotification: () => fetchJson<{ status: string; message: string }>('/notification-policies/test', { method: 'POST' }),
+  updateNotificationRule: (ruleId: number, data: { channels?: string[]; suppress?: boolean }) =>
+    fetchJson<import('@/types/notifications').NotificationPolicy>(`/notification-policies/rules/${ruleId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   getOnCallSchedules: () => fetchJson<OnCallSchedule[]>('/on-call/schedules'),
   getCurrentOnCall: () => fetchJson<CurrentOnCall[]>('/on-call/current'),
+  createOnCallOverride: (data: {
+    schedule_id: number;
+    original_user_id: number;
+    override_user_id: number;
+    start_time: string;
+    end_time: string;
+    reason?: string;
+  }) =>
+    fetchJson<import('@/types/notifications').OnCallOverride>('/on-call/overrides', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   getEscalationPolicies: () => fetchJson<EscalationPolicy[]>('/escalation-policies'),
   getAdminUsers: () => fetchJson<AdminUser[]>('/admin/users'),
   createAdminUser: (data: { name: string; email: string; password: string; role: string; team_id?: number }) =>
@@ -240,8 +268,12 @@ export const api = {
     fetchJson<AdminUser>(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteAdminUser: (id: number) => fetchJson<void>(`/admin/users/${id}`, { method: 'DELETE' }),
   getAdminTeams: () => fetchJson<AdminTeam[]>('/admin/teams'),
+  createAdminTeam: (data: { name: string; description?: string }) =>
+    fetchJson<AdminTeam>('/admin/teams', { method: 'POST', body: JSON.stringify(data) }),
   getAuditLogs: () => fetchJson<AuditLogEntry[]>('/admin/audit-logs'),
   getIntegrations: () => fetchJson<Integration[]>('/admin/integrations'),
+  updateIntegration: (id: string, data: Partial<Pick<Integration, 'status' | 'description'>>) =>
+    fetchJson<Integration>(`/admin/integrations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   getPlatformConfig: () => fetchJson<PlatformConfig>('/admin/platform-config'),
   updateAlertRules: (rules: AlertRuleConfig[]) =>
     fetchJson<PlatformConfig>('/admin/alert-rules', { method: 'PUT', body: JSON.stringify({ rules }) }),

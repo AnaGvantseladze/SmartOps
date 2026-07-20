@@ -62,6 +62,11 @@ class NotificationRuleCreate(BaseModel):
     is_mandatory: bool = False
 
 
+class NotificationRuleUpdate(BaseModel):
+    channels: Optional[list[str]] = None
+    suppress: Optional[bool] = None
+
+
 class NotificationPolicyCreate(BaseModel):
     name: str
     level: PolicyLevel

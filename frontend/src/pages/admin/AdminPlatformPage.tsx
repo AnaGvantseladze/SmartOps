@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToastContext } from '@/context/ToastContext';
 import type { AlertRuleConfig, AuthConfig, CategoryConfig, NotificationChannelConfig, SeverityLevelConfig } from '@/lib/api';
@@ -160,6 +161,15 @@ function AlertRulesSection({
       <div className="space-y-3">
         {items.map((rule, index) => (
           <div key={rule.id} className="rounded-lg border border-slate-200 p-4">
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                className="btn-secondary px-2 py-1 text-xs text-red-600"
+                onClick={() => setItems(items.filter((_, i) => i !== index))}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <input className="input" value={rule.name} onChange={(e) => {
                 const next = [...items];
@@ -195,7 +205,28 @@ function AlertRulesSection({
           </div>
         ))}
       </div>
-      <button type="button" className="btn-primary mt-4" disabled={isSaving} onClick={() => onSave(items)}>Save alert rules</button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() =>
+            setItems([
+              ...items,
+              {
+                id: `rule-${Date.now()}`,
+                name: 'New rule',
+                source: 'custom',
+                condition: '',
+                priority: 'P3',
+                enabled: true,
+              },
+            ])
+          }
+        >
+          <Plus className="h-4 w-4" /> Add rule
+        </button>
+        <button type="button" className="btn-primary" disabled={isSaving} onClick={() => onSave(items)}>Save alert rules</button>
+      </div>
     </SectionCard>
   );
 }
@@ -215,7 +246,7 @@ function SeveritySection({
     <SectionCard title="Severity Levels" description="Define priority labels used across alerts and incidents.">
       <div className="space-y-3">
         {items.map((level, index) => (
-          <div key={level.code} className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-4">
+          <div key={level.code} className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-5">
             <div className="font-semibold text-slate-900">{level.code}</div>
             <input className="input" value={level.label} onChange={(e) => {
               const next = [...items];
@@ -227,6 +258,14 @@ function SeveritySection({
               next[index] = { ...level, description: e.target.value };
               setItems(next);
             }} />
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={level.enabled} onChange={(e) => {
+                const next = [...items];
+                next[index] = { ...level, enabled: e.target.checked };
+                setItems(next);
+              }} />
+              Enabled
+            </label>
           </div>
         ))}
       </div>
@@ -250,7 +289,7 @@ function CategoriesSection({
     <SectionCard title="Categories" description="Manage incident and alert classification categories.">
       <div className="space-y-3">
         {items.map((category, index) => (
-          <div key={category.id} className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-3">
+          <div key={category.id} className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-4">
             <input className="input" value={category.name} onChange={(e) => {
               const next = [...items];
               next[index] = { ...category, name: e.target.value };
@@ -261,10 +300,41 @@ function CategoriesSection({
               next[index] = { ...category, description: e.target.value };
               setItems(next);
             }} />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={category.enabled} onChange={(e) => {
+                  const next = [...items];
+                  next[index] = { ...category, enabled: e.target.checked };
+                  setItems(next);
+                }} />
+                Enabled
+              </label>
+              <button
+                type="button"
+                className="btn-secondary px-2 py-1 text-xs text-red-600"
+                onClick={() => setItems(items.filter((_, i) => i !== index))}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
-      <button type="button" className="btn-primary mt-4" disabled={isSaving} onClick={() => onSave(items)}>Save categories</button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() =>
+            setItems([
+              ...items,
+              { id: `cat-${Date.now()}`, name: 'New category', description: '', enabled: true },
+            ])
+          }
+        >
+          <Plus className="h-4 w-4" /> Add category
+        </button>
+        <button type="button" className="btn-primary" disabled={isSaving} onClick={() => onSave(items)}>Save categories</button>
+      </div>
     </SectionCard>
   );
 }
@@ -279,6 +349,7 @@ function ChannelsSection({
   onSave: (channels: NotificationChannelConfig[]) => void;
 }) {
   const [items, setItems] = useState(channels);
+  useEffect(() => setItems(channels), [channels]);
   return (
     <SectionCard title="Notification Channels" description="Configure Email, Teams, Slack, and SMS delivery channels.">
       <div className="space-y-3">
@@ -286,14 +357,23 @@ function ChannelsSection({
           <div key={channel.id} className="rounded-lg border border-slate-200 p-4">
             <div className="mb-2 flex items-center justify-between">
               <div className="font-medium text-slate-900">{channel.name}</div>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={channel.enabled} onChange={(e) => {
-                  const next = [...items];
-                  next[index] = { ...channel, enabled: e.target.checked };
-                  setItems(next);
-                }} />
-                Enabled
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={channel.enabled} onChange={(e) => {
+                    const next = [...items];
+                    next[index] = { ...channel, enabled: e.target.checked };
+                    setItems(next);
+                  }} />
+                  Enabled
+                </label>
+                <button
+                  type="button"
+                  className="btn-secondary px-2 py-1 text-xs text-red-600"
+                  onClick={() => setItems(items.filter((_, i) => i !== index))}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
             </div>
             <textarea
               className="input w-full font-mono text-xs"
@@ -312,7 +392,21 @@ function ChannelsSection({
           </div>
         ))}
       </div>
-      <button type="button" className="btn-primary mt-4" disabled={isSaving} onClick={() => onSave(items)}>Save notification channels</button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() =>
+            setItems([
+              ...items,
+              { id: `channel-${Date.now()}`, name: 'New channel', enabled: false, config: {} },
+            ])
+          }
+        >
+          <Plus className="h-4 w-4" /> Add channel
+        </button>
+        <button type="button" className="btn-primary" disabled={isSaving} onClick={() => onSave(items)}>Save notification channels</button>
+      </div>
     </SectionCard>
   );
 }

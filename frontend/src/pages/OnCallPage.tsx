@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { Calendar, Clock, RefreshCw, Shield, User, Users } from 'lucide-react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Calendar, Clock, RefreshCw, Shield, User, Users, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useToastContext } from '@/context/ToastContext';
 import { cn } from '@/lib/utils';
 import type { CurrentOnCall, OnCallSchedule, OnCallScheduleType } from '@/types/notifications';
 
@@ -21,6 +23,10 @@ function formatDateRange(start: string, end: string) {
 }
 
 export function OnCallPage() {
+  const queryClient = useQueryClient();
+  const toast = useToastContext();
+  const [overrideScheduleId, setOverrideScheduleId] = useState<number | null>(null);
+
   const { data: current = [], isLoading: loadingCurrent } = useQuery({
     queryKey: ['on-call-current'],
     queryFn: api.getCurrentOnCall,
@@ -35,6 +41,23 @@ export function OnCallPage() {
   const { data: escalations = [] } = useQuery({
     queryKey: ['escalation-policies'],
     queryFn: api.getEscalationPolicies,
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: api.getAssignableUsers,
+    enabled: overrideScheduleId != null,
+  });
+
+  const createOverride = useMutation({
+    mutationFn: api.createOnCallOverride,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['on-call-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['on-call-current'] });
+      setOverrideScheduleId(null);
+      toast.success('On-call override created');
+    },
+    onError: (err: Error) => toast.error('Failed to create override', err.message),
   });
 
   if (loadingCurrent || loadingSchedules) {
@@ -63,10 +86,24 @@ export function OnCallPage() {
         <h2 className="section-title mb-4">Schedules</h2>
         <div className="space-y-4">
           {schedules.map((schedule) => (
-            <ScheduleCard key={schedule.id} schedule={schedule} />
+            <ScheduleCard
+              key={schedule.id}
+              schedule={schedule}
+              onManageOverride={() => setOverrideScheduleId(schedule.id)}
+            />
           ))}
         </div>
       </div>
+
+      {overrideScheduleId != null && (
+        <OverrideModal
+          schedule={schedules.find((s) => s.id === overrideScheduleId)!}
+          users={users}
+          isSubmitting={createOverride.isPending}
+          onClose={() => setOverrideScheduleId(null)}
+          onSubmit={(data) => createOverride.mutate(data)}
+        />
+      )}
 
       {escalations.length > 0 && (
         <div>
@@ -125,7 +162,13 @@ function CurrentOnCallCard({ entry }: { entry: CurrentOnCall }) {
   );
 }
 
-function ScheduleCard({ schedule }: { schedule: OnCallSchedule }) {
+function ScheduleCard({
+  schedule,
+  onManageOverride,
+}: {
+  schedule: OnCallSchedule;
+  onManageOverride: () => void;
+}) {
   const config = scheduleTypeConfig[schedule.schedule_type];
   const Icon = config.icon;
 
@@ -157,6 +200,9 @@ function ScheduleCard({ schedule }: { schedule: OnCallSchedule }) {
             <div className="font-medium text-green-600">{schedule.current_on_call.name}</div>
           </div>
         )}
+        <button type="button" className="btn-secondary ml-3 text-xs" onClick={onManageOverride}>
+          <Plus className="h-3 w-3" /> Override
+        </button>
       </div>
 
       <div className="px-5 py-4">
@@ -197,6 +243,98 @@ function ScheduleCard({ schedule }: { schedule: OnCallSchedule }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function OverrideModal({
+  schedule,
+  users,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: {
+  schedule: OnCallSchedule;
+  users: { id: number; name: string }[];
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (data: {
+    schedule_id: number;
+    original_user_id: number;
+    override_user_id: number;
+    start_time: string;
+    end_time: string;
+    reason?: string;
+  }) => void;
+}) {
+  const defaultOriginal = schedule.current_on_call?.id ?? schedule.shifts[0]?.user_id ?? users[0]?.id ?? 0;
+  const [originalUserId, setOriginalUserId] = useState(String(defaultOriginal));
+  const [overrideUserId, setOverrideUserId] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [reason, setReason] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" className="absolute inset-0 bg-slate-900/30" aria-label="Close" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Create override — {schedule.name}</h2>
+          <button type="button" onClick={onClose} className="btn-secondary px-2 py-2">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!originalUserId || !overrideUserId || !startTime || !endTime) return;
+            onSubmit({
+              schedule_id: schedule.id,
+              original_user_id: Number(originalUserId),
+              override_user_id: Number(overrideUserId),
+              start_time: new Date(startTime).toISOString(),
+              end_time: new Date(endTime).toISOString(),
+              reason: reason.trim() || undefined,
+            });
+          }}
+        >
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Original on-call</label>
+            <select className="input w-full" value={originalUserId} onChange={(e) => setOriginalUserId(e.target.value)} required>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>{user.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Override with</label>
+            <select className="input w-full" value={overrideUserId} onChange={(e) => setOverrideUserId(e.target.value)} required>
+              <option value="">Select engineer</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>{user.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Start</label>
+              <input type="datetime-local" className="input w-full" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">End</label>
+              <input type="datetime-local" className="input w-full" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Reason</label>
+            <input className="input w-full" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional" />
+          </div>
+          <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : 'Create override'}
+          </button>
+        </form>
       </div>
     </div>
   );

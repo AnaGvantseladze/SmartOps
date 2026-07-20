@@ -12,6 +12,8 @@ export function AdminUsersPage() {
   const queryClient = useQueryClient();
   const toast = useToastContext();
   const [showForm, setShowForm] = useState(false);
+  const [showTeamForm, setShowTeamForm] = useState(false);
+  const [teamForm, setTeamForm] = useState({ name: '', description: '' });
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'engineer', team_id: '' });
   const [error, setError] = useState('');
@@ -55,6 +57,17 @@ export function AdminUsersPage() {
       toast.success('User deleted');
     },
     onError: (err) => toast.error('Failed to delete user', err instanceof Error ? err.message : undefined),
+  });
+
+  const createTeam = useMutation({
+    mutationFn: api.createAdminTeam,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
+      setShowTeamForm(false);
+      setTeamForm({ name: '', description: '' });
+      toast.success('Team created');
+    },
+    onError: (err) => toast.error('Failed to create team', err instanceof Error ? err.message : undefined),
   });
 
   if (isLoading) {
@@ -236,6 +249,42 @@ export function AdminUsersPage() {
       )}
 
       <h2 className="section-title mb-4 mt-8">Teams</h2>
+      <div className="mb-4">
+        <button type="button" className="btn-secondary" onClick={() => setShowTeamForm(!showTeamForm)}>
+          + Add Team
+        </button>
+      </div>
+
+      {showTeamForm && (
+        <form
+          className="card mb-6 grid gap-4 p-4 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            createTeam.mutate({
+              name: teamForm.name.trim(),
+              description: teamForm.description.trim() || undefined,
+            });
+          }}
+        >
+          <input
+            className="input"
+            placeholder="Team name"
+            value={teamForm.name}
+            onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+            required
+          />
+          <input
+            className="input"
+            placeholder="Description (optional)"
+            value={teamForm.description}
+            onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
+          />
+          <button type="submit" className="btn-primary sm:col-span-2" disabled={createTeam.isPending || !teamForm.name.trim()}>
+            {createTeam.isPending ? 'Creating...' : 'Create Team'}
+          </button>
+        </form>
+      )}
+
       {teams.length === 0 ? (
         <EmptyState title="No teams" message="No teams have been created yet." />
       ) : (

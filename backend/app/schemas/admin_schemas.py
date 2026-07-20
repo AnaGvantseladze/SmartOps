@@ -70,6 +70,11 @@ class IntegrationResponse(BaseModel):
     description: str
 
 
+class IntegrationUpdate(BaseModel):
+    status: Optional[str] = None
+    description: Optional[str] = None
+
+
 class DashboardConfigResponse(BaseModel):
     refresh_interval_seconds: int = 30
     default_date_range_days: int = 7

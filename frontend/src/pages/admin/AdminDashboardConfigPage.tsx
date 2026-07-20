@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useToastContext } from '@/context/ToastContext';
 
 export function AdminDashboardConfigPage() {
   const queryClient = useQueryClient();
+  const toast = useToastContext();
   const { data: config, isLoading } = useQuery({ queryKey: ['dashboard-config'], queryFn: api.getDashboardConfig });
   const [form, setForm] = useState<Record<string, string | number | boolean>>({});
 
   const save = useMutation({
     mutationFn: api.updateDashboardConfig,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard-config'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-config'] });
+      toast.success('Dashboard configuration saved');
+    },
+    onError: (err: Error) => toast.error('Failed to save configuration', err.message),
   });
 
   if (isLoading || !config) return <div className="page-container text-slate-500">Loading...</div>;
