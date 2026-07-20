@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://opscore:opscore@localhost:5432/opscore"
     secret_key: str = "dev-secret-key-change-in-production"
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    public_base_url: str = "http://localhost:8000"
     seed_demo_data: bool = True
 
     @property
