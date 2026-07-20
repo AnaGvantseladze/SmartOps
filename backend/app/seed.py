@@ -185,6 +185,15 @@ async def seed_demo_data(session: AsyncSession) -> None:
             )
         )
 
+    session.add(
+        AlertTimelineEntry(
+            alert_id=alerts[1].id,
+            author_id=users[1].id,
+            entry_type="note",
+            content="Investigating latency spike — checking recent deployments.",
+        )
+    )
+
     incidents = [
         Incident(
             title="Trading platform degradation — order timeouts",
