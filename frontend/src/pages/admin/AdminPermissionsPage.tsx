@@ -139,7 +139,6 @@ function RolePermissionCard({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="badge border border-brand-200 bg-brand-50 text-brand-700">{entry.role}</span>
           {!isEditing ? (
             <>
               <button type="button" className="btn-primary text-sm" onClick={onEdit}>
