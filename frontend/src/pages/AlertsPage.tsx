@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, GitCommit } from 'lucide-react';
+import { Clock, Columns3, GitCommit, StickyNote } from 'lucide-react';
 import { AISuggestionsPanel } from '@/components/AISuggestionsPanel';
 import { PriorityBadge, StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
-import { cn, timeAgo } from '@/lib/utils';
+import { cn, formatDateTime, timeAgo } from '@/lib/utils';
 import type { Alert, AlertStatus } from '@/types';
 
 const statusFilters: { value: AlertStatus | 'all'; label: string }[] = [
@@ -17,12 +17,67 @@ const statusFilters: { value: AlertStatus | 'all'; label: string }[] = [
   { value: 'resolved', label: 'Resolved' },
 ];
 
+type AlertColumnKey = 'status' | 'created' | 'assignee' | 'responsible_team' | 'note';
+
+const ALERT_COLUMNS: { key: AlertColumnKey; label: string }[] = [
+  { key: 'status', label: 'Status' },
+  { key: 'created', label: 'Created' },
+  { key: 'assignee', label: 'Assignee' },
+  { key: 'responsible_team', label: 'Responsible Team' },
+  { key: 'note', label: 'Note' },
+];
+
+const DEFAULT_COLUMN_VISIBILITY: Record<AlertColumnKey, boolean> = {
+  status: true,
+  created: true,
+  assignee: true,
+  responsible_team: true,
+  note: true,
+};
+
+const COLUMN_STORAGE_KEY = 'alerts-column-visibility';
+
+function loadColumnVisibility(): Record<AlertColumnKey, boolean> {
+  try {
+    const stored = localStorage.getItem(COLUMN_STORAGE_KEY);
+    if (!stored) return DEFAULT_COLUMN_VISIBILITY;
+    return { ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(stored) };
+  } catch {
+    return DEFAULT_COLUMN_VISIBILITY;
+  }
+}
+
+function getLatestNote(alert: Alert): string | undefined {
+  const notes = alert.timeline.filter((entry) => entry.entry_type === 'note');
+  if (notes.length === 0) return undefined;
+  return [...notes].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )[0].content;
+}
+
 export function AlertsPage() {
   const { can, alertScope } = useAuth();
   const canManage = can(PERMISSIONS.ALERTS_MANAGE);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<AlertStatus | 'all'>('all');
+  const [columnVisibility, setColumnVisibility] = useState(loadColumnVisibility);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const columnPickerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));
+  }, [columnVisibility]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (columnPickerRef.current && !columnPickerRef.current.contains(event.target as Node)) {
+        setShowColumnPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ['alerts', statusFilter],
@@ -43,6 +98,17 @@ export function AlertsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
   });
 
+  const addNote = useMutation({
+    mutationFn: ({ id, content }: { id: number; content: string }) => api.addAlertNote(id, content),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+  });
+
+  const visibleColumns = ALERT_COLUMNS.filter((column) => columnVisibility[column.key]);
+
+  function toggleColumn(key: AlertColumnKey) {
+    setColumnVisibility((current) => ({ ...current, [key]: !current[key] }));
+  }
+
   if (isLoading) return <div className="page-container text-slate-500">Loading alerts...</div>;
 
   return (
@@ -53,12 +119,47 @@ export function AlertsPage() {
             <h1 className="page-title">Alert Console</h1>
             <p className="page-subtitle">Live feed — operations console</p>
           </div>
-          {alertScope === 'critical_only' && (
-            <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
-          )}
-          {alertScope === 'my_services' && (
-            <span className="badge border bg-blue-50 text-blue-700 border-blue-200">My services only</span>
-          )}
+          <div className="flex items-center gap-2">
+            {alertScope === 'critical_only' && (
+              <span className="badge border bg-amber-50 text-amber-700 border-amber-200">P1/P2 only (Manager)</span>
+            )}
+            {alertScope === 'my_services' && (
+              <span className="badge border bg-blue-50 text-blue-700 border-blue-200">My services only</span>
+            )}
+            <div className="relative" ref={columnPickerRef}>
+              <button
+                type="button"
+                onClick={() => setShowColumnPicker((open) => !open)}
+                className="btn-secondary"
+              >
+                <Columns3 className="h-4 w-4" />
+                Columns
+              </button>
+              {showColumnPicker && (
+                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Show fields
+                  </p>
+                  <div className="space-y-1">
+                    {ALERT_COLUMNS.map((column) => (
+                      <label
+                        key={column.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={columnVisibility[column.key]}
+                          onChange={() => toggleColumn(column.key)}
+                          className="rounded border-slate-300 text-brand-900 focus:ring-brand-500"
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -75,18 +176,38 @@ export function AlertsPage() {
       </div>
 
       <div className="flex flex-1 overflow-hidden bg-slate-50">
-        <div className="w-1/2 overflow-y-auto border-r border-slate-200 bg-white">
-          {alerts.map((alert) => (
-            <AlertRow
-              key={alert.id}
-              alert={alert}
-              selected={selected?.id === alert.id}
-              onClick={() => setSelectedId(alert.id)}
-            />
-          ))}
-          {alerts.length === 0 && (
-            <p className="p-8 text-center text-sm text-slate-500">No alerts match filters</p>
-          )}
+        <div className="flex w-1/2 flex-col overflow-hidden border-r border-slate-200 bg-white">
+          <div className="flex-1 overflow-auto">
+            <table className="data-table">
+              <thead className="sticky top-0 z-10">
+                <tr>
+                  <th className="w-16">Priority</th>
+                  <th>Title</th>
+                  {visibleColumns.map((column) => (
+                    <th key={column.key} className={column.key === 'note' ? 'min-w-[180px]' : undefined}>
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.map((alert) => (
+                  <AlertTableRow
+                    key={alert.id}
+                    alert={alert}
+                    selected={selected?.id === alert.id}
+                    visibleColumns={columnVisibility}
+                    onSelect={() => setSelectedId(alert.id)}
+                    onAddNote={(content) => addNote.mutate({ id: alert.id, content })}
+                    isAddingNote={addNote.isPending && addNote.variables?.id === alert.id}
+                  />
+                ))}
+              </tbody>
+            </table>
+            {alerts.length === 0 && (
+              <p className="p-8 text-center text-sm text-slate-500">No alerts match filters</p>
+            )}
+          </div>
         </div>
 
         {selected && (
@@ -107,36 +228,147 @@ export function AlertsPage() {
   );
 }
 
-function AlertRow({ alert, selected, onClick }: { alert: Alert; selected: boolean; onClick: () => void }) {
+function AlertTableRow({
+  alert,
+  selected,
+  visibleColumns,
+  onSelect,
+  onAddNote,
+  isAddingNote,
+}: {
+  alert: Alert;
+  selected: boolean;
+  visibleColumns: Record<AlertColumnKey, boolean>;
+  onSelect: () => void;
+  onAddNote: (content: string) => void;
+  isAddingNote: boolean;
+}) {
   const isP1 = alert.priority === 'P1' && alert.status === 'triggered';
+  const latestNote = getLatestNote(alert);
+
   return (
-    <button
-      onClick={onClick}
+    <tr
+      onClick={onSelect}
       className={cn(
-        'flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50',
+        'cursor-pointer',
         selected && 'bg-brand-50',
         isP1 && 'alert-pulse'
       )}
     >
-      <PriorityBadge priority={alert.priority} />
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-medium text-slate-900">{alert.title}</div>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <td>
+        <PriorityBadge priority={alert.priority} />
+      </td>
+      <td>
+        <div className="font-medium text-slate-900">{alert.title}</div>
+        <div className="mt-0.5 text-xs text-slate-500">
+          {alert.source}
+          {alert.service ? ` · ${alert.service.name}` : ''}
+          {alert.occurrence_count > 1 ? ` · ×${alert.occurrence_count}` : ''}
+        </div>
+      </td>
+      {visibleColumns.status && (
+        <td>
           <StatusBadge status={alert.status} />
-          <span>{timeAgo(alert.created_at)}</span>
-          <span>·</span>
-          <span>{alert.source}</span>
-          {alert.service && (
-            <>
-              <span>·</span>
-              <span>{alert.service.name}</span>
-            </>
-          )}
+        </td>
+      )}
+      {visibleColumns.created && (
+        <td className="whitespace-nowrap text-slate-600" title={formatDateTime(alert.created_at)}>
+          {timeAgo(alert.created_at)}
+        </td>
+      )}
+      {visibleColumns.assignee && (
+        <td className="text-slate-600">{alert.assignee?.name ?? '—'}</td>
+      )}
+      {visibleColumns.responsible_team && (
+        <td className="text-slate-600">{alert.responsible_team?.name ?? '—'}</td>
+      )}
+      {visibleColumns.note && (
+        <td onClick={(event) => event.stopPropagation()}>
+          <AlertNoteCell
+            note={latestNote}
+            onSave={onAddNote}
+            isSaving={isAddingNote}
+          />
+        </td>
+      )}
+    </tr>
+  );
+}
+
+function AlertNoteCell({
+  note,
+  onSave,
+  isSaving,
+}: {
+  note?: string;
+  onSave: (content: string) => void;
+  isSaving: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(note ?? '');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(note ?? '');
+  }, [note, editing]);
+
+  useEffect(() => {
+    if (editing) textareaRef.current?.focus();
+  }, [editing]);
+
+  function handleSave() {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    onSave(trimmed);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="space-y-2">
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          rows={3}
+          placeholder="Add a note..."
+          className="input w-full resize-none text-xs"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn-primary px-2 py-1 text-xs"
+            onClick={handleSave}
+            disabled={isSaving || !draft.trim()}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary px-2 py-1 text-xs"
+            onClick={() => {
+              setDraft(note ?? '');
+              setEditing(false);
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </div>
-      {alert.occurrence_count > 1 && (
-        <span className="badge border bg-slate-100 text-slate-600">×{alert.occurrence_count}</span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className={cn(
+        'flex w-full items-start gap-1.5 rounded-lg border px-2 py-1.5 text-left text-xs transition-colors hover:border-brand-300 hover:bg-brand-50',
+        note ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-dashed border-slate-300 text-slate-400'
       )}
+    >
+      <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span className="line-clamp-2">{note ?? 'Add note...'}</span>
     </button>
   );
 }
@@ -152,6 +384,8 @@ function AlertDetail({
   isAcknowledging: boolean;
   canManage: boolean;
 }) {
+  const latestNote = getLatestNote(alert);
+
   return (
     <div className="p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
@@ -163,6 +397,34 @@ function AlertDetail({
           <h2 className="text-lg font-semibold text-slate-900">{alert.title}</h2>
           {alert.description && <p className="mt-1 text-sm text-slate-600">{alert.description}</p>}
         </div>
+      </div>
+
+      <div className="card mb-4 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-slate-900">Details</h3>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <span className="text-slate-500">Created:</span>{' '}
+            <span className="text-slate-900">{formatDateTime(alert.created_at)}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Assignee:</span>{' '}
+            <span className="text-slate-900">{alert.assignee?.name ?? 'Unassigned'}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Responsible team:</span>{' '}
+            <span className="text-slate-900">{alert.responsible_team?.name ?? '—'}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Source:</span>{' '}
+            <span className="text-slate-900">{alert.source}</span>
+          </div>
+        </div>
+        {latestNote && (
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <div className="mb-1 text-xs font-medium text-slate-500">Latest note</div>
+            {latestNote}
+          </div>
+        )}
       </div>
 
       {alert.service && (

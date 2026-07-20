@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from 'clsx';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import type { AlertPriority, ChangeRisk, ChangeStatus, IncidentSeverity, IncidentStatus } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
@@ -8,6 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function timeAgo(date: string) {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
+}
+
+export function formatDateTime(date: string) {
+  return format(new Date(date), 'MMM d, yyyy HH:mm');
 }
 
 export function statusLabel(status: string) {

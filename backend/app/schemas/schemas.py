@@ -137,6 +137,10 @@ class AlertUpdate(BaseModel):
     root_cause: Optional[str] = None
 
 
+class AlertNoteCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+
+
 class AlertTimelineEntryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -169,6 +173,7 @@ class AlertResponse(BaseModel):
     resolved_at: Optional[datetime]
     service: Optional[ServiceBrief] = None
     assignee: Optional[UserBrief] = None
+    responsible_team: Optional[TeamBrief] = None
     timeline: list[AlertTimelineEntryResponse] = Field(default_factory=list)
 
 
