@@ -62,6 +62,61 @@ export interface DashboardConfig {
   shared_with_organization: boolean;
 }
 
+export interface AlertRuleConfig {
+  id: string;
+  name: string;
+  source: string;
+  condition: string;
+  priority: string;
+  enabled: boolean;
+}
+
+export interface SeverityLevelConfig {
+  code: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface CategoryConfig {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface NotificationChannelConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  config: Record<string, string>;
+}
+
+export interface AuthConfig {
+  sso_enabled: boolean;
+  sso_provider: string;
+  ldap_enabled: boolean;
+  ldap_host: string;
+  ldap_base_dn: string;
+  session_timeout_minutes: number;
+  mfa_required: boolean;
+}
+
+export interface PlatformConfig {
+  alert_rules: AlertRuleConfig[];
+  severity_levels: SeverityLevelConfig[];
+  categories: CategoryConfig[];
+  notification_channels: NotificationChannelConfig[];
+  auth_config: AuthConfig;
+  last_backup_at?: string;
+}
+
+export interface RolePermissionMatrix {
+  role: string;
+  role_label: string;
+  permissions: string[];
+}
+
 export interface WebhookIntegration {
   id: number;
   name: string;
@@ -181,9 +236,27 @@ export const api = {
   getAdminUsers: () => fetchJson<AdminUser[]>('/admin/users'),
   createAdminUser: (data: { name: string; email: string; password: string; role: string; team_id?: number }) =>
     fetchJson<AdminUser>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminUser: (id: number, data: Partial<{ name: string; role: string; team_id: number; is_active: boolean; password: string }>) =>
+    fetchJson<AdminUser>(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminUser: (id: number) => fetchJson<void>(`/admin/users/${id}`, { method: 'DELETE' }),
   getAdminTeams: () => fetchJson<AdminTeam[]>('/admin/teams'),
   getAuditLogs: () => fetchJson<AuditLogEntry[]>('/admin/audit-logs'),
   getIntegrations: () => fetchJson<Integration[]>('/admin/integrations'),
+  getPlatformConfig: () => fetchJson<PlatformConfig>('/admin/platform-config'),
+  updateAlertRules: (rules: AlertRuleConfig[]) =>
+    fetchJson<PlatformConfig>('/admin/alert-rules', { method: 'PUT', body: JSON.stringify({ rules }) }),
+  updateSeverityLevels: (levels: SeverityLevelConfig[]) =>
+    fetchJson<PlatformConfig>('/admin/severity-levels', { method: 'PUT', body: JSON.stringify({ levels }) }),
+  updateCategories: (categories: CategoryConfig[]) =>
+    fetchJson<PlatformConfig>('/admin/categories', { method: 'PUT', body: JSON.stringify({ categories }) }),
+  updateNotificationChannels: (channels: NotificationChannelConfig[]) =>
+    fetchJson<PlatformConfig>('/admin/notification-channels', { method: 'PUT', body: JSON.stringify({ channels }) }),
+  updateAuthConfig: (data: Partial<AuthConfig>) =>
+    fetchJson<AuthConfig>('/admin/auth-config', { method: 'PATCH', body: JSON.stringify(data) }),
+  getPermissionsMatrix: () => fetchJson<RolePermissionMatrix[]>('/admin/permissions'),
+  backupPlatformConfig: () => fetchJson<{ backed_up_at: string; snapshot: Record<string, unknown> }>('/admin/backup', { method: 'POST' }),
+  restorePlatformConfig: (snapshot: Record<string, unknown>) =>
+    fetchJson<PlatformConfig>('/admin/restore', { method: 'POST', body: JSON.stringify({ snapshot }) }),
   getDashboardConfig: () => fetchJson<DashboardConfig>('/admin/dashboard-config'),
   updateDashboardConfig: (data: Partial<DashboardConfig>) =>
     fetchJson<DashboardConfig>('/admin/dashboard-config', { method: 'PATCH', body: JSON.stringify(data) }),

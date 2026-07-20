@@ -33,6 +33,8 @@ const AdminDashboardConfigPage = lazy(() =>
 );
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage })));
 const AdminExportPage = lazy(() => import('@/pages/admin/AdminExportPage').then((m) => ({ default: m.AdminExportPage })));
+const AdminPlatformPage = lazy(() => import('@/pages/admin/AdminPlatformPage').then((m) => ({ default: m.AdminPlatformPage })));
+const AdminPermissionsPage = lazy(() => import('@/pages/admin/AdminPermissionsPage').then((m) => ({ default: m.AdminPermissionsPage })));
 const AdminWebhookIntegrationPage = lazy(() =>
   import('@/pages/admin/AdminWebhookIntegrationPage').then((m) => ({ default: m.AdminWebhookIntegrationPage }))
 );
@@ -215,6 +217,26 @@ function AppRoutes() {
                       <PermissionGuard permission={PERMISSIONS.EXPORT_DATA}>
                         <Suspense fallback={<LoadingScreen />}>
                           <AdminExportPage />
+                        </Suspense>
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="platform"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.SYSTEM_CONFIG}>
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminPlatformPage />
+                        </Suspense>
+                      </PermissionGuard>
+                    }
+                  />
+                  <Route
+                    path="permissions"
+                    element={
+                      <PermissionGuard permission={PERMISSIONS.PERMISSIONS_MANAGE}>
+                        <Suspense fallback={<LoadingScreen />}>
+                          <AdminPermissionsPage />
                         </Suspense>
                       </PermissionGuard>
                     }
