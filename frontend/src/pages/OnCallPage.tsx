@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Clock, RefreshCw, GitPullRequest, Users, Wrench, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useToastContext } from '@/context/ToastContext';
+import { PERMISSIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
-import type { CurrentOnCall, OnCallSchedule, OnCallScheduleType, PrimaryOnCallScheduleType } from '@/types/notifications';
+import type { CurrentOnCall, OnCallSchedule, OnCallScheduleType, PrimaryOnCallScheduleType, RotationFrequency } from '@/types/notifications';
 
 const SCHEDULE_SECTIONS: { type: PrimaryOnCallScheduleType; title: string; description: string }[] = [
   {
@@ -50,9 +52,13 @@ function formatDateRange(start: string, end: string) {
 }
 
 export function OnCallPage() {
+  const { can } = useAuth();
+  const canManageSchedules = can(PERMISSIONS.SCHEDULES_MANAGE);
+  const canOverride = can(PERMISSIONS.SETTINGS_ON_CALL);
   const queryClient = useQueryClient();
   const toast = useToastContext();
   const [overrideScheduleId, setOverrideScheduleId] = useState<number | null>(null);
+  const [createScheduleType, setCreateScheduleType] = useState<PrimaryOnCallScheduleType | null>(null);
 
   const { data: current = [], isLoading: loadingCurrent } = useQuery({
     queryKey: ['on-call-current'],
@@ -73,7 +79,7 @@ export function OnCallPage() {
   const { data: users = [] } = useQuery({
     queryKey: ['assignable-users'],
     queryFn: api.getAssignableUsers,
-    enabled: overrideScheduleId != null,
+    enabled: overrideScheduleId != null || createScheduleType != null,
   });
 
   const createOverride = useMutation({
@@ -85,6 +91,17 @@ export function OnCallPage() {
       toast.success('On-call override created');
     },
     onError: (err: Error) => toast.error('Failed to create override', err.message),
+  });
+
+  const createSchedule = useMutation({
+    mutationFn: api.createOnCallSchedule,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['on-call-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['on-call-current'] });
+      setCreateScheduleType(null);
+      toast.success('On-call schedule created');
+    },
+    onError: (err: Error) => toast.error('Failed to create schedule', err.message),
   });
 
   const activeSchedules = useMemo(
@@ -121,7 +138,11 @@ export function OnCallPage() {
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">On-Call Schedules</h1>
-        <p className="page-subtitle">Manage rotations, overrides, and escalation policies</p>
+        <p className="page-subtitle">
+          {canManageSchedules
+            ? 'Create schedules, manage rotations, and review escalation policies'
+            : 'View on-call rotations and create temporary overrides when needed'}
+        </p>
       </div>
 
       <div className="mb-8">
@@ -156,13 +177,26 @@ export function OnCallPage() {
                     <ScheduleCard
                       key={schedule.id}
                       schedule={schedule}
+                      canOverride={canOverride}
                       onManageOverride={() => setOverrideScheduleId(schedule.id)}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="card border-dashed p-6 text-sm text-slate-500">
-                  No active schedule configured for {section.title.toLowerCase()}.
+                <div className="card border-dashed p-6">
+                  <p className="text-sm text-slate-500">
+                    No active schedule configured for {section.title.toLowerCase()}.
+                  </p>
+                  {canManageSchedules && (
+                    <button
+                      type="button"
+                      className="btn-primary mt-4"
+                      onClick={() => setCreateScheduleType(section.type)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create {section.title} schedule
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -170,13 +204,23 @@ export function OnCallPage() {
         })}
       </div>
 
-      {overrideScheduleId != null && (
+      {overrideScheduleId != null && canOverride && (
         <OverrideModal
           schedule={schedules.find((s) => s.id === overrideScheduleId)!}
           users={users}
           isSubmitting={createOverride.isPending}
           onClose={() => setOverrideScheduleId(null)}
           onSubmit={(data) => createOverride.mutate(data)}
+        />
+      )}
+
+      {createScheduleType != null && canManageSchedules && (
+        <CreateScheduleModal
+          scheduleType={createScheduleType}
+          users={users}
+          isSubmitting={createSchedule.isPending}
+          onClose={() => setCreateScheduleType(null)}
+          onSubmit={(data) => createSchedule.mutate(data)}
         />
       )}
 
@@ -239,9 +283,11 @@ function CurrentOnCallCard({ entry }: { entry: CurrentOnCall }) {
 
 function ScheduleCard({
   schedule,
+  canOverride,
   onManageOverride,
 }: {
   schedule: OnCallSchedule;
+  canOverride: boolean;
   onManageOverride: () => void;
 }) {
   const config = getScheduleTypeConfig(schedule.schedule_type);
@@ -275,9 +321,11 @@ function ScheduleCard({
             <div className="font-medium text-green-600">{schedule.current_on_call.name}</div>
           </div>
         )}
-        <button type="button" className="btn-secondary ml-3 text-xs" onClick={onManageOverride}>
-          <Plus className="h-3 w-3" /> Override
-        </button>
+        {canOverride && (
+          <button type="button" className="btn-secondary ml-3 text-xs" onClick={onManageOverride}>
+            <Plus className="h-3 w-3" /> Override
+          </button>
+        )}
       </div>
 
       <div className="px-5 py-4">
@@ -318,6 +366,121 @@ function ScheduleCard({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CreateScheduleModal({
+  scheduleType,
+  users,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: {
+  scheduleType: PrimaryOnCallScheduleType;
+  users: { id: number; name: string }[];
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (data: {
+    name: string;
+    schedule_type: string;
+    rotation_frequency: RotationFrequency;
+    timezone: string;
+    shifts: { user_id: number; start_time: string; end_time: string }[];
+  }) => void;
+}) {
+  const section = SCHEDULE_SECTIONS.find((item) => item.type === scheduleType);
+  const [name, setName] = useState(section ? `${section.title} On-Call` : 'On-Call');
+  const [rotationFrequency, setRotationFrequency] = useState<RotationFrequency>('weekly');
+  const [timezone, setTimezone] = useState('UTC');
+  const [userId, setUserId] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" className="absolute inset-0 bg-slate-900/30" aria-label="Close" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Create {section?.title ?? 'On-Call'} schedule</h2>
+          <button type="button" onClick={onClose} className="btn-secondary px-2 py-2">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name.trim()) return;
+            onSubmit({
+              name: name.trim(),
+              schedule_type: scheduleType,
+              rotation_frequency: rotationFrequency,
+              timezone,
+              shifts:
+                userId && startTime && endTime
+                  ? [
+                      {
+                        user_id: Number(userId),
+                        start_time: new Date(startTime).toISOString(),
+                        end_time: new Date(endTime).toISOString(),
+                      },
+                    ]
+                  : [],
+            });
+          }}
+        >
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Schedule name</label>
+            <input className="input w-full" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Rotation</label>
+              <select
+                className="input w-full"
+                value={rotationFrequency}
+                onChange={(e) => setRotationFrequency(e.target.value as RotationFrequency)}
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Timezone</label>
+              <input className="input w-full" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+            </div>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900">First shift (optional)</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">On-call engineer</label>
+                <select className="input w-full bg-white" value={userId} onChange={(e) => setUserId(e.target.value)}>
+                  <option value="">Add shifts later</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>{user.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Start</label>
+                  <input type="datetime-local" className="input w-full bg-white" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">End</label>
+                  <input type="datetime-local" className="input w-full bg-white" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : 'Create schedule'}
+          </button>
+        </form>
       </div>
     </div>
   );

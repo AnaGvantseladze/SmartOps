@@ -253,6 +253,14 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getOnCallSchedules: () => fetchJson<OnCallSchedule[]>('/on-call/schedules'),
+  createOnCallSchedule: (data: {
+    name: string;
+    schedule_type: string;
+    rotation_frequency?: string;
+    timezone?: string;
+    team_id?: number;
+    shifts?: { user_id: number; start_time: string; end_time: string }[];
+  }) => fetchJson<OnCallSchedule>('/on-call/schedules', { method: 'POST', body: JSON.stringify(data) }),
   getCurrentOnCall: () => fetchJson<CurrentOnCall[]>('/on-call/current'),
   createOnCallOverride: (data: {
     schedule_id: number;

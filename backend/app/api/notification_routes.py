@@ -26,6 +26,7 @@ from app.schemas.notification_schemas import (
     NotificationRuleUpdate,
     OnCallOverrideCreate,
     OnCallOverrideResponse,
+    OnCallScheduleCreate,
     OnCallScheduleResponse,
 )
 from app.services.notification_service import (
@@ -228,6 +229,47 @@ async def list_on_call_schedules(
     )
     schedules = result.scalars().unique().all()
     return [await schedule_to_response(db, s) for s in schedules]
+
+
+@router.post("/on-call/schedules", response_model=OnCallScheduleResponse, status_code=201)
+async def create_on_call_schedule(
+    payload: OnCallScheduleCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(require_permission(Permission.SCHEDULES_MANAGE.value))] = None,
+) -> OnCallScheduleResponse:
+    schedule = OnCallSchedule(
+        name=payload.name.strip(),
+        schedule_type=payload.schedule_type,
+        team_id=payload.team_id,
+        rotation_frequency=payload.rotation_frequency,
+        timezone=payload.timezone,
+    )
+    db.add(schedule)
+    await db.flush()
+
+    for shift_data in payload.shifts:
+        db.add(
+            OnCallShift(
+                schedule_id=schedule.id,
+                user_id=shift_data.user_id,
+                start_time=shift_data.start_time,
+                end_time=shift_data.end_time,
+            )
+        )
+
+    await db.commit()
+    schedule = await db.scalar(
+        select(OnCallSchedule)
+        .options(
+            selectinload(OnCallSchedule.team),
+            selectinload(OnCallSchedule.service),
+            selectinload(OnCallSchedule.shifts).selectinload(OnCallShift.user),
+            selectinload(OnCallSchedule.overrides).selectinload(OnCallOverride.original_user),
+            selectinload(OnCallSchedule.overrides).selectinload(OnCallOverride.override_user),
+        )
+        .where(OnCallSchedule.id == schedule.id)
+    )
+    return await schedule_to_response(db, schedule)
 
 
 @router.get("/on-call/current", response_model=list[CurrentOnCallResponse])
