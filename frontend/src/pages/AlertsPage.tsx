@@ -282,10 +282,10 @@ export function AlertsPage() {
 
   const createIncident = useMutation({
     mutationFn: (id: number) => api.createIncidentFromAlert(id),
-    onSuccess: (incident) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      toast.success('Incident created', `INC-${incident.id} is now on the Incident board`);
+      toast.success('Incident created', 'The incident is now on the Incident board');
     },
     onError: (error: Error) => toast.error('Failed to create incident', error.message),
   });
@@ -685,7 +685,7 @@ function IncidentLink({
   if (incidentId) {
     return (
       <button type="button" onClick={onView} className={className}>
-        INC-{incidentId}
+        Incident
       </button>
     );
   }
@@ -693,7 +693,7 @@ function IncidentLink({
   if (canCreate && onCreate) {
     return (
       <button type="button" onClick={onCreate} disabled={disabled} className={className}>
-        INC
+        Incident
       </button>
     );
   }
