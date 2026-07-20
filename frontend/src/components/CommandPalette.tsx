@@ -26,6 +26,7 @@ export function CommandPalette() {
       a: '/alerts',
       i: '/incidents',
       c: '/changes',
+      o: '/on-call',
       s: '/services',
       p: '/settings',
     }),
@@ -41,7 +42,7 @@ export function CommandPalette() {
       { id: 'services', label: 'Go to Services', to: '/services', shortcut: 'G S' },
       { id: 'settings', label: 'Go to Settings', to: '/settings', shortcut: 'G P' },
       { id: 'notifications', label: 'Go to Notification Settings', to: '/settings/notifications' },
-      { id: 'on-call', label: 'Go to On-Call Schedules', to: '/settings/on-call' },
+      { id: 'on-call', label: 'Go to On-Call Schedules', to: '/on-call', shortcut: 'G O' },
   { id: 'admin', label: 'Go to Admin Console', to: '/settings/admin' },
   { id: 'users', label: 'Go to Users & Teams', to: '/settings/users-teams' },
   { id: 'system', label: 'Go to System Configuration', to: '/settings/system' },
@@ -51,10 +52,11 @@ export function CommandPalette() {
     ];
     return all.filter((cmd) => {
       if (cmd.to.startsWith('/settings')) {
-        if (cmd.to === '/settings') return true;
+        if (cmd.to === '/settings') return canNav('settings');
         if (cmd.to === '/settings/admin' || cmd.to === '/settings/users-teams') return canNav('administration');
+        return canNav('settings');
       }
-      return canNav(cmd.id.split('-')[0]);
+      return canNav(cmd.id);
     });
   }, [can, canNav]);
 

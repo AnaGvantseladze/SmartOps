@@ -115,6 +115,16 @@ function AppRoutes() {
                   }
                 />
                 <Route
+                  path="/on-call"
+                  element={
+                    <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <OnCallPage />
+                      </Suspense>
+                    </PermissionGuard>
+                  }
+                />
+                <Route
                   path="/services"
                   element={
                     <PermissionGuard permission={PERMISSIONS.SERVICES_VIEW}>
@@ -124,7 +134,7 @@ function AppRoutes() {
                     </PermissionGuard>
                   }
                 />
-                <Route path="/on-call" element={<Navigate to="/settings/on-call" replace />} />
+                <Route path="/settings/on-call" element={<Navigate to="/on-call" replace />} />
                 <Route
                   path="/settings"
                   element={
@@ -147,16 +157,6 @@ function AppRoutes() {
                       <PermissionGuard permission={PERMISSIONS.SETTINGS_NOTIFICATIONS}>
                         <Suspense fallback={<LoadingScreen />}>
                           <NotificationSettingsPage />
-                        </Suspense>
-                      </PermissionGuard>
-                    }
-                  />
-                  <Route
-                    path="on-call"
-                    element={
-                      <PermissionGuard permission={PERMISSIONS.SETTINGS_ON_CALL}>
-                        <Suspense fallback={<LoadingScreen />}>
-                          <OnCallPage />
                         </Suspense>
                       </PermissionGuard>
                     }

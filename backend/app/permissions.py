@@ -241,9 +241,9 @@ ROLE_LANDING_PAGES: dict[UserRole, str] = {
 }
 
 ROLE_NAV_ITEMS: dict[UserRole, list[str]] = {
-    UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "services", "administration"],
-    UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "services", "settings"],
-    UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "services", "settings"],
+    UserRole.ADMIN: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "administration"],
+    UserRole.ENGINEER: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "settings"],
+    UserRole.MANAGER: ["dashboard", "alerts", "incidents", "changes", "on-call", "services", "settings"],
     UserRole.CHANGE_MANAGER: ["dashboard", "changes", "services"],
 }
 
