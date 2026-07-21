@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/dashboard/KpiCard';
+import { AlertsTrendChart } from '@/components/dashboard/AlertsTrendChart';
 import type { DashboardPeriod } from '@/types';
 
 const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
@@ -152,6 +153,8 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-12">
         <div className="space-y-4 xl:col-span-8">
+          <AlertsTrendChart data={stats.alerts_trend} />
+
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-4">
               <div>

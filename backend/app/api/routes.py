@@ -30,6 +30,7 @@ from app.models.entities import (
 )
 from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
 from app.services.audit_service import write_audit_log
+from app.services.alerts_trend import build_alerts_trend
 from app.services.dashboard_kpis import build_dashboard_kpis
 from app.schemas.schemas import (
     AlertCreate,
@@ -219,6 +220,7 @@ async def get_dashboard_stats(
     )
 
     kpis = await build_dashboard_kpis(db)
+    alerts_trend = await build_alerts_trend(db)
 
     return DashboardStats(
         period=period,
@@ -232,6 +234,7 @@ async def get_dashboard_stats(
         sla_at_risk=at_risk,
         sla_compliance_percent=sla_compliance_percent,
         kpis=kpis,
+        alerts_trend=alerts_trend,
     )
 
 

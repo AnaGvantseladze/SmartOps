@@ -164,6 +164,15 @@ export interface EngineerResolvedCount {
   count: number;
 }
 
+export interface AlertsTrendPoint {
+  date: string;
+  label: string;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
 export type KpiStatus = 'good' | 'warning' | 'critical' | 'neutral';
 
 export interface DashboardKpi {
@@ -190,6 +199,7 @@ export interface DashboardStats {
   sla_at_risk: number;
   sla_compliance_percent: number;
   kpis: DashboardKpi[];
+  alerts_trend: AlertsTrendPoint[];
 }
 
 export interface FreezeBanner {

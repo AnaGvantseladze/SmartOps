@@ -339,6 +339,15 @@ class EngineerResolvedCount(BaseModel):
     count: int
 
 
+class AlertsTrendPoint(BaseModel):
+    date: str
+    label: str
+    critical: int = 0
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+
+
 class DashboardKpi(BaseModel):
     id: str
     label: str
@@ -363,6 +372,7 @@ class DashboardStats(BaseModel):
     sla_at_risk: int = 0
     sla_compliance_percent: int = 100
     kpis: list[DashboardKpi] = Field(default_factory=list)
+    alerts_trend: list[AlertsTrendPoint] = Field(default_factory=list)
 
 
 class FreezeBanner(BaseModel):
