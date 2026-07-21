@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -339,6 +339,18 @@ class EngineerResolvedCount(BaseModel):
     count: int
 
 
+class DashboardKpi(BaseModel):
+    id: str
+    label: str
+    value: float
+    display_value: str
+    trend_percent: float
+    sparkline: list[float] = Field(default_factory=list)
+    status: Literal["good", "warning", "critical", "neutral"] = "neutral"
+    higher_is_better: bool = True
+    href: Optional[str] = None
+
+
 class DashboardStats(BaseModel):
     period: str
     active_alerts: int
@@ -350,6 +362,7 @@ class DashboardStats(BaseModel):
     pending_teams: int
     sla_at_risk: int = 0
     sla_compliance_percent: int = 100
+    kpis: list[DashboardKpi] = Field(default_factory=list)
 
 
 class FreezeBanner(BaseModel):

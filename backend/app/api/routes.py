@@ -30,6 +30,7 @@ from app.models.entities import (
 )
 from app.permissions import Permission, ROLE_ALERT_SCOPE, require_any_permission, require_permission
 from app.services.audit_service import write_audit_log
+from app.services.dashboard_kpis import build_dashboard_kpis
 from app.schemas.schemas import (
     AlertCreate,
     AlertNoteCreate,
@@ -217,6 +218,8 @@ async def get_dashboard_stats(
         100 if total_active_incidents == 0 else max(0, round(100 - (at_risk / total_active_incidents * 100)))
     )
 
+    kpis = await build_dashboard_kpis(db)
+
     return DashboardStats(
         period=period,
         active_alerts=active_alerts or 0,
@@ -228,6 +231,7 @@ async def get_dashboard_stats(
         pending_teams=pending_teams or 0,
         sla_at_risk=at_risk,
         sla_compliance_percent=sla_compliance_percent,
+        kpis=kpis,
     )
 
 

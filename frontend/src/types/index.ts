@@ -164,6 +164,20 @@ export interface EngineerResolvedCount {
   count: number;
 }
 
+export type KpiStatus = 'good' | 'warning' | 'critical' | 'neutral';
+
+export interface DashboardKpi {
+  id: string;
+  label: string;
+  value: number;
+  display_value: string;
+  trend_percent: number;
+  sparkline: number[];
+  status: KpiStatus;
+  higher_is_better: boolean;
+  href?: string;
+}
+
 export interface DashboardStats {
   period: DashboardPeriod;
   active_alerts: number;
@@ -175,6 +189,7 @@ export interface DashboardStats {
   pending_teams: number;
   sla_at_risk: number;
   sla_compliance_percent: number;
+  kpis: DashboardKpi[];
 }
 
 export interface FreezeBanner {

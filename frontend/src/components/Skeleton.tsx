@@ -8,11 +8,18 @@ export function StatCardSkeleton() {
   return (
     <div className="card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-5 w-5 rounded-full" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-2 w-2 rounded-full" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-10 w-10 rounded-lg" />
       </div>
-      <Skeleton className="h-8 w-16" />
-      <Skeleton className="mt-2 h-3 w-32" />
+      <Skeleton className="h-9 w-20" />
+      <Skeleton className="mt-2 h-3 w-28" />
+      <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+        <Skeleton className="h-2 w-16" />
+        <Skeleton className="h-7 w-20" />
+      </div>
     </div>
   );
 }

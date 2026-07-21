@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   ArrowRight,
   ArrowUpRight,
-  Clock,
   FileDown,
   GitPullRequest,
   ShieldCheck,
@@ -20,6 +19,7 @@ import { PageHeaderSkeleton, StatCardSkeleton } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { KpiCard } from '@/components/dashboard/KpiCard';
 import type { DashboardPeriod } from '@/types';
 
 const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
@@ -47,52 +47,12 @@ const SEVERITY_VARIANT: Record<string, 'danger' | 'warning' | 'secondary' | 'out
   P5: 'outline',
 };
 
-interface MetricCardProps {
-  label: string;
-  value: string | number;
-  hint: string;
-  icon: React.ElementType;
-  accent: string;
-  iconBg: string;
-  to?: string;
-}
-
-function MetricCard({ label, value, hint, icon: Icon, accent, iconBg, to }: MetricCardProps) {
-  const content = (
-    <Card className={cn('relative overflow-hidden transition-shadow hover:shadow-md', to && 'group cursor-pointer')}>
-      <div className={cn('absolute inset-y-0 left-0 w-1', accent)} />
-      <CardContent className="pl-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-            <p className="mt-2 font-display text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-              {value}
-            </p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>
-          </div>
-          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', iconBg)}>
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-        {to && (
-          <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand-700 opacity-0 transition-opacity group-hover:opacity-100 dark:text-brand-300">
-            View details
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  return to ? <Link to={to}>{content}</Link> : content;
-}
-
 function DashboardSkeleton() {
   return (
     <div className="page-container max-w-[1600px]">
       <PageHeaderSkeleton />
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
           <StatCardSkeleton key={i} />
         ))}
       </div>
@@ -184,43 +144,10 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Active Alerts"
-          value={stats.active_alerts}
-          hint={`${p1p2} P1/P2 requiring attention`}
-          icon={AlertTriangle}
-          accent="bg-red-500"
-          iconBg="bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400"
-          to="/alerts"
-        />
-        <MetricCard
-          label="Open Incidents"
-          value={stats.open_incidents}
-          hint={`${stats.incidents_by_severity.P1 ?? 0} P1 in progress`}
-          icon={Siren}
-          accent="bg-amber-500"
-          iconBg="bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400"
-          to="/incidents"
-        />
-        <MetricCard
-          label="Pending Changes"
-          value={stats.pending_changes}
-          hint="Awaiting review or approval"
-          icon={GitPullRequest}
-          accent="bg-blue-500"
-          iconBg="bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
-          to="/changes"
-        />
-        <MetricCard
-          label="Pending Teams"
-          value={stats.pending_teams}
-          hint="Incidents awaiting team sign-off"
-          icon={Clock}
-          accent="bg-orange-500"
-          iconBg="bg-orange-50 text-orange-600 dark:bg-orange-950/50 dark:text-orange-400"
-          to="/incidents"
-        />
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {stats.kpis.map((kpi) => (
+          <KpiCard key={kpi.id} kpi={kpi} />
+        ))}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-12">
