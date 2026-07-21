@@ -8,12 +8,12 @@
     "backend": {
       "root": "backend",
       "framework": "fastapi",
-      "entrypoint": "app.main:app"
-    }
-  },
-  "functions": {
-    "backend/app/main.py": {
-      "maxDuration": 60
+      "entrypoint": "app.main:app",
+      "functions": {
+        "app/main.py": {
+          "maxDuration": 60
+        }
+      }
     }
   },
   "rewrites": [
