@@ -42,10 +42,10 @@ export function SettingsLayout() {
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
-      <aside className="w-56 shrink-0 border-r border-slate-200 bg-white p-4">
+      <aside className="w-56 shrink-0 border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-5 flex items-center gap-2 px-2">
           <Settings className="h-5 w-5 text-slate-400" />
-          <h2 className="font-display font-semibold text-slate-900">Settings</h2>
+          <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Settings</h2>
         </div>
 
         {visibleGeneral.length > 0 && (
@@ -58,7 +58,7 @@ export function SettingsLayout() {
 
         {visibleAdmin.length > 0 && (
           <>
-            <div className="mb-2 mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <div className="mb-2 mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               {adminSectionTitle}
             </div>
             <nav className="space-y-1">
@@ -69,7 +69,7 @@ export function SettingsLayout() {
           </>
         )}
       </aside>
-      <div className="flex-1 overflow-y-auto bg-slate-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
         <Outlet />
       </div>
     </div>
@@ -94,7 +94,7 @@ function NavItem({
       className={({ isActive }) =>
         cn(
           'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-          isActive ? 'bg-brand-50 text-brand-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          isActive ? 'bg-brand-50 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
         )
       }
     >

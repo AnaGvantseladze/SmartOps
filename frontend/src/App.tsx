@@ -10,6 +10,7 @@ import { ToastContainer } from '@/components/Toast';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ToastProvider, useToastContext } from '@/context/ToastContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 
@@ -294,13 +295,15 @@ function AppShell() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppShell />
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppShell />
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

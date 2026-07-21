@@ -83,7 +83,7 @@ export function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-brand-50 to-slate-100 text-slate-500">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-brand-50 to-slate-100 text-slate-500 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-400">
         Loading...
       </div>
     );
@@ -94,9 +94,9 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-50/70 to-slate-100 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-50/70 to-slate-100 px-4 py-8 sm:px-6 lg:px-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_-24px_rgba(21,24,41,0.35)] lg:grid-cols-[1.05fr_1fr]">
+        <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_-24px_rgba(21,24,41,0.35)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.45)] lg:grid-cols-[1.05fr_1fr]">
           <section className="relative hidden overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 p-10 text-white lg:flex lg:flex-col lg:justify-between">
             <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl" />
@@ -135,18 +135,18 @@ export function LoginPage() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-900 text-lg font-bold text-white">
                 SO
               </div>
-              <h1 className="font-display text-2xl font-semibold text-slate-900">SmartOps</h1>
-              <p className="mt-1 text-sm text-slate-500">Unified service-lifecycle platform</p>
+              <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-slate-100">SmartOps</h1>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Unified service-lifecycle platform</p>
             </div>
 
             <div className="mb-8">
-              <h2 className="font-display text-2xl font-semibold text-slate-900">Welcome back</h2>
-              <p className="mt-1 text-sm text-slate-500">Sign in with your BTU account to continue.</p>
+              <h2 className="font-display text-2xl font-semibold text-slate-900 dark:text-slate-100">Welcome back</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Sign in with your BTU account to continue.</p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-5">
               <div>
-                <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Email
                 </label>
                 <div className="relative">
@@ -165,7 +165,7 @@ export function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Password
                 </label>
                 <div className="relative">
@@ -184,7 +184,7 @@ export function LoginPage() {
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
                   {error}
                 </div>
               )}
@@ -206,9 +206,9 @@ export function LoginPage() {
             </form>
 
             <div className="my-8 flex items-center gap-3">
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Demo access</span>
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </div>
 
             <div className="grid gap-2.5 sm:grid-cols-2">
@@ -222,7 +222,7 @@ export function LoginPage() {
                     disabled={loading}
                     title={`${account.role} — ${account.name}`}
                     className={cn(
-                      'group flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3.5 text-left transition-all hover:shadow-md disabled:opacity-50',
+                      'group flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3.5 text-left transition-all hover:shadow-md disabled:opacity-50 dark:bg-slate-900',
                       account.accent
                     )}
                   >
@@ -235,8 +235,8 @@ export function LoginPage() {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-slate-900">{account.role}</div>
-                      <div className="truncate text-xs text-slate-500">{account.name}</div>
+                      <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{account.role}</div>
+                      <div className="truncate text-xs text-slate-500 dark:text-slate-400">{account.name}</div>
                     </div>
                   </button>
                 );

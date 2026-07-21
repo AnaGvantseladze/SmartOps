@@ -61,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-900 text-sm font-bold text-white">
           SO
         </div>
-        <span className="font-display text-lg font-semibold text-slate-900">SmartOps</span>
+        <span className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">SmartOps</span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -75,8 +75,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-brand-50 text-brand-900'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-brand-50 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
               )
             }
           >
@@ -86,18 +86,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="shrink-0 border-t border-slate-200 p-4">
+      <div className="shrink-0 border-t border-slate-200 p-4 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white dark:bg-brand-700">
             {user ? initials(user.name) : '??'}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-slate-900">{user?.name}</div>
-            <div className="truncate text-xs text-slate-500">{user ? ROLE_LABELS[user.role] ?? user.role : ''}</div>
+            <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{user?.name}</div>
+            <div className="truncate text-xs text-slate-500 dark:text-slate-400">{user ? ROLE_LABELS[user.role] ?? user.role : ''}</div>
           </div>
           <button
             onClick={handleLogout}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-600"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
             title="Sign out"
           >
             <LogOut className="h-4 w-4" />
@@ -110,7 +110,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white">
+      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white dark:lg:border-slate-800 dark:lg:bg-slate-900">
         <SidebarContent />
       </aside>
 
@@ -118,9 +118,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 flex h-full w-60 flex-col bg-white shadow-xl">
+          <aside className="absolute left-0 top-0 flex h-full w-60 flex-col bg-white shadow-xl dark:bg-slate-900">
             <div className="flex h-14 items-center justify-end px-4">
-              <button onClick={() => setMobileOpen(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+              <button onClick={() => setMobileOpen(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -132,11 +132,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main area */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top header */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -148,7 +148,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 bg-slate-50">{children}</main>
+        <main className="flex-1 bg-slate-50 dark:bg-slate-950">{children}</main>
       </div>
     </div>
   );
