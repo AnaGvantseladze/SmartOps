@@ -3,7 +3,11 @@
   "services": {
     "frontend": {
       "root": "frontend",
-      "framework": "vite"
+      "framework": "vite",
+      "routes": [
+        { "handle": "filesystem" },
+        { "src": "/(.*)", "dest": "/index.html" }
+      ]
     },
     "backend": {
       "root": "backend",
@@ -26,8 +30,16 @@
       "destination": { "type": "service", "service": "backend" }
     },
     {
-      "source": "/(.*)",
+      "source": "/assets/:path*",
       "destination": { "type": "service", "service": "frontend" }
+    },
+    {
+      "source": "/smartops.svg",
+      "destination": { "type": "service", "service": "frontend" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "type": "service", "service": "frontend", "path": "/index.html" }
     }
   ]
 }
