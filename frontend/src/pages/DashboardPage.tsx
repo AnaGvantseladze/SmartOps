@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { AlertsTrendChart } from '@/components/dashboard/AlertsTrendChart';
 import { AlertsByPriorityDonut } from '@/components/dashboard/AlertsByPriorityDonut';
+import { LatestActiveAlerts } from '@/components/dashboard/LatestActiveAlerts';
 import type { DashboardPeriod } from '@/types';
 
 const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
@@ -145,6 +146,8 @@ export function DashboardPage() {
           <AlertsTrendChart data={stats.alerts_trend} />
 
           <AlertsByPriorityDonut alertsByPriority={stats.alerts_by_priority} />
+
+          <LatestActiveAlerts />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="h-full">
