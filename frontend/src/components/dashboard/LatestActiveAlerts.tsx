@@ -58,7 +58,7 @@ export function LatestActiveAlerts() {
   const { data: alerts = [], isLoading, error } = useQuery({
     queryKey: ['alerts', 'latest-active'],
     queryFn: () => api.getAlerts({ status: ACTIVE_STATUSES }),
-    refetchInterval: 30000,
+    refetchInterval: 10000,
     refetchIntervalInBackground: false,
   });
 

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.entities import Alert, AlertPriority, AlertStatus, AlertTimelineEntry, Service, WebhookIntegration
+from app.services.alert_events import notify_alert_created
 
 
 def map_webhook_priority(priority: Optional[str]) -> AlertPriority:
@@ -98,4 +99,5 @@ async def process_webhook_alert(
 
     await db.commit()
     await db.refresh(alert)
+    await notify_alert_created(alert.id)
     return alert

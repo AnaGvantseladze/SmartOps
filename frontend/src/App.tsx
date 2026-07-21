@@ -12,6 +12,7 @@ import { ToastProvider, useToastContext } from '@/context/ToastContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useAlertWebSocket } from '@/hooks/useAlertWebSocket';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 
@@ -267,6 +268,7 @@ function AppRoutes() {
 function AppShell() {
   const { toasts, remove } = useToastContext();
   const { token, landingPage } = useAuth();
+  useAlertWebSocket(!!token);
 
   useEffect(() => {
     if (!token) return;

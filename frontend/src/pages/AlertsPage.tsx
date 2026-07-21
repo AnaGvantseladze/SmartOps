@@ -216,7 +216,7 @@ export function AlertsPage() {
         status: statusFilter.length > 0 ? sortedStatusFilter : undefined,
         priority: priorityFilter.length > 0 ? sortedPriorityFilter : undefined,
       }),
-    refetchInterval: 30000,
+    refetchInterval: 10000,
     refetchIntervalInBackground: false,
   });
 

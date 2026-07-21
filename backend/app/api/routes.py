@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import noload, selectinload
 
 from app.api.auth import get_current_user
+from app.services.alert_events import alert_events, notify_alert_created, notify_alert_updated
 from app.database import async_session, get_db
 from app.models.entities import (
     ActionItem,
@@ -419,6 +420,7 @@ async def create_alert(payload: AlertCreate, db: AsyncSession = Depends(get_db))
         )
     )
     await db.commit()
+    await notify_alert_created(alert.id)
     return await get_alert(alert.id, db)
 
 
@@ -461,6 +463,7 @@ async def update_alert(
             ip_address=request.client.host if request.client else None,
         )
     await db.commit()
+    await notify_alert_updated(alert.id)
     return await get_alert(alert_id, db)
 
 
@@ -481,6 +484,7 @@ async def acknowledge_alert(
         )
     )
     await db.commit()
+    await notify_alert_updated(alert.id)
     return await get_alert(alert_id, db)
 
 
@@ -842,34 +846,12 @@ async def update_change(
     return await get_change(change_id, db)
 
 
-class ConnectionManager:
-    def __init__(self) -> None:
-        self.active: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket) -> None:
-        await websocket.accept()
-        self.active.append(websocket)
-
-    def disconnect(self, websocket: WebSocket) -> None:
-        if websocket in self.active:
-            self.active.remove(websocket)
-
-    async def broadcast(self, message: dict) -> None:
-        for connection in list(self.active):
-            try:
-                await connection.send_json(message)
-            except Exception:
-                self.disconnect(connection)
-
-
-manager = ConnectionManager()
-
 
 @router.websocket("/ws/alerts")
 async def alerts_websocket(websocket: WebSocket) -> None:
-    await manager.connect(websocket)
+    await alert_events.connect(websocket)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        alert_events.disconnect(websocket)
