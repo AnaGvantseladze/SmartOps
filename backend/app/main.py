@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.api.admin_routes import router as admin_router
 from app.api.auth import router as auth_router
@@ -78,4 +79,9 @@ app.include_router(webhook_public_router, prefix="/api/v1/webhooks")
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "service": "opscore-api"}
+    try:
+        async with async_session() as session:
+            await session.execute(text("SELECT 1"))
+        return {"status": "healthy", "service": "opscore-api", "database": "connected"}
+    except Exception:
+        return {"status": "degraded", "service": "opscore-api", "database": "unavailable"}
