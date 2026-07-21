@@ -1,46 +1,70 @@
-import { Component, ReactNode } from 'react';
+import { Component, type ReactNode } from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
-interface Props {
+interface ErrorBoundaryProps {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
+  hasError: boolean;
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { error: null };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { error };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // eslint-disable-next-line no-console
+    console.error('ErrorBoundary caught error:', error, errorInfo);
   }
 
   render() {
-    if (this.state.error) {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-6 text-center">
-          <div className="max-w-lg rounded-xl border border-red-200 bg-white p-6 shadow-card">
-            <h1 className="font-display text-xl font-semibold text-red-600">Something went wrong</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Copy the error below and share it so we can fix it quickly.
+        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 py-12 dark:bg-slate-950">
+          <div className="w-full max-w-md rounded-xl border border-red-200 bg-white p-6 shadow-lg dark:border-red-900 dark:bg-slate-900">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-6 w-6" />
+              <h1 className="font-display text-lg font-semibold">Something went wrong</h1>
+            </div>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              The application encountered an unexpected error. Please share the details below if the
+              issue persists.
             </p>
-            <pre className="mt-4 max-h-64 overflow-auto rounded-lg bg-slate-100 p-3 text-left text-xs text-slate-800">
-              {this.state.error.toString()}
-              {this.state.error.stack}
-            </pre>
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+              {this.state.error?.message ?? 'Unknown error'}
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs text-slate-500">User role:</span>
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                {(window as { __smartops_role?: string }).__smartops_role ?? 'unknown'}
+              </span>
+            </div>
             <button
+              type="button"
               onClick={() => window.location.reload()}
-              className="btn-primary mt-4"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 dark:bg-brand-700"
             >
+              <RefreshCw className="h-4 w-4" />
               Reload page
             </button>
           </div>
         </div>
       );
     }
+
     return this.props.children;
   }
 }

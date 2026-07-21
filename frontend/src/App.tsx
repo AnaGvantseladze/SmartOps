@@ -11,6 +11,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { ToastProvider, useToastContext } from '@/context/ToastContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { api } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/permissions';
 
@@ -270,16 +271,24 @@ function AppShell() {
   useEffect(() => {
     if (!token) return;
     // Prefetch dashboard stats so the landing page renders instantly
-    queryClient.prefetchQuery({
-      queryKey: ['dashboard-stats', 'week'],
-      queryFn: () => api.getDashboardStats('week'),
-      staleTime: 30000,
-    });
+    queryClient
+      .prefetchQuery({
+        queryKey: ['dashboard-stats', 'week'],
+        queryFn: () => api.getDashboardStats('week'),
+        staleTime: 30000,
+      })
+      .catch(() => {
+        // Prefetch failures are not fatal; the page will retry on its own.
+      });
     // Prefetch common landing-page data based on role
     if (landingPage === '/alerts') {
-      queryClient.prefetchQuery({ queryKey: ['alerts', 'all'], queryFn: () => api.getAlerts() });
+      queryClient
+        .prefetchQuery({ queryKey: ['alerts', 'all'], queryFn: () => api.getAlerts() })
+        .catch(() => {});
     } else if (landingPage === '/changes') {
-      queryClient.prefetchQuery({ queryKey: ['changes'], queryFn: api.getChanges });
+      queryClient
+        .prefetchQuery({ queryKey: ['changes'], queryFn: api.getChanges })
+        .catch(() => {});
     }
   }, [token, landingPage]);
 
@@ -297,11 +306,13 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
-          <AuthProvider>
-            <BrowserRouter>
-              <AppShell />
-            </BrowserRouter>
-          </AuthProvider>
+          <ErrorBoundary>
+            <AuthProvider>
+              <BrowserRouter>
+                <AppShell />
+              </BrowserRouter>
+            </AuthProvider>
+          </ErrorBoundary>
         </ToastProvider>
       </ThemeProvider>
     </QueryClientProvider>

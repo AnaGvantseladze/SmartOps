@@ -44,7 +44,11 @@ function loadStored<T>(key: string, fallback: T): T {
 }
 
 function loadStoredUser(): UserProfile | null {
-  return loadStored<UserProfile | null>(USER_KEY, null);
+  const user = loadStored<UserProfile | null>(USER_KEY, null);
+  if (user?.role) {
+    (window as { __smartops_role?: string }).__smartops_role = user.role;
+  }
+  return user;
 }
 
 function loadStoredPermissions(): string[] {
@@ -178,6 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setToken(data.access_token);
     setUser(data.user);
+    // Surface the role globally so error boundaries can include it in reports.
+    (window as { __smartops_role?: string }).__smartops_role = data.user.role;
     applyRoleConfig({
       role: data.user.role,
       role_label: data.user.role,

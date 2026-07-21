@@ -55,7 +55,7 @@ function LatestActiveAlertsSkeleton() {
 export function LatestActiveAlerts() {
   const navigate = useNavigate();
 
-  const { data: alerts = [], isLoading } = useQuery({
+  const { data: alerts = [], isLoading, error } = useQuery({
     queryKey: ['alerts', 'latest-active'],
     queryFn: () => api.getAlerts({ status: ACTIVE_STATUSES }),
     refetchInterval: 30000,
@@ -83,6 +83,8 @@ export function LatestActiveAlerts() {
       <CardContent className="pt-0">
         {isLoading ? (
           <LatestActiveAlertsSkeleton />
+        ) : error ? (
+          <EmptyState title="Alerts unavailable" message="Could not load the latest alerts for this role." />
         ) : latestAlerts.length === 0 ? (
           <EmptyState title="No active alerts" message="All alerts are resolved. Nothing needs attention right now." />
         ) : (
