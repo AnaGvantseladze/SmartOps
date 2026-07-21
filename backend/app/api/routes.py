@@ -420,7 +420,7 @@ async def create_alert(payload: AlertCreate, db: AsyncSession = Depends(get_db))
         )
     )
     await db.commit()
-    await notify_alert_created(alert.id)
+    await notify_alert_created(alert.id, title=alert.title, priority=alert.priority.value)
     return await get_alert(alert.id, db)
 
 

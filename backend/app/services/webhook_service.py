@@ -99,5 +99,5 @@ async def process_webhook_alert(
 
     await db.commit()
     await db.refresh(alert)
-    await notify_alert_created(alert.id)
+    await notify_alert_created(alert.id, title=alert.title, priority=alert.priority.value)
     return alert

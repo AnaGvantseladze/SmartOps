@@ -24,8 +24,13 @@ class AlertEventManager:
 alert_events = AlertEventManager()
 
 
-async def notify_alert_created(alert_id: int) -> None:
-    await alert_events.broadcast({"type": "alert.created", "alert_id": alert_id})
+async def notify_alert_created(alert_id: int, title: str | None = None, priority: str | None = None) -> None:
+    payload: dict = {"type": "alert.created", "alert_id": alert_id}
+    if title:
+        payload["title"] = title
+    if priority:
+        payload["priority"] = priority
+    await alert_events.broadcast(payload)
 
 
 async def notify_alert_updated(alert_id: int) -> None:

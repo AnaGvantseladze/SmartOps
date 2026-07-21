@@ -267,8 +267,8 @@ function AppRoutes() {
 
 function AppShell() {
   const { toasts, remove } = useToastContext();
-  const { token, landingPage } = useAuth();
-  useAlertWebSocket(!!token);
+  const { token, landingPage, can } = useAuth();
+  useAlertWebSocket(!!token && can(PERMISSIONS.ALERTS_VIEW));
 
   useEffect(() => {
     if (!token) return;
