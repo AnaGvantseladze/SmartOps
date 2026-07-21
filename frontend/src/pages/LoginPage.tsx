@@ -17,7 +17,7 @@ interface DemoUser {
 const DEMO_ACCOUNTS: DemoUser[] = [
   {
     name: 'Saba Kekelia',
-    email: 'saba.kekelia@btu.edu.ge',
+    email: 'saba.kekelia.1@btu.edu.ge',
     password: 'engineer123',
     role: 'Administrator',
     icon: Shield,

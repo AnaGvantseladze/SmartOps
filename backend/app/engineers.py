@@ -4,7 +4,7 @@ from app.models.entities import User, UserRole
 DEMO_PASSWORD = "engineer123"
 
 DEMO_USERS: list[tuple[str, str, UserRole]] = [
-    ("Saba Kekelia", "saba.kekelia@btu.edu.ge", UserRole.ADMIN),
+    ("Saba Kekelia", "saba.kekelia.1@btu.edu.ge", UserRole.ADMIN),
     ("Ana Gvantseladze", "ana.gvantseladze@btu.edu.ge", UserRole.MANAGER),
     ("Eka Kesanashvili", "eka.kesanashvili@btu.edu.ge", UserRole.ENGINEER),
     ("Giorgi Tabatadze", "giorgi.tabatadze@btu.edu.ge", UserRole.CHANGE_MANAGER),

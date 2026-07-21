@@ -91,7 +91,7 @@ Four persona accounts are available for testing:
 
 | Role | Email | Password | Landing page |
 |------|-------|----------|--------------|
-| **Engineer** | `saba.kekelia@btu.edu.ge` | `engineer123` | Alert Console |
+| **Administrator** | `saba.kekelia.1@btu.edu.ge` | `engineer123` | Settings |
 | **Engineer** | `ana.gvantseladze@btu.edu.ge` | `engineer123` | Alert Console |
 | **Engineer** | `eka.kesanashvili@btu.edu.ge` | `engineer123` | Alert Console |
 
