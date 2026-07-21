@@ -15,7 +15,12 @@ class Settings(BaseSettings):
 
     database_url: str = Field(
         default_factory=_default_database_url,
-        validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_URL"),
+        validation_alias=AliasChoices(
+            "DATABASE_URL",
+            "POSTGRES_URL",
+            "POSTGRES_PRISMA_URL",
+            "POSTGRES_URL_NON_POOLING",
+        ),
     )
     secret_key: str = "dev-secret-key-change-in-production"
     cors_origins: str = "http://localhost:5173,http://localhost:3000"

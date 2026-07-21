@@ -1,7 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.admin_routes import router as admin_router
@@ -10,48 +12,19 @@ from app.api.webhook_routes import admin_router as webhook_admin_router, public_
 from app.api.notification_routes import router as notification_router
 from app.api.routes import router
 from app.config import settings
-from app.database import Base, async_session, engine
-from app.migrate_roles import migrate_removed_roles
-from app.migrate_change_impact import migrate_change_impact_fields
-from app.migrate_engineers import migrate_engineers
-from app.migrate_incident_status import migrate_incident_statuses
-from app.migrate_oncall_schedules import ensure_default_oncall_schedules, migrate_oncall_schedules
-from app.migrate_webhooks import migrate_azure_to_webhooks
-from app.seed import ensure_auth_users, seed_demo_data
-from app.seed_audit import seed_audit_logs
-from app.seed_notifications import seed_notifications_and_oncall
+from app.database import async_session, engine
+from app.startup import get_startup_error, initialize_database, verify_database_connection
+
+logger = logging.getLogger("smartops")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.seed import ensure_auth_schema
-
-    import app.models.audit  # noqa: F401
-    import app.models.notifications  # noqa: F401
-    import app.models.oncall  # noqa: F401
-    import app.models.entities  # noqa: F401
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    if not settings.is_sqlite:
-        await ensure_auth_schema(engine)
-        async with async_session() as session:
-            await migrate_removed_roles(session)
-            await migrate_azure_to_webhooks(session)
-            await migrate_incident_statuses(session)
-            await migrate_engineers(session)
-            await migrate_change_impact_fields(session)
-            await migrate_oncall_schedules(session)
-            await ensure_default_oncall_schedules(session)
-
-    if settings.seed_demo_data:
-        async with async_session() as session:
-            await seed_demo_data(session)
-            await ensure_auth_users(session)
-            if not settings.is_sqlite:
-                await seed_notifications_and_oncall(session)
-                await seed_audit_logs(session)
+    try:
+        await initialize_database()
+    except Exception:
+        # Keep the API online so /health can surface startup failures.
+        logger.exception("Continuing with degraded startup after database initialization failure")
     yield
     await engine.dispose()
 
@@ -62,6 +35,20 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s", request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "path": request.url.path,
+            "startup_error": get_startup_error(),
+        },
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,16 +70,13 @@ app.include_router(webhook_public_router, prefix="/api/v1/webhooks")
 
 @app.get("/health")
 async def health():
+    connected = await verify_database_connection()
     payload = {
-        "status": "healthy",
+        "status": "healthy" if connected and not get_startup_error() else "degraded",
         "service": "opscore-api",
         "database": settings.database_url.split(":", 1)[0],
+        "database_status": "connected" if connected else "unavailable",
     }
-    try:
-        async with async_session() as session:
-            await session.execute(text("SELECT 1"))
-        payload["database_status"] = "connected"
-    except Exception:
-        payload["status"] = "degraded"
-        payload["database_status"] = "unavailable"
+    if get_startup_error():
+        payload["startup_error"] = get_startup_error()
     return payload
