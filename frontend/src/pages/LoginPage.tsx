@@ -211,7 +211,7 @@ export function LoginPage() {
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {DEMO_ACCOUNTS.map((account) => {
                 const Icon = account.icon;
                 return (
@@ -220,22 +220,24 @@ export function LoginPage() {
                     type="button"
                     onClick={() => handleLogin(account.email, account.password)}
                     disabled={loading}
+                    title={`${account.role} — ${account.name}`}
                     className={cn(
-                      'group rounded-xl border bg-white p-4 text-left transition-all hover:shadow-md disabled:opacity-50',
+                      'group flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3.5 text-left transition-all hover:shadow-md disabled:opacity-50',
                       account.accent
                     )}
                   >
                     <div
                       className={cn(
-                        'mb-3 flex h-9 w-9 items-center justify-center rounded-lg transition-transform group-hover:scale-105',
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105',
                         account.iconBg
                       )}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="text-sm font-semibold text-slate-900">{account.name}</div>
-                    <div className="mt-0.5 text-xs font-medium text-slate-600">{account.role}</div>
-                    <div className="mt-2 truncate text-[11px] text-slate-400">{account.email}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-slate-900">{account.role}</div>
+                      <div className="truncate text-xs text-slate-500">{account.name}</div>
+                    </div>
                   </button>
                 );
               })}
