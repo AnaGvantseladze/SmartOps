@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import {
   applyTheme,
-  getStoredTheme,
   getSystemPrefersDark,
   initTheme,
   THEME_STORAGE_KEY,
