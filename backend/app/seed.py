@@ -383,6 +383,7 @@ async def ensure_auth_users(session: AsyncSession) -> None:
             user.name = name
             user.email = email
             user.role = role
+            user.is_active = True
             user.password_hash = hash_password(DEMO_AUTH_USERS[email])
             if user.team_id is None:
                 user.team_id = team_id
@@ -393,6 +394,7 @@ async def ensure_auth_users(session: AsyncSession) -> None:
                     email=email,
                     role=role,
                     team_id=team_id,
+                    is_active=True,
                     password_hash=hash_password(DEMO_AUTH_USERS[email]),
                 )
             )

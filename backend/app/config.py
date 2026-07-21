@@ -51,8 +51,12 @@ class Settings(BaseSettings):
             existing.update(vercel_origins)
             self.cors_origins = ",".join(sorted(existing))
 
-        if os.getenv("VERCEL_URL") and not self.public_base_url.startswith("https://"):
-            self.public_base_url = f"https://{os.getenv('VERCEL_URL')}"
+        if not self.public_base_url.startswith("https://"):
+            for env_key in ("VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_URL", "VERCEL_BRANCH_URL"):
+                host = os.getenv(env_key)
+                if host:
+                    self.public_base_url = f"https://{host}"
+                    break
 
         return self
 

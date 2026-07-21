@@ -66,6 +66,8 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> Lo
     user = await db.scalar(select(User).options(selectinload(User.team)).where(User.email == payload.email))
     if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is inactive")
 
     token = create_access_token(user.id, user.email, user.role.value)
     config = get_role_config(user.role)

@@ -54,7 +54,7 @@ const DEMO_ACCOUNTS: DemoUser[] = [
 ];
 
 export function LoginPage() {
-  const { login, user, isLoading } = useAuth();
+  const { login, user, isLoading, landingPage } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -90,7 +90,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={landingPage || '/'} replace />;
   }
 
   return (

@@ -37,6 +37,7 @@ async def migrate_engineers(session: AsyncSession) -> None:
             user.name = name
             user.email = email
             user.role = role
+            user.is_active = True
             user.password_hash = hash_password(DEMO_PASSWORD)
             if user.team_id is None:
                 user.team_id = default_team_id
@@ -47,6 +48,7 @@ async def migrate_engineers(session: AsyncSession) -> None:
                     email=email,
                     role=role,
                     team_id=default_team_id,
+                    is_active=True,
                     password_hash=hash_password(DEMO_PASSWORD),
                 )
             )
