@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import {
   applyTheme,
   getStoredTheme,
   getSystemPrefersDark,
+  initTheme,
   THEME_STORAGE_KEY,
   type ThemeMode,
 } from '@/lib/theme';
@@ -16,7 +17,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>(() => getStoredTheme());
+  const [theme, setThemeState] = useState<ThemeMode>(() => initTheme());
   const [systemDark, setSystemDark] = useState(() => getSystemPrefersDark());
 
   const setTheme = useCallback((mode: ThemeMode) => {
@@ -25,11 +26,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(mode);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyTheme(theme);
-  }, [theme, systemDark]);
+  }, [theme]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = (event: MediaQueryListEvent) => {
       setSystemDark(event.matches);

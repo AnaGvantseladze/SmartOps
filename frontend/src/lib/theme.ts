@@ -22,5 +22,20 @@ export function resolveDarkMode(mode: ThemeMode): boolean {
 }
 
 export function applyTheme(mode: ThemeMode): void {
-  document.documentElement.classList.toggle('dark', resolveDarkMode(mode));
+  const root = document.documentElement;
+  const isDark = resolveDarkMode(mode);
+
+  if (isDark) {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+
+  root.style.colorScheme = isDark ? 'dark' : 'light';
+}
+
+export function initTheme(): ThemeMode {
+  const mode = getStoredTheme();
+  applyTheme(mode);
+  return mode;
 }
