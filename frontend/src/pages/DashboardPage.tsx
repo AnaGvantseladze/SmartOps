@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   AlertTriangle,
-  ArrowRight,
   ArrowUpRight,
   FileDown,
   GitPullRequest,
@@ -21,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { AlertsTrendChart } from '@/components/dashboard/AlertsTrendChart';
+import { AlertsByPriorityDonut } from '@/components/dashboard/AlertsByPriorityDonut';
 import type { DashboardPeriod } from '@/types';
 
 const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
@@ -29,16 +29,6 @@ const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
   { value: 'month', label: '30d' },
   { value: 'year', label: '1y' },
 ];
-
-const PRIORITY_ORDER = ['P1', 'P2', 'P3', 'P4', 'P5'];
-
-const PRIORITY_COLORS: Record<string, string> = {
-  P1: 'bg-red-500',
-  P2: 'bg-amber-500',
-  P3: 'bg-yellow-500',
-  P4: 'bg-slate-400',
-  P5: 'bg-slate-300',
-};
 
 const SEVERITY_VARIANT: Record<string, 'danger' | 'warning' | 'secondary' | 'outline'> = {
   P1: 'danger',
@@ -95,7 +85,6 @@ export function DashboardPage() {
   }
 
   const p1p2 = (stats.alerts_by_priority.P1 ?? 0) + (stats.alerts_by_priority.P2 ?? 0);
-  const totalAlertsInPeriod = Object.values(stats.alerts_by_priority).reduce((sum, count) => sum + count, 0);
   const maxResolved = Math.max(...stats.alerts_resolved_by_engineer.map((row) => row.count), 1);
   const openIncidents = Object.values(stats.incidents_by_severity).reduce((sum, count) => sum + count, 0);
   const periodLabel = PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? period;
@@ -155,52 +144,7 @@ export function DashboardPage() {
         <div className="space-y-4 xl:col-span-8">
           <AlertsTrendChart data={stats.alerts_trend} />
 
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-4">
-              <div>
-                <CardTitle>Alerts by Priority</CardTitle>
-                <CardDescription>Distribution of alerts created in the selected time range</CardDescription>
-              </div>
-              <Link
-                to="/alerts"
-                className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800 dark:text-brand-300"
-              >
-                Open console
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {totalAlertsInPeriod === 0 ? (
-                <EmptyState title="No alerts" message="No alerts were created in this time range." />
-              ) : (
-                <div className="space-y-4">
-                  {PRIORITY_ORDER.map((priority) => {
-                    const count = stats.alerts_by_priority[priority] ?? 0;
-                    const percent = Math.round((count / totalAlertsInPeriod) * 100);
-                    return (
-                      <div key={priority} className="grid grid-cols-[3rem_1fr_3rem] items-center gap-3">
-                        <Badge variant={SEVERITY_VARIANT[priority] ?? 'outline'} className="justify-center">
-                          {priority}
-                        </Badge>
-                        <div className="space-y-1">
-                          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                            <div
-                              className={cn('h-full rounded-full transition-all', PRIORITY_COLORS[priority])}
-                              style={{ width: `${Math.max(count > 0 ? 8 : 0, (count / totalAlertsInPeriod) * 100)}%` }}
-                            />
-                          </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">{percent}% of volume</div>
-                        </div>
-                        <span className="text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
-                          {count}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <AlertsByPriorityDonut alertsByPriority={stats.alerts_by_priority} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="h-full">
