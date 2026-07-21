@@ -10,6 +10,28 @@ def _default_database_url() -> str:
     return "postgresql+asyncpg://opscore:opscore@localhost:5432/opscore"
 
 
+def _normalize_host(value: str | None) -> str | None:
+    if not value:
+        return None
+    host = value.strip()
+    for prefix in ("https://", "http://"):
+        if host.startswith(prefix):
+            host = host[len(prefix) :]
+    return host.rstrip("/") or None
+
+
+# Vercel team slug domains are not valid deployment hosts.
+_INVALID_PUBLIC_HOSTS = {"smart-ops-core1.vercel.app"}
+
+
+def _pick_public_host() -> str | None:
+    for env_key in ("VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_BRANCH_URL", "VERCEL_URL"):
+        host = _normalize_host(os.getenv(env_key))
+        if host and host not in _INVALID_PUBLIC_HOSTS:
+            return host
+    return None
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -51,12 +73,12 @@ class Settings(BaseSettings):
             existing.update(vercel_origins)
             self.cors_origins = ",".join(sorted(existing))
 
-        if not self.public_base_url.startswith("https://"):
-            for env_key in ("VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_URL", "VERCEL_BRANCH_URL"):
-                host = os.getenv(env_key)
+        if os.getenv("VERCEL"):
+            current_host = _normalize_host(self.public_base_url)
+            if not self.public_base_url.startswith("https://") or current_host in _INVALID_PUBLIC_HOSTS:
+                host = _pick_public_host()
                 if host:
                     self.public_base_url = f"https://{host}"
-                    break
 
         return self
 
@@ -70,3 +92,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def resolve_public_base_url() -> str:
+    if os.getenv("VERCEL"):
+        host = _pick_public_host()
+        if host:
+            return f"https://{host}"
+    return settings.public_base_url.rstrip("/")

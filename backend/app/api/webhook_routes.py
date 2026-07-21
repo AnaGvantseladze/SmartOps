@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import resolve_public_base_url
 from app.database import get_db
 from app.models.entities import User, WebhookIntegration
 from app.permissions import Permission, require_permission
@@ -21,7 +21,7 @@ public_router = APIRouter(tags=["webhooks"])
 
 
 def _webhook_url(integration_id: int) -> str:
-    base = settings.public_base_url.rstrip("/")
+    base = resolve_public_base_url()
     return f"{base}/api/v1/webhooks/{integration_id}"
 
 

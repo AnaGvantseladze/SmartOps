@@ -16,12 +16,17 @@ const SAMPLE_PAYLOAD = `{
   "service": "api-gateway"
 }`;
 
+function webhookPostUrl(integrationId: number): string {
+  return `${window.location.origin}/api/v1/webhooks/${integrationId}`;
+}
+
 function buildCurlCommand(integration: WebhookIntegration): string {
+  const url = webhookPostUrl(integration.id);
   const headers = ['-H "Content-Type: application/json"'];
   if (integration.webhook_secret) {
     headers.push(`-H "X-Webhook-Secret: ${integration.webhook_secret}"`);
   }
-  return `curl -X POST "${integration.webhook_url}" \\
+  return `curl -X POST "${url}" \\
 ${headers.map((h) => `  ${h} \\
 `).join('')}  -d '${SAMPLE_PAYLOAD.replace(/\n/g, ' ')}'`;
 }
@@ -140,10 +145,10 @@ export function AdminWebhookIntegrationPage() {
         </div>
 
         <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          <strong>Postman:</strong> use URL <code className="rounded bg-blue-100 px-1">http://localhost:8000/api/v1/webhooks/&#123;id&#125;</code> (port <strong>8000</strong>, not 5173).
-          Set method to <code className="rounded bg-blue-100 px-1">POST</code>, header{' '}
+          <strong>Postman:</strong> use the webhook URL shown below. Set method to{' '}
+          <code className="rounded bg-blue-100 px-1">POST</code>, header{' '}
           <code className="rounded bg-blue-100 px-1">Content-Type: application/json</code>.
-          Verify the API is running: <code className="rounded bg-blue-100 px-1">GET http://localhost:8000/api/v1/webhooks/ping</code>
+          Verify the API: <code className="rounded bg-blue-100 px-1">GET /api/v1/webhooks/ping</code>
         </div>
       </div>
 
@@ -212,8 +217,8 @@ export function AdminWebhookIntegrationPage() {
 
                 <label className="mb-1 block text-sm font-medium text-slate-700">Webhook URL (POST)</label>
                 <div className="flex gap-2">
-                  <input readOnly className="input flex-1 font-mono text-xs" value={integration.webhook_url} />
-                  <button className="btn-secondary" onClick={() => copyWebhook(integration.webhook_url)} title="Copy URL">
+                  <input readOnly className="input flex-1 font-mono text-xs" value={webhookPostUrl(integration.id)} />
+                  <button className="btn-secondary" onClick={() => copyWebhook(webhookPostUrl(integration.id))} title="Copy URL">
                     <Copy className="h-4 w-4" />
                   </button>
                 </div>
