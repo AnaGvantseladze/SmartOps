@@ -375,7 +375,13 @@ async def list_alerts(
         service_ids = select(Service.id).where(
             or_(Service.owner_id == current_user.id, Service.team_id == current_user.team_id)
         )
-        query = query.where(Alert.service_id.in_(service_ids))
+        query = query.where(
+            or_(
+                Alert.service_id.in_(service_ids),
+                Alert.service_id.is_(None),
+                Alert.assignee_id == current_user.id,
+            )
+        )
     if status:
         query = query.where(Alert.status.in_(status))
     if priority:

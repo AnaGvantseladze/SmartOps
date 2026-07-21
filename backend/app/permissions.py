@@ -258,7 +258,7 @@ ROLE_LABELS: dict[UserRole, str] = {
 
 ROLE_ALERT_SCOPE: dict[UserRole, str] = {
     UserRole.ADMIN: "all",
-    UserRole.ENGINEER: "my_services",
+    UserRole.ENGINEER: "all",
     UserRole.MANAGER: "all",
     UserRole.CHANGE_MANAGER: "none",
 }
