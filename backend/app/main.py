@@ -33,21 +33,25 @@ async def lifespan(app: FastAPI):
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    await ensure_auth_schema(engine)
-    async with async_session() as session:
-        await migrate_removed_roles(session)
-        await migrate_azure_to_webhooks(session)
-        await migrate_incident_statuses(session)
-        await migrate_engineers(session)
-        await migrate_change_impact_fields(session)
-        await migrate_oncall_schedules(session)
-        await ensure_default_oncall_schedules(session)
+
+    if not settings.is_sqlite:
+        await ensure_auth_schema(engine)
+        async with async_session() as session:
+            await migrate_removed_roles(session)
+            await migrate_azure_to_webhooks(session)
+            await migrate_incident_statuses(session)
+            await migrate_engineers(session)
+            await migrate_change_impact_fields(session)
+            await migrate_oncall_schedules(session)
+            await ensure_default_oncall_schedules(session)
+
     if settings.seed_demo_data:
         async with async_session() as session:
             await seed_demo_data(session)
             await ensure_auth_users(session)
-            await seed_notifications_and_oncall(session)
-            await seed_audit_logs(session)
+            if not settings.is_sqlite:
+                await seed_notifications_and_oncall(session)
+                await seed_audit_logs(session)
     yield
     await engine.dispose()
 
@@ -79,9 +83,16 @@ app.include_router(webhook_public_router, prefix="/api/v1/webhooks")
 
 @app.get("/health")
 async def health():
+    payload = {
+        "status": "healthy",
+        "service": "opscore-api",
+        "database": settings.database_url.split(":", 1)[0],
+    }
     try:
         async with async_session() as session:
             await session.execute(text("SELECT 1"))
-        return {"status": "healthy", "service": "opscore-api", "database": "connected"}
+        payload["database_status"] = "connected"
     except Exception:
-        return {"status": "degraded", "service": "opscore-api", "database": "unavailable"}
+        payload["status"] = "degraded"
+        payload["database_status"] = "unavailable"
+    return payload

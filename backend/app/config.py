@@ -1,12 +1,20 @@
-from pydantic import AliasChoices, Field, field_validator
+import os
+
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _default_database_url() -> str:
+    if os.getenv("VERCEL") and not os.getenv("DATABASE_URL") and not os.getenv("POSTGRES_URL"):
+        return "sqlite+aiosqlite:////tmp/smartops.db"
+    return "postgresql+asyncpg://opscore:opscore@localhost:5432/opscore"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = Field(
-        default="postgresql+asyncpg://opscore:opscore@localhost:5432/opscore",
+        default_factory=_default_database_url,
         validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_URL"),
     )
     secret_key: str = "dev-secret-key-change-in-production"
@@ -25,9 +33,31 @@ class Settings(BaseSettings):
             return "postgresql+asyncpg://" + value[len("postgresql://") :]
         return value
 
+    @model_validator(mode="after")
+    def apply_vercel_defaults(self) -> "Settings":
+        vercel_origins: list[str] = []
+        for env_key in ("VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL"):
+            host = os.getenv(env_key)
+            if host:
+                vercel_origins.append(f"https://{host}")
+
+        if vercel_origins:
+            existing = {origin.strip() for origin in self.cors_origins.split(",") if origin.strip()}
+            existing.update(vercel_origins)
+            self.cors_origins = ",".join(sorted(existing))
+
+        if os.getenv("VERCEL_URL") and not self.public_base_url.startswith("https://"):
+            self.public_base_url = f"https://{os.getenv('VERCEL_URL')}"
+
+        return self
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_url.startswith("sqlite")
 
 
 settings = Settings()
