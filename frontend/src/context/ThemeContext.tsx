@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import {
   applyTheme,
+  getStoredTheme,
   getSystemPrefersDark,
   initTheme,
   THEME_STORAGE_KEY,
@@ -20,14 +21,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [systemDark, setSystemDark] = useState(() => getSystemPrefersDark());
 
   const setTheme = useCallback((mode: ThemeMode) => {
-    localStorage.setItem(THEME_STORAGE_KEY, mode);
-    setThemeState(mode);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, mode);
+    } catch {
+      // ignore storage failures
+    }
     applyTheme(mode);
+    setThemeState(mode);
   }, []);
 
   useLayoutEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  useLayoutEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== THEME_STORAGE_KEY) return;
+      const next = getStoredTheme();
+      setThemeState(next);
+      applyTheme(next);
+    };
+
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   useLayoutEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');

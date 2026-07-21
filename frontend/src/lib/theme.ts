@@ -7,8 +7,14 @@ export function isThemeMode(value: string | null): value is ThemeMode {
 }
 
 export function getStoredTheme(): ThemeMode {
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  return isThemeMode(stored) ? stored : 'system';
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (isThemeMode(stored)) return stored;
+    if (stored === 'bright') return 'light';
+  } catch {
+    // localStorage may be unavailable
+  }
+  return 'system';
 }
 
 export function getSystemPrefersDark(): boolean {
@@ -25,12 +31,8 @@ export function applyTheme(mode: ThemeMode): void {
   const root = document.documentElement;
   const isDark = resolveDarkMode(mode);
 
-  if (isDark) {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
-
+  root.dataset.theme = isDark ? 'dark' : 'light';
+  root.classList.toggle('dark', isDark);
   root.style.colorScheme = isDark ? 'dark' : 'light';
 }
 
