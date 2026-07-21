@@ -1,0 +1,2 @@
+Never add "Made-with: Cursor", "Co-authored-by: Cursor", or any Cursor attribution trailer to commits, pull requests, or code comments.
+Use the repository owner's git identity for commits — do not use cursoragent@cursor.com.

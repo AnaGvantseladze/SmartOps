@@ -1,5 +1,6 @@
 # Editor / local tooling config (keep local, don't publish)
-.cursor/
+.cursor/*
+!.cursor/rules
 .vscode/
 .idea/
 
