@@ -38,6 +38,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     if existing:
         return
 
+
     teams = [
         Team(name="NOC Operations", description="24/7 network operations center"),
         Team(name="Trading Platform", description="Core trading services"),
@@ -373,6 +374,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
 
 async def ensure_auth_users(session: AsyncSession) -> None:
     """Set passwords and roles for the demo accounts."""
+    team_id = await session.scalar(select(Team.id).limit(1))
     for name, email, role in DEMO_USERS:
         user = await session.scalar(select(User).where(User.email == email))
         if not user:
@@ -382,6 +384,18 @@ async def ensure_auth_users(session: AsyncSession) -> None:
             user.email = email
             user.role = role
             user.password_hash = hash_password(DEMO_AUTH_USERS[email])
+            if user.team_id is None:
+                user.team_id = team_id
+        else:
+            session.add(
+                User(
+                    name=name,
+                    email=email,
+                    role=role,
+                    team_id=team_id,
+                    password_hash=hash_password(DEMO_AUTH_USERS[email]),
+                )
+            )
     await session.commit()
 
 
